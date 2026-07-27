@@ -130,6 +130,8 @@ export default function DomeGallery({
   autoTiltSwayDeg = 2.5,
   paused = false,
   detailLayout = false,
+  autoOpenIndex = null,
+  autoOpenSignal = 0,
   onImageSelect = null,
   onDetailClose = null,
 }) {
@@ -680,6 +682,33 @@ export default function DomeGallery({
     },
     [items, onImageSelect, openItemFromElement]
   );
+
+  const openItemAtIndex = useCallback(
+    (index) => {
+      if (paused || openingRef.current) return;
+      if (rootRef.current?.getAttribute('data-enlarging') === 'true') return;
+      const el = rootRef.current?.querySelector(
+        `.item[data-item-index="${index}"] .item__image`,
+      );
+      if (!el) return;
+      const item = items[index];
+      if (item) onImageSelect?.(item);
+      openItemFromElement(el);
+    },
+    [items, onImageSelect, openItemFromElement, paused],
+  );
+
+  useEffect(() => {
+    if (!autoOpenSignal || autoOpenIndex == null) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+
+    const timer = window.setTimeout(() => {
+      openItemAtIndex(autoOpenIndex);
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [autoOpenSignal, autoOpenIndex, openItemAtIndex]);
 
   useEffect(() => {
     return () => {

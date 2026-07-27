@@ -1,0 +1,17 @@
+/* Hero sits on shared homepage universe backdrop — no solid dark seam */
+
+.hero-universe {
+  display: none;
+}
+
+.hero-bottom-fade {
+  display: none;
+}
+
+/* Kill DomeGallery edge vignette — it painted a dark vertical strip on the right */
+section[aria-label="Hero gallery"] .overlay,
+section[aria-label="Hero gallery"] .overlay--blur,
+section[aria-label="Hero gallery"] .edge-fade--bottom,
+section[aria-label="Hero gallery"] .edge-fade--top {
+  display: none !important;
+}

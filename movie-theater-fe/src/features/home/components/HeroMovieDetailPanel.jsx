@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { Clock, Star } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Clock, Film, Star } from "lucide-react";
 import { motion } from "framer-motion";
-import { formatAgeRestrictionBadge } from "../utils/movieUtils";
+import { formatAgeRestrictionBadge, getMovieDetailPath } from "../utils/movieUtils";
 import "./HeroMovieDetailPanel.css";
 
 const formatDuration = (mins) => {
@@ -17,6 +18,7 @@ const formatDuration = (mins) => {
 export default function HeroMovieDetailPanel({ item }) {
   const movie = item?.movie || null;
   const title = movie?.title || item?.alt || "";
+  const detailPath = movie ? getMovieDetailPath(movie) : "";
 
   const metaLine = useMemo(() => {
     const parts = [];
@@ -48,35 +50,47 @@ export default function HeroMovieDetailPanel({ item }) {
           exit={{ opacity: 0, x: 16 }}
           transition={{ duration: 0.4, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
         >
-        <p className="hero-movie-detail__eyebrow">PHIM ĐƯỢC CHỌN</p>
-        <h2 className="hero-movie-detail__title">{title}</h2>
+          <p className="hero-movie-detail__eyebrow">PHIM ĐƯỢC CHỌN</p>
+          <h2 className="hero-movie-detail__title">{title}</h2>
 
-        {metaLine ? <p className="hero-movie-detail__meta">{metaLine}</p> : null}
+          {metaLine ? <p className="hero-movie-detail__meta">{metaLine}</p> : null}
 
-        {movie?.reviewAverageRating > 0 && movie?.reviewCount > 0 ? (
-          <div className="hero-movie-detail__rating">
-            <Star className="h-4 w-4 text-amber-400 fill-amber-400" aria-hidden />
-            <span className="hero-movie-detail__rating-value">
-              {movie.reviewAverageRating.toFixed(1)}
-            </span>
-            <span className="hero-movie-detail__rating-count">
-              ({movie.reviewCount} đánh giá)
-            </span>
-          </div>
-        ) : null}
+          {movie?.reviewAverageRating > 0 && movie?.reviewCount > 0 ? (
+            <div className="hero-movie-detail__rating">
+              <Star className="h-4 w-4 text-amber-400 fill-amber-400" aria-hidden />
+              <span className="hero-movie-detail__rating-value">
+                {movie.reviewAverageRating.toFixed(1)}
+              </span>
+              <span className="hero-movie-detail__rating-count">
+                ({movie.reviewCount} đánh giá)
+              </span>
+            </div>
+          ) : null}
 
-        {movie?.releaseDate ? (
-          <p className="hero-movie-detail__release">
-            <Clock className="h-3.5 w-3.5" aria-hidden />
-            {new Date(movie.releaseDate).toLocaleDateString("vi-VN")}
-          </p>
-        ) : null}
+          {movie?.releaseDate ? (
+            <p className="hero-movie-detail__release">
+              <Clock className="h-3.5 w-3.5" aria-hidden />
+              {new Date(movie.releaseDate).toLocaleDateString("vi-VN")}
+            </p>
+          ) : null}
 
-        {(movie?.description || movie?.summary) && (
-          <p className="hero-movie-detail__desc">
-            {movie.description || movie.summary}
-          </p>
-        )}
+          {(movie?.description || movie?.summary) && (
+            <p className="hero-movie-detail__desc">
+              {movie.description || movie.summary}
+            </p>
+          )}
+
+          {detailPath ? (
+            <div className="hero-movie-detail__actions">
+              <Link
+                to={detailPath}
+                className="hero-movie-detail__btn hero-movie-detail__btn--primary"
+              >
+                <Film className="h-4 w-4" aria-hidden />
+                Chi tiết phim
+              </Link>
+            </div>
+          ) : null}
         </motion.div>
       </div>
     </motion.aside>

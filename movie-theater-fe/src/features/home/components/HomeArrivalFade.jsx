@@ -18,7 +18,7 @@ export function HomeArrivalFade() {
 
     setShow(true);
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const t = window.setTimeout(() => setShow(false), reduced ? 150 : 700);
+    const t = window.setTimeout(() => setShow(false), reduced ? 80 : 200);
     return () => window.clearTimeout(t);
   }, []);
 

@@ -4,15 +4,12 @@
   z-index: 9998;
   pointer-events: none;
   background: #020108;
-  animation: home-arrival-reveal 0.75s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: home-arrival-reveal 0.2s ease-out forwards;
   will-change: opacity;
 }
 
 @keyframes home-arrival-reveal {
   0% {
-    opacity: 1;
-  }
-  35% {
     opacity: 1;
   }
   100% {
@@ -22,6 +19,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .home-arrival-fade {
-    animation-duration: 0.2s;
+    animation-duration: 0.08s;
   }
 }

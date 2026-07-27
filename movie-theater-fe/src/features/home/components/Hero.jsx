@@ -1,11 +1,15 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useNowShowingMovies, useUpcomingMovies } from "../hooks/useHomeQueries";
 import { mapApiMovies } from "../utils/movieUtils";
 import { resolveMediaUrl } from "../../../shared/utils/mediaUrlUtils";
 import HeroMovieDetailPanel from "./HeroMovieDetailPanel";
+import "./Hero.css";
 
 const DomeGallery = lazy(() => import("./DomeGallery"));
+
+const AUTO_HIGHLIGHT_DELAY_MS = 9000;
+const AUTO_HIGHLIGHT_INITIAL_MS = 7500;
 
 const FALLBACK_POSTERS = [
   {
@@ -62,6 +66,12 @@ const toDomeItems = (payload) => {
 
 const Hero = () => {
   const [selectedItem, setSelectedItem] = useState(null);
+  const [autoOpenSignal, setAutoOpenSignal] = useState(0);
+  const [autoOpenIndex, setAutoOpenIndex] = useState(0);
+  const userInteractedRef = useRef(false);
+  const selectedRef = useRef(false);
+  const autoHighlightingRef = useRef(false);
+  const highlightCursorRef = useRef(0);
   const { data: nowShowingData } = useNowShowingMovies();
   const { data: upcomingData } = useUpcomingMovies();
 
@@ -71,7 +81,30 @@ const Hero = () => {
     return [...items, ...FALLBACK_POSTERS].slice(0, 24);
   }, [nowShowingData, upcomingData]);
 
+  const highlightIndices = useMemo(
+    () =>
+      domeItems
+        .map((item, index) => (item.movie ? index : null))
+        .filter((index) => index !== null)
+        .slice(0, 10),
+    [domeItems],
+  );
+
+  const triggerAutoHighlight = useCallback(() => {
+    if (userInteractedRef.current || highlightIndices.length === 0) return;
+    const cursor = highlightCursorRef.current % highlightIndices.length;
+    const index = highlightIndices[cursor];
+    highlightCursorRef.current = cursor + 1;
+    autoHighlightingRef.current = true;
+    setAutoOpenIndex(index);
+    setAutoOpenSignal((n) => n + 1);
+  }, [highlightIndices]);
+
   const handleImageSelect = useCallback((item) => {
+    if (!autoHighlightingRef.current) {
+      userInteractedRef.current = true;
+    }
+    autoHighlightingRef.current = false;
     setSelectedItem(item);
   }, []);
 
@@ -79,25 +112,51 @@ const Hero = () => {
     setSelectedItem(null);
   }, []);
 
+  useEffect(() => {
+    selectedRef.current = Boolean(selectedItem);
+  }, [selectedItem]);
+
+  const handleGalleryInteract = useCallback(() => {
+    userInteractedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (highlightIndices.length === 0) return undefined;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return undefined;
+
+    let intervalId = null;
+    const initialTimer = window.setTimeout(() => {
+      if (!userInteractedRef.current && !selectedRef.current) {
+        triggerAutoHighlight();
+      }
+      intervalId = window.setInterval(() => {
+        if (!userInteractedRef.current && !selectedRef.current) {
+          triggerAutoHighlight();
+        }
+      }, AUTO_HIGHLIGHT_DELAY_MS);
+    }, AUTO_HIGHLIGHT_INITIAL_MS);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [highlightIndices.length, triggerAutoHighlight]);
+
   return (
     <section
-      className="relative isolate min-h-[90vh] w-full overflow-hidden bg-black pt-24 pb-36 md:min-h-screen md:pb-40"
+      className="relative min-h-[90vh] w-full overflow-hidden bg-transparent pt-24 pb-4 md:min-h-screen md:pb-6"
       aria-label="Hero gallery"
+      onPointerDown={handleGalleryInteract}
     >
-      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_40%,rgba(229,9,20,0.28)_0%,transparent_55%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_80%,rgba(40,0,8,0.65)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40" />
-      </div>
-
       <div className="absolute inset-0 z-[1]">
         <Suspense fallback={null}>
           <DomeGallery
             images={domeItems}
-            fit={0.55}
-            fitBasis="auto"
-            minRadius={480}
-            overlayBlurColor="#000000"
+            fit={0.72}
+            fitBasis="width"
+            minRadius={560}
+            overlayBlurColor="transparent"
             grayscale={false}
             imageBorderRadius="16px"
             openedImageBorderRadius="22px"
@@ -113,6 +172,9 @@ const Hero = () => {
             maxVerticalRotationDeg={12}
             detailLayout
             enlargeTransitionMs={320}
+            paused={Boolean(selectedItem)}
+            autoOpenIndex={autoOpenIndex}
+            autoOpenSignal={autoOpenSignal}
             onImageSelect={handleImageSelect}
             onDetailClose={handleDetailClose}
           />
@@ -127,6 +189,8 @@ const Hero = () => {
             "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
         }}
       />
+
+      <div className="hero-bottom-fade" aria-hidden />
 
       <AnimatePresence>
         {selectedItem ? (

@@ -134,13 +134,15 @@ const MovieDetailPage = () => {
     }
   }, [id]);
 
-  // Scroll to top on load (unless opening reviews via hash)
+  // Scroll to top on load (unless opening reviews / showtimes via hash)
   useEffect(() => {
-    const openFromHash = window.location.hash === '#movie-reviews';
+    const hash = window.location.hash;
+    const openFromHash =
+      hash === '#movie-reviews' || hash === '#select-showtimes';
     if (!openFromHash) {
       window.scrollTo(0, 0);
       setReviewsExpanded(false);
-    } else {
+    } else if (hash === '#movie-reviews') {
       setReviewsExpanded(true);
     }
   }, [id]);
@@ -154,6 +156,19 @@ const MovieDetailPage = () => {
         block: 'start',
       });
     }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [id, dbMovie]);
+
+  useEffect(() => {
+    if (window.location.hash !== '#select-showtimes' || !dbMovie) return;
+
+    const timer = window.setTimeout(() => {
+      document.getElementById('select-showtimes')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 400);
 
     return () => window.clearTimeout(timer);
   }, [id, dbMovie]);

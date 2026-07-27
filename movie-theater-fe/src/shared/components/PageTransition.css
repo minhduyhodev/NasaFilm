@@ -3,7 +3,8 @@
 .dashboard-view-transition__stage,
 .dash-motion-card {
   width: 100%;
-  will-change: opacity, transform;
+  /* Avoid will-change:transform — it traps position:fixed descendants (homepage backdrop) */
+  will-change: opacity;
 }
 
 /* Soft veil while content swaps — keeps layout from jumping harshly */

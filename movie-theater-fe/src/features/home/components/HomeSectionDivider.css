@@ -1,0 +1,43 @@
+.home-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: 80rem;
+  margin: 0 auto 1.75rem;
+  padding: 0 1rem;
+}
+
+.home-section-divider::before,
+.home-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(229, 9, 20, 0.35) 50%,
+    transparent
+  );
+}
+
+.home-section-divider__label {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+@media (min-width: 768px) {
+  .home-section-divider {
+    padding: 0 2rem;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-section-divider {
+    padding: 0 5rem;
+  }
+}

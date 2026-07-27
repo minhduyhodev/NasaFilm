@@ -1,13 +1,15 @@
 import { Suspense, lazy } from "react";
 import Hero from "../components/Hero";
-import TicketFilters from "../components/TicketFilters";
 import OrbitActiveRoomsPanel from "../components/OrbitActiveRoomsPanel";
 import NowShowing from "../components/NowShowing";
+import HomeSpotlightBanner from "../components/HomeSpotlightBanner";
+import HomeSectionDivider from "../components/HomeSectionDivider";
+import HomeSectionReveal from "../components/HomeSectionReveal";
 import LazySection from "../../../shared/components/LazySection";
 import HomeArrivalFade from "../components/HomeArrivalFade";
+import HomeSpaceBackdrop from "../components/HomeSpaceBackdrop";
 import "../components/HomeSpaceBackdrop.css";
 
-const HomeSpaceBackdrop = lazy(() => import("../components/HomeSpaceBackdrop"));
 const ComingSoon = lazy(() => import("../components/ComingSoon"));
 const Upcoming = lazy(() => import("../components/Upcoming"));
 const MovieMatchmakerWidget = lazy(
@@ -20,80 +22,104 @@ const SectionPlaceholder = ({ minHeight = "12rem" }) => (
 
 const HomePage = () => {
   return (
-    <div className="text-white min-h-screen">
+    <div className="home-page">
       <HomeArrivalFade />
-      <main className="pt-0">
+
+      <div className="home-page__backdrop" aria-hidden>
+        <HomeSpaceBackdrop />
+      </div>
+
+      <main className="home-page__main pt-0">
         <Hero />
 
-        <section
-          id="quick-booking"
-          className="-mt-16 md:-mt-24 relative z-20 px-4 md:px-8 lg:px-20"
-        >
-          <div className="max-w-6xl mx-auto">
-            <TicketFilters />
-          </div>
-        </section>
-
         <div className="home-space-zone">
-          <LazySection fallback={null}>
-            <Suspense fallback={null}>
-              <HomeSpaceBackdrop />
-            </Suspense>
-          </LazySection>
-
           <div className="home-space-zone__content">
-            <section className="px-4 pt-8 md:px-8 md:pt-10 lg:px-20">
-              <div className="mx-auto max-w-6xl">
-                <OrbitActiveRoomsPanel title="Phòng Orbit của bạn" />
-              </div>
-            </section>
+            <LazySection
+              as="section"
+              className="px-4 pt-0 md:px-8 lg:px-20 home-section"
+              fallback={<SectionPlaceholder minHeight="6rem" />}
+            >
+              <HomeSectionReveal>
+                <div className="mx-auto max-w-6xl">
+                  <OrbitActiveRoomsPanel title="Phòng Orbit của bạn" />
+                </div>
+              </HomeSectionReveal>
+            </LazySection>
+
+            <HomeSectionDivider label="Đang chiếu" />
 
             <LazySection
               as="section"
-              className="mt-10 px-4 md:px-8 lg:px-20 home-section"
+              className="px-4 pt-2 md:px-8 lg:px-20 home-section"
               fallback={<SectionPlaceholder minHeight="16rem" />}
             >
-              <div className="max-w-7xl mx-auto">
-                <NowShowing />
-              </div>
+              <HomeSectionReveal>
+                <div className="max-w-7xl mx-auto">
+                  <NowShowing />
+                </div>
+              </HomeSectionReveal>
             </LazySection>
 
             <LazySection
               as="section"
-              className="mt-16 px-4 md:px-8 lg:px-20 home-section"
+              className="mt-12 px-4 md:px-8 lg:px-20 home-section"
+              fallback={<SectionPlaceholder minHeight="14rem" />}
+            >
+              <HomeSectionReveal>
+                <div className="max-w-7xl mx-auto">
+                  <HomeSpotlightBanner />
+                </div>
+              </HomeSectionReveal>
+            </LazySection>
+
+            <HomeSectionDivider label="Sắp chiếu" />
+
+            <LazySection
+              as="section"
+              className="mt-4 px-4 pt-2 md:px-8 lg:px-20 home-section"
               fallback={<SectionPlaceholder minHeight="18rem" />}
             >
-              <div className="max-w-7xl mx-auto">
-                <Suspense fallback={<SectionPlaceholder minHeight="18rem" />}>
-                  <ComingSoon />
-                </Suspense>
-              </div>
+              <HomeSectionReveal>
+                <div className="max-w-7xl mx-auto">
+                  <Suspense fallback={<SectionPlaceholder minHeight="18rem" />}>
+                    <ComingSoon />
+                  </Suspense>
+                </div>
+              </HomeSectionReveal>
             </LazySection>
+
+            <HomeSectionDivider label="Lịch chiếu" />
 
             <LazySection
               as="section"
-              className="mt-16 px-4 md:px-8 lg:px-20 home-section"
+              className="mt-4 px-4 md:px-8 lg:px-20 home-section"
               fallback={<SectionPlaceholder minHeight="22rem" />}
             >
-              <div className="max-w-6xl mx-auto">
-                <Suspense fallback={<SectionPlaceholder minHeight="22rem" />}>
-                  <Upcoming />
-                </Suspense>
-              </div>
+              <HomeSectionReveal>
+                <div className="max-w-6xl mx-auto">
+                  <Suspense fallback={<SectionPlaceholder minHeight="22rem" />}>
+                    <Upcoming />
+                  </Suspense>
+                </div>
+              </HomeSectionReveal>
             </LazySection>
+
+            <HomeSectionDivider label="Gợi ý cho bạn" />
 
             <LazySection
               as="section"
               id="movie-matchmaker"
-              className="mt-16 px-4 md:px-8 lg:px-20 pb-16 overflow-visible home-section"
+              className="mt-4 px-4 md:px-8 lg:px-20 pb-16 overflow-visible home-section"
               fallback={<SectionPlaceholder minHeight="10rem" />}
               rootMargin="320px 0px"
             >
-              <div className="max-w-6xl mx-auto overflow-visible py-1">
-                <Suspense fallback={<SectionPlaceholder minHeight="10rem" />}>
-                  <MovieMatchmakerWidget />
-                </Suspense>
-              </div>
+              <HomeSectionReveal>
+                <div className="max-w-6xl mx-auto overflow-visible py-1">
+                  <Suspense fallback={<SectionPlaceholder minHeight="10rem" />}>
+                    <MovieMatchmakerWidget />
+                  </Suspense>
+                </div>
+              </HomeSectionReveal>
             </LazySection>
           </div>
         </div>

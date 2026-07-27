@@ -42,7 +42,7 @@ const formatShowtimeLabel = (isoString) => {
   });
 };
 
-const Upcoming = () => {
+const Upcoming = ({ embedded = false }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthContext();
   const { data: moviesData, isLoading } = useUpcomingMovies();
@@ -222,7 +222,7 @@ const Upcoming = () => {
 
   return (
     <>
-      <div className="home-upcoming-root">
+      <div className={`home-upcoming-root${embedded ? " home-upcoming-root--embedded" : ""}`}>
         <section className="home-upcoming-section text-left">
           <motion.div
             initial={{ opacity: 0, y: 25 }}

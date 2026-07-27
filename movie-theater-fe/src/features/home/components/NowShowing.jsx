@@ -18,6 +18,7 @@ const NowShowing = () => {
       moviesList={moviesList}
       isLoading={isLoading}
       actionLabel="Mua vé"
+      showEarliestShowtime
     />
   );
 };

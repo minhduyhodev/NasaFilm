@@ -46,13 +46,13 @@ function mountOverlay() {
 }
 
 /** Lightweight cosmos zoom; transform/opacity only. */
-export function playCosmosHomeTransition({ durationMs = 3400, onDone } = {}) {
+export function playCosmosHomeTransition({ durationMs = 550, onDone } = {}) {
   if (typeof document === 'undefined') {
     onDone?.();
     return () => {};
   }
 
-  const wait = prefersReducedMotion() ? 220 : durationMs;
+  const wait = prefersReducedMotion() ? 120 : durationMs;
   mountOverlay();
 
   try {
@@ -63,7 +63,7 @@ export function playCosmosHomeTransition({ durationMs = 3400, onDone } = {}) {
 
   const timer = window.setTimeout(() => {
     onDone?.();
-    window.setTimeout(removeOverlay, 60);
+    window.setTimeout(removeOverlay, 30);
   }, wait);
 
   return () => {
@@ -73,7 +73,7 @@ export function playCosmosHomeTransition({ durationMs = 3400, onDone } = {}) {
 }
 
 /** Hook: brand click → cosmos zoom → navigate home. */
-export function useCosmosHomeTransition({ to = '/', durationMs = 3400 } = {}) {
+export function useCosmosHomeTransition({ to = '/', durationMs = 550 } = {}) {
   const navigate = useNavigate();
   const busyRef = useRef(false);
   const cleanupRef = useRef(null);

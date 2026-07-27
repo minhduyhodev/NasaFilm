@@ -15,7 +15,7 @@
 }
 
 .cosmos-home-transition--play {
-  animation: cosmos-home-fade-in 0.45s ease-out forwards;
+  animation: cosmos-home-fade-in 0.15s ease-out forwards;
 }
 
 .cosmos-home-transition__nebula {
@@ -39,8 +39,7 @@
 }
 
 .cosmos-home-transition--play .cosmos-home-transition__nebula {
-  /* Slow ease-in-out: drift in, settle, then deepen */
-  animation: cosmos-home-zoom 3.4s cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
+  animation: cosmos-home-zoom 0.55s cubic-bezier(0.4, 0.05, 0.2, 1) forwards;
 }
 
 .cosmos-home-transition__fade {
@@ -52,7 +51,7 @@
 }
 
 .cosmos-home-transition--play .cosmos-home-transition__fade {
-  animation: cosmos-home-fade-cover 3.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: cosmos-home-fade-cover 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes cosmos-home-fade-in {
@@ -68,17 +67,8 @@
   0% {
     transform: translate3d(0, 0, 0) scale(1);
   }
-  25% {
-    transform: translate3d(-1%, -0.8%, 0) scale(1.18);
-  }
-  55% {
-    transform: translate3d(-2.8%, -2%, 0) scale(1.55);
-  }
-  80% {
-    transform: translate3d(-4.2%, -3%, 0) scale(1.95);
-  }
   100% {
-    transform: translate3d(-5.5%, -4%, 0) scale(2.35);
+    transform: translate3d(-3.5%, -2.5%, 0) scale(1.85);
   }
 }
 
@@ -86,11 +76,8 @@
   0% {
     opacity: 0;
   }
-  55% {
-    opacity: 0;
-  }
-  78% {
-    opacity: 0.28;
+  40% {
+    opacity: 0.15;
   }
   100% {
     opacity: 1;
@@ -100,6 +87,6 @@
 @media (prefers-reduced-motion: reduce) {
   .cosmos-home-transition--play .cosmos-home-transition__nebula,
   .cosmos-home-transition--play .cosmos-home-transition__fade {
-    animation-duration: 0.25s !important;
+    animation-duration: 0.2s !important;
   }
 }
