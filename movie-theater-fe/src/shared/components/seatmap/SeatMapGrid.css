@@ -44,6 +44,9 @@
 .seat-map-zoom {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -132,6 +135,9 @@
 
 .seat-map-viewport--zoomable {
   position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 1rem;
   background: rgba(11, 15, 25, 0.45);
@@ -146,11 +152,12 @@
 
 .seat-map-viewport--zoomable .seat-map-viewport__inner--zoomable {
   --seat-zoom: 1;
-  --seat-slot-gap: calc(var(--seat-base-gap, 0.4rem) * var(--seat-zoom));
-  --seat-slot-w: calc(var(--seat-base-w, 2.25rem) * var(--seat-zoom));
-  --seat-slot-h: calc(var(--seat-base-h, 1.5rem) * var(--seat-zoom));
-  --seat-font-size: clamp(8px, calc(11px * var(--seat-zoom)), 14px);
-  --seat-couple-font-size: clamp(7px, calc(10px * var(--seat-zoom)), 12px);
+  --seat-base-scale: 1;
+  --seat-slot-gap: calc(var(--seat-base-gap, 0.4rem) * var(--seat-base-scale) * var(--seat-zoom));
+  --seat-slot-w: calc(var(--seat-base-w, 2.25rem) * var(--seat-base-scale) * var(--seat-zoom));
+  --seat-slot-h: calc(var(--seat-base-h, 1.5rem) * var(--seat-base-scale) * var(--seat-zoom));
+  --seat-font-size: clamp(7px, calc(11px * var(--seat-base-scale) * var(--seat-zoom)), 14px);
+  --seat-couple-font-size: clamp(6px, calc(10px * var(--seat-base-scale) * var(--seat-zoom)), 12px);
   width: max-content;
   min-width: max-content;
   padding: 0.75rem 1rem 1rem;

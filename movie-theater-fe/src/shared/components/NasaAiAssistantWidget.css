@@ -1402,6 +1402,36 @@ button.nasa-assistant-card:hover,
   border-color: rgba(239, 68, 68, 0.34);
 }
 
+.nasa-wizard__select {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(7, 10, 16, 0.95);
+  color: #fff;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.78rem;
+  outline: none;
+}
+
+.nasa-wizard__select:focus {
+  border-color: rgba(239, 68, 68, 0.34);
+}
+
+.nasa-support-form {
+  margin: 0.85rem;
+}
+
+.nasa-support-form__field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.nasa-support-form__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+}
+
 .nasa-wizard__meta {
   text-align: right;
   font-size: 0.64rem;
