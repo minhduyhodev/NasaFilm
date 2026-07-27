@@ -34,6 +34,7 @@ import com.thdpv.movietheater.config.cache.CacheNames;
 import com.thdpv.movietheater.movie.entity.Movie;
 import com.thdpv.movietheater.movie.entity.MovieMedia;
 import com.thdpv.movietheater.movie.repository.MovieRepository;
+import com.thdpv.movietheater.movie.util.S3MediaBorderUtils;
 import com.thdpv.movietheater.orbit.repository.OrbitMemberRepository;
 import com.thdpv.movietheater.orbit.repository.OrbitRoomRepository;
 import com.thdpv.movietheater.orbit.util.OrbitSeatJson;
@@ -299,14 +300,28 @@ public class PreShowService {
         if (movie == null || movie.getMovieMedias() == null) {
             return null;
         }
-        for (MovieMedia movieMedia : movie.getMovieMedias()) {
-            if (Boolean.TRUE.equals(movieMedia.getIsPrimary())) {
-                return movieMedia.getMediaUrl();
-            }
-        }
-        return movie.getMovieMedias().stream()
-                .findFirst()
+        String raw = movie.getMovieMedias().stream()
+                .filter(media -> media != null && media.getMediaUrl() != null && !media.getMediaUrl().isBlank())
+                .filter(media -> {
+                    String type = media.getMediaType();
+                    return type != null && "POSTER".equalsIgnoreCase(type.trim());
+                })
+                .sorted((a, b) -> Boolean.compare(
+                        Boolean.TRUE.equals(b.getIsPrimary()),
+                        Boolean.TRUE.equals(a.getIsPrimary())))
                 .map(MovieMedia::getMediaUrl)
-                .orElse(null);
+                .findFirst()
+                .orElseGet(() -> movie.getMovieMedias().stream()
+                        .filter(media -> media != null && Boolean.TRUE.equals(media.getIsPrimary()))
+                        .map(MovieMedia::getMediaUrl)
+                        .filter(url -> url != null && !url.isBlank())
+                        .findFirst()
+                        .orElseGet(() -> movie.getMovieMedias().stream()
+                                .filter(media -> media != null)
+                                .map(MovieMedia::getMediaUrl)
+                                .filter(url -> url != null && !url.isBlank())
+                                .findFirst()
+                                .orElse(null)));
+        return S3MediaBorderUtils.toBorderUrl(raw);
     }
 }

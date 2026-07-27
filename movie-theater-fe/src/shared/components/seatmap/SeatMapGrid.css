@@ -185,6 +185,12 @@
   max-width: none;
 }
 
+.seat-map-viewport--zoomable .seat-map-grid-cell > button,
+.seat-map-viewport--zoomable .seat-map-grid-cell > .seat {
+  position: relative;
+  z-index: 2;
+}
+
 .seat-map-viewport--zoomable .seat-map-grid-cell > button {
   font-size: var(--seat-font-size, 10px);
 }
