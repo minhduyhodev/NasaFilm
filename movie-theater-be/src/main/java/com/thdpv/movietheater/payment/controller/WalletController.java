@@ -60,25 +60,13 @@ public class WalletController {
         return ResponseEntity.ok(ApiResponse.success(walletService.getTransactions(userUuid, type, date, pageable)));
     }
 
-    @PostMapping("/top-up")
-    public ResponseEntity<ApiResponse<WalletSummaryResponse>> topUp(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @RequestBody WalletAmountRequest request) {
-        UUID userUuid = resolveUserUuid(userDetails);
-        WalletSummaryResponse summary = walletService.mockTopUp(userUuid, request.getAmount());
-        return ResponseEntity.ok(ApiResponse.success(summary, "Nạp tiền mô phỏng thành công"));
-    }
-
     @PostMapping("/top-up/intent")
     public ResponseEntity<ApiResponse<WalletTopUpIntentResponse>> createTopUpIntent(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody WalletAmountRequest request) {
         UUID userUuid = resolveUserUuid(userDetails);
         WalletTopUpIntentResponse intent = walletService.createTopUpIntent(userUuid, request.getAmount());
-        String message = intent.isMockMode()
-                ? "Nạp tiền mô phỏng thành công"
-                : "Đã tạo phiên thanh toán nạp ví";
-        return ResponseEntity.ok(ApiResponse.success(intent, message));
+        return ResponseEntity.ok(ApiResponse.success(intent, "Đã tạo phiên thanh toán nạp ví"));
     }
 
     @PostMapping("/top-up/confirm")
@@ -111,15 +99,6 @@ public class WalletController {
             return ResponseEntity.ok(ApiResponse.success(null, "Chưa nhận được thanh toán"));
         }
         return ResponseEntity.ok(ApiResponse.success(summary, "Nạp tiền qua VietQR thành công"));
-    }
-
-    @PostMapping("/withdraw")
-    public ResponseEntity<ApiResponse<WalletSummaryResponse>> withdraw(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @RequestBody WalletAmountRequest request) {
-        UUID userUuid = resolveUserUuid(userDetails);
-        WalletSummaryResponse summary = walletService.mockWithdraw(userUuid, request.getAmount());
-        return ResponseEntity.ok(ApiResponse.success(summary, "Rút tiền mô phỏng thành công"));
     }
 
     private UUID resolveUserUuid(UserDetails userDetails) {

@@ -329,36 +329,6 @@ export default function VietQRPage() {
                   </div>
                 )}
 
-                {/* DEV ONLY Webhook Simulator */}
-                {import.meta.env.DEV && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const mockPayload = {
-                          gateway: "MockBank_Local",
-                          amount: qrData.amount,
-                          content: qrData.transferContent,
-                          referenceCode: qrData.transferCode
-                        };
-
-                        const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/v1/webhooks/vietqr`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'nasafilm-secret-webhook-token'
-                          },
-                          body: JSON.stringify(mockPayload)
-                        });
-                        if (res.ok) alert('Đã gửi Webhook giả lập thành công! Hãy đợi khoảng 1-2s để auto-polling chạy.');
-                      } catch (e) {
-                        alert('Lỗi gửi webhook: ' + e.message);
-                      }
-                    }}
-                    className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 transition-colors rounded-lg text-white text-xs font-bold w-full shadow-lg shadow-purple-500/20"
-                  >
-                    🚀 [DEV] Giả lập Webhook (Đã chuyển tiền)
-                  </button>
-                )}
               </div>
 
               {/* Right Column: Bank Info & Actions */}

@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.thdpv.movietheater.auth.dto.AuthMeResponse;
 import com.thdpv.movietheater.auth.dto.GoogleLoginRequest;
 import com.thdpv.movietheater.auth.dto.JwtResponse;
 import com.thdpv.movietheater.auth.dto.LoginRequest;
@@ -291,6 +292,37 @@ public class AuthService {
 
     private LocalDateTime calculateRefreshExpiry() {
         return LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000);
+    }
+
+    /**
+     * Returns authoritative roles/permissions from DB for the authenticated user.
+     * Clients must not trust locally cached roles for admin UI gating.
+     */
+    @Transactional(readOnly = true)
+    public AuthMeResponse getCurrentUser(String email) {
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        ensureAccountIsActive(user);
+        ensureNotSystemAccount(user);
+
+        List<String> authorities = getRoleAuthorities(user);
+        List<String> roles = authorities.stream()
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring("ROLE_".length()))
+                .distinct()
+                .toList();
+        List<String> permissions = authorities.stream()
+                .filter(authority -> !authority.startsWith("ROLE_"))
+                .distinct()
+                .toList();
+
+        return new AuthMeResponse(
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getAvatarUrl(),
+                roles,
+                permissions);
     }
 
     private void ensureAccountIsActive(User user) {

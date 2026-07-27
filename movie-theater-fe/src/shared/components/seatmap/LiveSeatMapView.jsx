@@ -28,6 +28,7 @@ import './SeatMapGrid.css';
 import './LiveSeatMapView.css';
 import '../aisle/AisleMapStyles.css';
 import '../../../features/home/pages/BookingPage.css';
+import SeatMapZoomViewport from './SeatMapZoomViewport';
 
 const normalizeSeatType = (seatTypeName = '') => {
   const type = seatTypeName.toLowerCase();
@@ -272,26 +273,31 @@ const LiveSeatMapView = ({
   const renderCouple = isStaff ? renderStaffCouple : renderBookingCouple;
 
   return (
-    <div className={`live-seat-map ${compact ? 'live-seat-map--compact' : ''} ${isStaff ? 'live-seat-map--staff' : ''}`}>
-      <div className={`live-seat-map__screen ${compact ? 'live-seat-map__screen--compact' : ''}`}>
-        <div className="screen-curve relative mx-auto w-3/4 h-2 bg-gradient-to-b from-white/45 to-transparent rounded-[50%] screen-glow" />
-        <p className="text-[10px] font-bold text-gray-400 mt-3 tracking-widest uppercase">
-          Màn hình chính
-        </p>
-      </div>
+    <div className={`live-seat-map min-w-0 w-full ${compact ? 'live-seat-map--compact' : ''} ${isStaff ? 'live-seat-map--staff' : ''}`}>
+      <SeatMapZoomViewport
+        cols={maxSeatNumber}
+        variant="booking"
+        className="w-full"
+        maxHeightClass={compact ? 'max-h-[min(55vh,520px)]' : 'max-h-[min(72vh,760px)]'}
+      >
+        <div className={`live-seat-map__screen ${compact ? 'live-seat-map__screen--compact' : ''}`} data-no-pan>
+          <div className="screen-curve relative mx-auto w-3/4 h-2 bg-gradient-to-b from-white/45 to-transparent rounded-[50%] screen-glow" />
+          <p className="text-[10px] font-bold text-gray-400 mt-3 tracking-widest uppercase">
+            Màn hình chính
+          </p>
+        </div>
 
-      <div className="flex flex-col gap-2.5 overflow-x-auto overflow-y-visible w-full items-center pb-2 py-4 scrollbar-hide select-none">
         {rowNames.map((row) => {
           const seatsList = seatsByRow[row] || [];
           const isFullHorizontalAisle = completeHorizontalRows.includes(row);
 
           return (
-            <div key={row} className="flex items-center gap-2 mb-1 justify-center min-w-max">
-              <div className="w-6 text-center text-[10px] font-bold text-gray-500">{row}</div>
+            <div key={row} className="seat-map-row mb-1">
+              <div className="seat-map-row__label">{row}</div>
 
               {isFullHorizontalAisle ? (
                 <div
-                  className="seat-map-grid seat-map-grid--booking"
+                  className="seat-map-grid seat-map-grid--booking seat-map-row__grid"
                   style={getSeatMapGridStyle(maxSeatNumber)}
                 >
                   {(() => {
@@ -341,7 +347,7 @@ const LiveSeatMapView = ({
                 </div>
               ) : (
                 <div
-                  className="seat-map-grid seat-map-grid--booking seat-map-row-seats"
+                  className="seat-map-grid seat-map-grid--booking seat-map-row-seats seat-map-row__grid"
                   style={getSeatMapGridStyle(maxSeatNumber)}
                 >
                   {buildRowPlacedItems(
@@ -435,11 +441,11 @@ const LiveSeatMapView = ({
                 </div>
               )}
 
-              <div className="w-6 text-center text-[10px] font-bold text-gray-500">{row}</div>
+              <div className="seat-map-row__label">{row}</div>
             </div>
           );
         })}
-      </div>
+      </SeatMapZoomViewport>
 
       {showLegend && (
         <div className={`live-seat-map__legend ${compact ? 'live-seat-map__legend--compact' : ''}`}>
