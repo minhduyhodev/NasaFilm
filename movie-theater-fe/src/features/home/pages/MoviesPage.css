@@ -250,6 +250,7 @@
   @apply py-3 text-center text-xs text-gray-500;
 }
 
+
 .movie-filter-footer {
   @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-4 md:px-5 bg-[#0b0f19]/50 border-t border-white/10;
 }
@@ -261,6 +262,7 @@
 .movie-filter-btn-count {
   @apply rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-[#FFD875];
 }
+
 
 .movie-filter-footer-actions {
   @apply flex items-center gap-2 sm:ml-auto;

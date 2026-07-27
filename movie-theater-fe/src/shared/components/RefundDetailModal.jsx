@@ -81,7 +81,7 @@ const RefundDetailModal = ({ bookingUuid, open, onClose }) => {
               )}
               {data.refundStatus === 'COMPLETED' && (
                 <p className="mt-4 text-xs text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-                  Tiền đã được hoàn về Ví NASA (nếu thanh toán bằng ví) hoặc qua Mock Gateway.
+                  Tiền đã được hoàn về Ví NASA (nếu thanh toán bằng ví) hoặc qua cổng thanh toán gốc.
                 </p>
               )}
             </>

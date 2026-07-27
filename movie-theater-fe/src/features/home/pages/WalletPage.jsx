@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowDownCircle, ArrowUpCircle, Loader2, RefreshCw, Wallet,
-  X, QrCode, CreditCard, Zap, CheckCircle2, CalendarDays,
+  ArrowDownCircle, Loader2, RefreshCw, Wallet,
+  X, QrCode, CreditCard, CheckCircle2, CalendarDays,
 } from 'lucide-react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -12,7 +12,6 @@ import {
   useWalletTransactions,
   useInvalidateWallet,
 } from '../../../shared/hooks/queries/useWalletQuery';
-import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import Pagination from '../../../shared/components/Pagination';
 import WalletVietQRModal from './WalletVietQRModal';
 import './AccountUtilityPages.css';
@@ -45,7 +44,6 @@ const TX_FILTERS = [
   { id: 'TOP_UP',   label: 'Nạp' },
   { id: 'PAYMENT',  label: 'Thanh toán' },
   { id: 'REFUND',   label: 'Hoàn' },
-  { id: 'WITHDRAW', label: 'Rút' },
 ];
 
 /* ─── Stripe form ─── */
@@ -147,12 +145,11 @@ function MethodCard({ id, icon: Icon, iconColor, title, subtitle, selected, onCl
 
 /* ─── Main WalletPage ─── */
 const WalletPage = () => {
-  const confirm       = useConfirm();
   const { data: summary, isLoading, refetch } = useWalletSummary();
   const invalidateWallet = useInvalidateWallet();
 
   const [amount,        setAmount]        = useState('');
-  const [selectedMethod, setSelectedMethod] = useState(null); // 'mock' | 'vietqr' | 'stripe'
+  const [selectedMethod, setSelectedMethod] = useState(null); // 'vietqr' | 'stripe'
   const [isSubmitting,  setIsSubmitting]  = useState(false);
   const [clientSecret,  setClientSecret]  = useState('');
   const [pendingAmount, setPendingAmount] = useState(null);
@@ -184,9 +181,7 @@ const WalletPage = () => {
   const quickAmounts = summary?.quickAmounts?.length
     ? summary.quickAmounts.map(Number)
     : FALLBACK_QUICK_AMOUNTS;
-  const mockMode    = summary?.mockMode !== false;
 
-  // Set default amount on load
   useEffect(() => {
     if (amount) return;
     const defaults = summary?.quickAmounts?.length
@@ -217,30 +212,7 @@ const WalletPage = () => {
       return;
     }
 
-    if (selectedMethod === 'mock') {
-      const ok = await confirm({
-        title:        'Xác nhận nạp tiền',
-        message:      'Bạn có chắc muốn nạp tiền vào Ví NASA?',
-        highlight:    formatMoney(value),
-        confirmLabel: 'Nạp tiền',
-        variant:      'warning',
-      });
-      if (!ok) return;
-      setIsSubmitting(true);
-      try {
-        await walletService.topUp(value);
-        await invalidateWallet();
-        notificationService.success(`Nạp ${formatMoney(value)} vào ví NASA thành công`);
-      } catch (err) {
-        notificationService.error(err?.message || 'Nạp tiền thất bại');
-      } finally {
-        setIsSubmitting(false);
-      }
-      return;
-    }
-
     if (selectedMethod === 'vietqr') {
-      if (!validateAmount(value)) return;
       setShowVietQR(true);
       return;
     }
@@ -249,11 +221,6 @@ const WalletPage = () => {
       setIsSubmitting(true);
       try {
         const intent = await walletService.createTopUpIntent(value);
-        if (intent?.mockMode) {
-          await invalidateWallet();
-          notificationService.success(`Nạp ${formatMoney(value)} vào ví NASA thành công`);
-          return;
-        }
         if (!intent?.clientSecret) throw new Error('Không nhận được clientSecret từ máy chủ');
         setPendingAmount(value);
         setClientSecret(intent.clientSecret);
@@ -262,7 +229,6 @@ const WalletPage = () => {
       } finally {
         setIsSubmitting(false);
       }
-      return;
     }
   };
 
@@ -275,45 +241,20 @@ const WalletPage = () => {
     notificationService.success(`Nạp ${formatMoney(pendingAmount)} vào ví NASA thành công`);
   };
 
-  const handleWithdraw = async () => {
-    if (!mockMode) {
-      notificationService.warning('Rút tiền mô phỏng chỉ khả dụng ở chế độ mock');
-      return;
-    }
-    const value = Number(amount);
-    if (!validateAmount(value)) return;
-    setIsSubmitting(true);
-    try {
-      await walletService.withdraw(value);
-      await invalidateWallet();
-      notificationService.success(`Rút ${formatMoney(value)} từ ví NASA thành công`);
-    } catch (err) {
-      notificationService.error(err?.message || 'Rút tiền thất bại');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const transactions = txData?.content || [];
   const totalTransactions = Number(txData?.totalElements || 0);
 
-  /* Build available methods */
   const methods = [
-    ...(mockMode ? [{
-      id: 'mock', icon: Zap, iconColor: 'text-yellow-400',
-      title: 'Mock (Mô phỏng tức thì)',
-      subtitle: 'Cộng tiền ngay lập tức — chỉ dành cho môi trường dev/test',
-    }] : []),
     {
       id: 'vietqr', icon: QrCode, iconColor: 'text-blue-400',
       title: 'VietQR — Chuyển khoản ngân hàng',
       subtitle: 'Quét mã QR bằng app ngân hàng, tự động xác nhận',
     },
-    ...(!mockMode ? [{
+    {
       id: 'stripe', icon: CreditCard, iconColor: 'text-violet-400',
       title: 'Stripe — Thẻ quốc tế',
       subtitle: 'Visa / Mastercard / American Express',
-    }] : []),
+    },
   ];
 
   return (
@@ -324,8 +265,7 @@ const WalletPage = () => {
             <span className="account-page__eyebrow">Tài khoản / Ví</span>
             <h1 className="account-page__title">Ví NASA</h1>
             <p className="account-page__intro">
-              Nạp tiền vào ví để thanh toán vé xem phim nhanh hơn — hỗ trợ VietQR, thẻ quốc tế
-              {mockMode ? ' và mô phỏng tức thì cho môi trường thử nghiệm.' : '.'}
+              Nạp tiền vào ví để thanh toán vé xem phim nhanh hơn — hỗ trợ VietQR và thẻ quốc tế.
             </p>
           </div>
           <button
@@ -413,17 +353,6 @@ const WalletPage = () => {
                       {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownCircle className="h-4 w-4" />}
                       {selectedMethod === 'vietqr' ? 'Tạo mã QR' : 'Nạp tiền'}
                     </button>
-                    {mockMode && (
-                      <button
-                        type="button"
-                        disabled={isSubmitting}
-                        onClick={handleWithdraw}
-                        className="account-action account-action--secondary"
-                      >
-                        <ArrowUpCircle className="h-4 w-4" />
-                        Rút tiền (Mock)
-                      </button>
-                    )}
                   </div>
                 </>
               )}
@@ -441,7 +370,7 @@ const WalletPage = () => {
               <p className="wallet-balance__value">{formatMoney(summary?.balance)}</p>
             )}
             <p className="wallet-balance__provider">
-              {mockMode ? 'Mock Gateway' : 'Live Gateway'} / {summary?.provider || (mockMode ? 'mock' : 'stripe')}
+              Live Gateway / {summary?.provider || 'stripe'}
             </p>
           </aside>
         </div>
@@ -572,7 +501,6 @@ const WalletPage = () => {
         </section>
       </main>
 
-      {/* VietQR modal */}
       {showVietQR && (
         <WalletVietQRModal
           amount={Number(amount)}
