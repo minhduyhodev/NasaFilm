@@ -203,10 +203,9 @@ const BookingPage = () => {
   return (
     <div className="booking-wrapper">
 
-      <main className="py-24 px-4 md:px-12 lg:px-20 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 text-left min-w-0">
+      <main className="py-24 px-4 md:px-12 lg:px-20 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
 
-        {/* min-w-0: prevent wide seat grid from expanding the column under the sticky aside */}
-        <div className="lg:col-span-8 min-w-0 w-full flex flex-col items-center bg-[#111215]/30 border border-white/5 p-4 md:p-6 rounded-2xl overflow-hidden">
+        <div className="lg:col-span-8 flex flex-col items-center bg-[#111215]/30 border border-white/5 p-6 rounded-2xl">
           <TheaterSeatMapPanel
             seatRows={seatRows}
             aisleLayout={aisleLayout}
@@ -214,11 +213,10 @@ const BookingPage = () => {
             onSeatClick={handleSeatClick}
             onCoupleClick={handleCoupleClick}
             screenAccent="white"
-            className="w-full min-w-0"
           />
         </div>
 
-        <aside className="lg:col-span-4 min-w-0 relative z-10">
+        <aside className="lg:col-span-4">
           <div className="glass-panel p-6 rounded-2xl flex flex-col h-full sticky top-28 border border-white/5 bg-[#111215]/40 shadow-2xl">
             {timeLeft !== null && (
               <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-bold mb-4 animate-pulse">

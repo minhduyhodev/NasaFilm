@@ -49,7 +49,7 @@ class PaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(paymentService, "paymentProvider", "stripe");
+        ReflectionTestUtils.setField(paymentService, "paymentProvider", "mock");
     }
 
     @Test
@@ -65,7 +65,7 @@ class PaymentServiceTest {
         when(paymentRepository.findByIdempotencyKey("pay-" + bookingUuid)).thenReturn(Optional.of(existing));
 
         Payment result = paymentService.chargeBooking(
-                bookingUuid, new BigDecimal("100000"), "CARD", "pay-" + bookingUuid, null);
+                bookingUuid, new BigDecimal("100000"), "MOCK", "pay-" + bookingUuid, null);
 
         assertSame(existing, result);
         verify(paymentGatewayService, never()).charge(any(), any(), any());
@@ -73,21 +73,21 @@ class PaymentServiceTest {
     }
 
     @Test
-    void chargeBookingShouldPersistCompletedPaymentViaGateway() {
+    void chargeBookingShouldPersistCompletedPaymentViaMockGateway() {
         UUID bookingUuid = UUID.randomUUID();
         String key = "pay-" + bookingUuid;
 
         when(paymentRepository.findByIdempotencyKey(key)).thenReturn(Optional.empty());
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(paymentGatewayService.charge(any(), any(), any()))
-                .thenReturn(new PaymentGatewayService.GatewayChargeResult(true, "STRIPE-PAY-ABCDEF12", null));
+                .thenReturn(new PaymentGatewayService.GatewayChargeResult(true, "MOCK-PAY-ABCDEF12", null));
 
         Payment result = paymentService.chargeBooking(
                 bookingUuid, new BigDecimal("150000"), "card", key, null);
 
         assertEquals(PaymentStatus.COMPLETED.name(), result.getStatus());
         assertEquals("CARD", result.getMethod());
-        assertEquals("STRIPE-PAY-ABCDEF12", result.getGatewayTransactionId());
+        assertEquals("MOCK-PAY-ABCDEF12", result.getGatewayTransactionId());
         assertEquals(bookingUuid, result.getBookingUuid());
 
         ArgumentCaptor<Payment> captor = ArgumentCaptor.forClass(Payment.class);
@@ -107,18 +107,19 @@ class PaymentServiceTest {
                 .thenReturn(new PaymentGatewayService.GatewayChargeResult(false, null, "Insufficient funds"));
 
         AppException ex = assertThrows(AppException.class, () -> paymentService.chargeBooking(
-                bookingUuid, new BigDecimal("150000"), "CARD", key, null));
+                bookingUuid, new BigDecimal("150000"), "MOCK", key, null));
 
         assertEquals(ErrorCode.BAD_REQUEST, ex.getErrorCode());
         assertTrue(ex.getMessage().contains("Insufficient funds"));
     }
 
     @Test
-    void unsupportedGatewayShouldRejectCharge() {
-        UnsupportedPaymentGatewayService gateway = new UnsupportedPaymentGatewayService();
-        PaymentGatewayService.GatewayChargeResult result =
-                gateway.charge(UUID.randomUUID(), BigDecimal.TEN, "idem-1");
-        assertEquals(false, result.success());
-        assertTrue(result.failureReason().contains("giả lập"));
+    void mockGatewayShouldBeIdempotentForSameKey() {
+        MockPaymentGatewayService gateway = new MockPaymentGatewayService();
+        UUID paymentUuid = UUID.randomUUID();
+        PaymentGatewayService.GatewayChargeResult first = gateway.charge(paymentUuid, BigDecimal.TEN, "idem-1");
+        PaymentGatewayService.GatewayChargeResult second = gateway.charge(paymentUuid, BigDecimal.TEN, "idem-1");
+        assertEquals(first.gatewayTransactionId(), second.gatewayTransactionId());
+        assertTrue(first.success());
     }
 }

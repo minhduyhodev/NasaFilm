@@ -1,7 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Play, X, Loader2 } from 'lucide-react';
-import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 
 const getEmbedUrl = (url) => {
   if (!url) return null;
@@ -14,15 +13,6 @@ const getEmbedUrl = (url) => {
 };
 
 const TrailerModal = ({ open, onClose, title, trailerUrl, isLoading = false }) => {
-  const playableUrl = useMemo(() => {
-    if (!trailerUrl?.trim()) return '';
-    // YouTube giữ nguyên; S3 trailer → /api/media/stream (công khai, không cần vé).
-    if (trailerUrl.includes('youtube.com') || trailerUrl.includes('youtu.be')) {
-      return trailerUrl.trim();
-    }
-    return resolveMediaUrl(trailerUrl) || trailerUrl.trim();
-  }, [trailerUrl]);
-
   useEffect(() => {
     if (!open) return undefined;
     const prev = document.body.style.overflow;
@@ -39,8 +29,8 @@ const TrailerModal = ({ open, onClose, title, trailerUrl, isLoading = false }) =
 
   if (!open) return null;
 
-  const isYouTube = playableUrl?.includes('youtube.com') || playableUrl?.includes('youtu.be');
-  const embedUrl = isYouTube ? getEmbedUrl(playableUrl) : playableUrl;
+  const isYouTube = trailerUrl?.includes('youtube.com') || trailerUrl?.includes('youtu.be');
+  const embedUrl = isYouTube ? getEmbedUrl(trailerUrl) : trailerUrl;
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" role="dialog" aria-modal="true">
@@ -64,7 +54,7 @@ const TrailerModal = ({ open, onClose, title, trailerUrl, isLoading = false }) =
             <Loader2 className="h-12 w-12 text-red-500 animate-spin mb-4" />
             <p className="text-gray-400 text-sm">Đang tải trailer...</p>
           </div>
-        ) : playableUrl ? (
+        ) : trailerUrl ? (
           isYouTube ? (
             <iframe
               src={embedUrl}
@@ -74,7 +64,7 @@ const TrailerModal = ({ open, onClose, title, trailerUrl, isLoading = false }) =
               allowFullScreen
             />
           ) : (
-            <video src={playableUrl} controls autoPlay className="w-full h-full object-contain" />
+            <video src={trailerUrl} controls autoPlay className="w-full h-full object-contain" />
           )
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-center p-6">

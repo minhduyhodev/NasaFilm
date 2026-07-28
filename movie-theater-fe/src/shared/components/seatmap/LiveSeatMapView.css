@@ -15,19 +15,19 @@
   width: 55%;
 }
 
-.live-seat-map--compact .seat-map-viewport--booking {
-  --seat-base-w: 1.85rem;
-  --seat-base-h: 1.35rem;
-  --seat-base-gap: 0.3rem;
+.live-seat-map--compact .seat-map-grid--booking {
+  --seat-slot-w: 1.85rem;
+  --seat-slot-gap: 0.35rem;
+  --seat-slot-h: 1.35rem;
 }
 
 .live-seat-map--compact .seat.standard,
 .live-seat-map--compact .seat.vip {
-  font-size: var(--seat-font-size, 9px);
+  font-size: 9px;
 }
 
 .live-seat-map--compact .seat.couple {
-  font-size: var(--seat-couple-font-size, 8px);
+  font-size: 8px;
 }
 
 .live-seat-map__legend {

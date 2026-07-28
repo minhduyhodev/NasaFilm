@@ -53,7 +53,6 @@ import {
   collectCouplePaintTargets,
 } from '../../../shared/utils/seatMapDisplay';
 import '../../../shared/components/seatmap/SeatMapGrid.css';
-import SeatMapZoomViewport from '../../../shared/components/seatmap/SeatMapZoomViewport';
 import '../../../shared/components/aisle/AisleMapStyles.css';
 import AdminModal from '../components/AdminModal';
 import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
@@ -1151,7 +1150,7 @@ const AdminCinemaRoomPage = () => {
                 </div>
 
                 {/* Seating Chart Editor Canvas */}
-                <div className="relative bg-[#0B0F19] border border-[#1A2238] p-4 sm:p-8 mb-6 overflow-hidden rounded-xl select-none min-w-0">
+                <div className="relative bg-[#0B0F19] border border-[#1A2238] p-8 mb-6 overflow-hidden rounded-xl select-none">
                   
                   {/* Design/Preview Switch Toolbar */}
                   <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
@@ -1214,9 +1213,13 @@ const AdminCinemaRoomPage = () => {
                       </div>
                     ) : (
                       <>
-                        {/* Seating Grid — zoom/pan for large capacity */}
-                        {invalidCoupleSeats.length > 0 && (
-                            <div className="w-full mb-4 p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 text-xs font-medium flex items-start gap-2">
+                        {/* Seating Grid */}
+                        <div 
+                          ref={seatGridRef}
+                          className="flex flex-col gap-2 select-none w-full overflow-x-auto overflow-y-visible premium-scroll p-6 py-8 items-center bg-[#0F1322]/40 border border-[#1A2238]/60 rounded-xl"
+                        >
+                          {invalidCoupleSeats.length > 0 && (
+                            <div className="w-full max-w-3xl mb-4 p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 text-xs font-medium flex items-start gap-2">
                               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                               <span>
                                 {invalidCoupleSeats.length} ghế sofa thiếu cặp
@@ -1229,14 +1232,6 @@ const AdminCinemaRoomPage = () => {
                               </span>
                             </div>
                           )}
-                        <div ref={seatGridRef} className="w-full min-w-0">
-                          <SeatMapZoomViewport
-                            cols={maxSeatNumber}
-                            rowCount={rowNames.length}
-                            variant="admin"
-                            className="w-full"
-                            maxHeightClass="max-h-[min(70vh,720px)]"
-                          >
                           {rowNames.map((rowName) => {
                             const rowSeats = seatsByRow[rowName] || [];
                             const isFullHorizontalAisle = completeHorizontalRows.includes(rowName);
@@ -1257,12 +1252,12 @@ const AdminCinemaRoomPage = () => {
                             };
 
                             return (
-                              <div key={rowName} className="seat-map-row">
-                                <span className="seat-map-row__label font-mono font-bold text-gray-400 select-none">{rowName}</span>
+                              <div key={rowName} className="flex items-center gap-3 min-w-max">
+                                <span className="w-6 font-mono font-bold text-xs text-gray-400 text-center shrink-0 select-none">{rowName}</span>
 
                                 {isFullHorizontalAisle ? (
                                   <div
-                                    className="seat-map-grid seat-map-grid--admin seat-map-row__grid"
+                                    className="seat-map-grid seat-map-grid--admin"
                                     style={getSeatMapGridStyle(maxSeatNumber)}
                                   >
                                     {(() => {
@@ -1316,7 +1311,7 @@ const AdminCinemaRoomPage = () => {
                                   </div>
                                 ) : (
                                   <div
-                                    className="seat-map-grid seat-map-grid--admin seat-map-row-seats seat-map-row__grid"
+                                    className="seat-map-grid seat-map-grid--admin seat-map-row-seats"
                                     style={getSeatMapGridStyle(maxSeatNumber)}
                                   >
                                     {buildRowPlacedItems(
@@ -1482,11 +1477,10 @@ const AdminCinemaRoomPage = () => {
                                   </div>
                                 )}
 
-                                <span className="seat-map-row__label font-mono font-bold text-gray-400 select-none">{rowName}</span>
+                                <span className="w-6 font-mono font-bold text-xs text-gray-400 text-center shrink-0 select-none">{rowName}</span>
                               </div>
                             );
                           })}
-                          </SeatMapZoomViewport>
                         </div>
 
                         {/* Interactive Brush Toolbox / Legend */}

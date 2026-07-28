@@ -13,7 +13,6 @@ import {
   LogOut,
   Plus,
   QrCode,
-  RefreshCw,
   Send,
   Timer,
   Trash2,

@@ -112,20 +112,10 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      // Never ship original sources to the browser in production.
       sourcemap: false,
-      cssCodeSplit: true,
-      cssMinify: true,
-      minify: 'esbuild',
-      reportCompressedSize: false,
       chunkSizeWarningLimit: 600,
-      assetsInlineLimit: 4096,
       rollupOptions: {
         output: {
-          // Hashed file names so Sources panel shows opaque chunks, not feature paths.
-          entryFileNames: 'assets/[hash].js',
-          chunkFileNames: 'assets/[hash].js',
-          assetFileNames: 'assets/[hash][extname]',
           manualChunks(id) {
             if (id.includes('node_modules')) {
               if (id.includes('framer-motion')) return 'vendor-motion';
@@ -136,21 +126,15 @@ export default defineConfig(({ mode }) => {
               if (id.includes('lucide-react')) return 'vendor-icons';
               if (id.includes('@tanstack/react-query')) return 'vendor-query';
             }
-            // Keep privileged UI out of the customer entry bundle.
-            if (id.includes('/features/admin/')) {
-              return 'admin';
+            if (id.includes('/features/admin/pages/showtimes/Showtimes')) {
+              return 'admin-showtimes-modals';
             }
-            if (id.includes('/features/counter/')) {
-              return 'counter';
+            if (id.includes('/features/admin/layouts/AdminSidebar')) {
+              return 'admin-sidebar';
             }
           },
         },
       },
-    },
-    esbuild: {
-      // Strip noisy/debug leftovers from production bundles.
-      drop: mode === 'production' ? ['console', 'debugger'] : [],
-      legalComments: 'none',
-    },
+    }
   };
 });

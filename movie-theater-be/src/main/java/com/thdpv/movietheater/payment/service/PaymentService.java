@@ -24,7 +24,7 @@ public class PaymentService {
     private final BookingRepository bookingRepository;
     private final WalletService walletService;
 
-    @Value("${app.payment.provider:stripe}")
+    @Value("${app.payment.provider:mock}")
     private String paymentProvider;
 
     public PaymentService(
@@ -101,7 +101,7 @@ public class PaymentService {
                 .orElseGet(() -> chargeBooking(
                         booking.getUuid(),
                         booking.getTotalPrice(),
-                        method != null ? method : "CARD",
+                        method != null ? method : "MOCK",
                         "pay-" + booking.getUuid()));
     }
 
@@ -216,7 +216,7 @@ public class PaymentService {
 
     private String normalizeMethod(String method) {
         if (method == null || method.isBlank()) {
-            return "CARD";
+            return "MOCK";
         }
         return switch (method.toLowerCase()) {
             case "wallet" -> "WALLET";

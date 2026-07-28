@@ -1,17 +1,17 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
-import MovieCard from "../components/MovieCard";
-import MovieCardSkeleton from "../components/MovieCardSkeleton";
-import MovieFilterPanel from "../components/MovieFilterPanel";
-import TabTransition from "../../../shared/components/TabTransition";
-import { useMoviesList } from "../../../shared/hooks/queries/useMovieQueries";
-import { useMovieListFilters } from "../hooks/useMovieListFilters";
-import "./MoviesPage.css";
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import MovieCard from '../components/MovieCard';
+import MovieCardSkeleton from '../components/MovieCardSkeleton';
+import MovieFilterPanel from '../components/MovieFilterPanel';
+import TabTransition from '../../../shared/components/TabTransition';
+import { useMoviesList } from '../../../shared/hooks/queries/useMovieQueries';
+import { useMovieListFilters } from '../hooks/useMovieListFilters';
+import './MoviesPage.css';
 
 const MoviesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get("tab") || "now-showing";
+  const initialTab = searchParams.get('tab') || 'now-showing';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [currentPage, setCurrentPage] = useState(1);
   const resetListPage = useCallback(() => setCurrentPage(1), []);
@@ -26,17 +26,17 @@ const MoviesPage = () => {
     applyUrlFilters,
   } = useMovieListFilters({
     onPageReset: resetListPage,
-    includeShowtimeFilters: activeTab !== "coming-soon",
+    includeShowtimeFilters: activeTab !== 'coming-soon',
   });
 
   const listQueryParams = useMemo(() => {
     const queryParams = {
-      status: activeTab === "coming-soon" ? "COMING_SOON" : "NOW_SHOWING",
+      status: activeTab === 'coming-soon' ? 'COMING_SOON' : 'NOW_SHOWING',
       page: currentPage - 1,
       size: 6,
       ...appliedQueryParams,
     };
-    if (activeTab === "now-showing") {
+    if (activeTab === 'now-showing') {
       queryParams.requireBookableShowtime = true;
     }
     return queryParams;
@@ -49,12 +49,12 @@ const MoviesPage = () => {
   const isLoading = listQuery.isLoading;
 
   useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab && (tab === "now-showing" || tab === "coming-soon")) {
+    const tab = searchParams.get('tab');
+    if (tab && (tab === 'now-showing' || tab === 'coming-soon')) {
       setActiveTab(tab);
-    } else if (tab === "specials") {
-      setActiveTab("now-showing");
-      setSearchParams({ tab: "now-showing" }, { replace: true });
+    } else if (tab === 'specials') {
+      setActiveTab('now-showing');
+      setSearchParams({ tab: 'now-showing' }, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
@@ -63,9 +63,9 @@ const MoviesPage = () => {
   }, [activeTab, currentPage]);
 
   useEffect(() => {
-    const genreUuid = searchParams.get("genre");
-    const countryUuid = searchParams.get("country");
-    const actorUuid = searchParams.get("actor");
+    const genreUuid = searchParams.get('genre');
+    const countryUuid = searchParams.get('country');
+    const actorUuid = searchParams.get('actor');
     if (genreUuid || countryUuid || actorUuid) {
       applyUrlFilters({
         genre: genreUuid || null,
@@ -87,20 +87,18 @@ const MoviesPage = () => {
       <main className="movie-list-container">
         <div className="movie-list-header">
           <div className="movie-list-title-area">
-            <h2 className="movie-list-title">
-              {activeTab === "coming-soon" ? "Sắp Chiếu" : "Đang Chiếu"}
-            </h2>
+            <h2 className="movie-list-title">{activeTab === 'coming-soon' ? 'Sắp Chiếu' : 'Đang Chiếu'}</h2>
           </div>
 
           <div className="movie-list-tabs">
             {[
-              { id: "now-showing", label: "Đang Chiếu" },
-              { id: "coming-soon", label: "Sắp Chiếu" },
+              { id: 'now-showing', label: 'Đang Chiếu' },
+              { id: 'coming-soon', label: 'Sắp Chiếu' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`movie-list-tab-btn ${activeTab === tab.id ? "movie-list-tab-btn-active" : ""}`}
+                className={`movie-list-tab-btn ${activeTab === tab.id ? 'movie-list-tab-btn-active' : ''}`}
               >
                 {tab.label}
               </button>
@@ -146,29 +144,21 @@ const MoviesPage = () => {
                   <MovieCard
                     key={movie.uuid || movie.title}
                     {...movie}
-                    actionLabel={
-                      activeTab === "coming-soon" ? "Chi tiết" : "Mua vé"
-                    }
+                    actionLabel={activeTab === 'coming-soon' ? 'Chi tiết' : 'Mua vé'}
                   />
                 ))}
               </div>
             ) : (
               <div className="text-center py-20 bg-[#11141e]/50 rounded-2xl border border-white/5">
-                <p className="text-gray-400 font-semibold text-base mb-2">
-                  Không tìm thấy phim nào
-                </p>
-                <p className="text-gray-500 text-xs">
-                  Vui lòng thử điều chỉnh lại từ khóa hoặc bộ lọc.
-                </p>
+                <p className="text-gray-400 font-semibold text-base mb-2">Không tìm thấy phim nào</p>
+                <p className="text-gray-500 text-xs">Vui lòng thử điều chỉnh lại từ khóa hoặc bộ lọc.</p>
               </div>
             )}
 
             {!isLoading && movies.length > 0 && totalPages > 1 && (
               <div className="movie-pagination">
                 <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(1, prev - 1))
-                  }
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                   className="movie-pagination-nav"
                   aria-label="Previous Page"
@@ -176,22 +166,18 @@ const MoviesPage = () => {
                   <ChevronLeft className="h-4 w-4" />
                 </button>
 
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (pageNo) => (
-                    <button
-                      key={pageNo}
-                      onClick={() => setCurrentPage(pageNo)}
-                      className={`movie-pagination-btn ${currentPage === pageNo ? "movie-pagination-btn-active" : ""}`}
-                    >
-                      {pageNo}
-                    </button>
-                  ),
-                )}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNo) => (
+                  <button
+                    key={pageNo}
+                    onClick={() => setCurrentPage(pageNo)}
+                    className={`movie-pagination-btn ${currentPage === pageNo ? 'movie-pagination-btn-active' : ''}`}
+                  >
+                    {pageNo}
+                  </button>
+                ))}
 
                 <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                  }
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
                   className="movie-pagination-nav"
                   aria-label="Next Page"

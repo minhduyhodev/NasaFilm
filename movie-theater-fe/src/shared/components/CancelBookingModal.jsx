@@ -118,12 +118,12 @@ const CancelBookingModal = ({ bookingUuid, open, onClose, onSuccess }) => {
                   <p className="text-xs text-gray-300">{preview.message}</p>
                   {preview.manualApprovalRequired && preview.refundable && (
                     <p className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                      Yêu cầu hoàn tiền sẽ được gửi tới admin để duyệt trước khi cộng lại vào ví hoặc hoàn qua cổng thanh toán gốc.
+                      Yêu cầu hoàn tiền sẽ được gửi tới admin để duyệt trước khi cộng lại vào ví hoặc hoàn qua Mock Gateway.
                     </p>
                   )}
                   {!preview.manualApprovalRequired && (
                     <p className="text-xs text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-                      Tiền hoàn sẽ được cộng lại vào Ví NASA nếu bạn thanh toán bằng ví; các phương thức khác hoàn qua cổng thanh toán gốc.
+                      Tiền hoàn sẽ được cộng lại vào Ví NASA nếu bạn thanh toán bằng ví; các phương thức khác qua Mock Gateway.
                     </p>
                   )}
                   {isOnline && (

@@ -429,9 +429,6 @@ export default function CounterPOSPage() {
       // Trigger success dialog & thermal ticket mockup
       setPrintTicketData({
         movieTitle: selectedShowtime.movieTitle,
-        moviePoster: selectedShowtime.moviePosterUrl
-          ? resolveMediaUrl(selectedShowtime.moviePosterUrl, 400)
-          : (moviePosterByUuid.get(selectedShowtime.movieUuid) || ''),
         roomName: selectedShowtime.cinemaRoomName,
         startTime: selectedShowtime.startTime,
         customerName: selectedCustomer.fullName,

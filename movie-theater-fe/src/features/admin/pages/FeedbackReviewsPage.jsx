@@ -207,35 +207,18 @@ const FeedbackReviewsPage = () => {
   };
 
   const handleAddBannedWord = () => {
-    const word = newBannedWord.trim().toLocaleLowerCase('vi');
+    const word = newBannedWord.trim().toLowerCase();
     if (!word) return;
     if (bannedWords.includes(word)) {
       notificationService.warning('Từ này đã có trong danh sách.');
       return;
     }
-    const next = [...bannedWords, word].sort((a, b) => a.localeCompare(b, 'vi'));
-    setBannedWords(next);
+    setBannedWords((prev) => [...prev, word].sort((a, b) => a.localeCompare(b, 'vi')));
     setNewBannedWord('');
-    // Persist immediately so newly added words take effect without forgetting "Lưu".
-    void persistBannedWords(next);
   };
 
   const handleToggleBannedWord = (word) => {
     setBannedWords((prev) => prev.filter((item) => item !== word));
-  };
-
-  const persistBannedWords = async (words) => {
-    setIsSavingBannedWords(true);
-    try {
-      const saved = await adminReviewService.updateBannedWords(words);
-      setBannedWords(Array.isArray(saved) ? saved : []);
-      notificationService.success('Đã cập nhật danh sách từ cấm.');
-    } catch (err) {
-      notificationService.error(err?.message || 'Không thể lưu danh sách từ cấm.');
-      await loadBannedWords();
-    } finally {
-      setIsSavingBannedWords(false);
-    }
   };
 
   const handleSaveBannedWords = async () => {
@@ -247,7 +230,17 @@ const FeedbackReviewsPage = () => {
       variant: 'warning',
     });
     if (!ok) return;
-    await persistBannedWords(bannedWords);
+
+    setIsSavingBannedWords(true);
+    try {
+      const saved = await adminReviewService.updateBannedWords(bannedWords);
+      setBannedWords(Array.isArray(saved) ? saved : []);
+      notificationService.success('Đã lưu danh sách từ cấm.');
+    } catch (err) {
+      notificationService.error(err?.message || 'Không thể lưu danh sách từ cấm.');
+    } finally {
+      setIsSavingBannedWords(false);
+    }
   };
 
   const handleCreateVibeTag = async () => {
@@ -460,7 +453,6 @@ const FeedbackReviewsPage = () => {
               </h3>
               <p className="feedback-banned-desc">
                 Bình luận chứa các từ trong danh sách sẽ bị chặn khi khách gửi đánh giá.
-                Thêm từ mới sẽ được lưu ngay (không phân biệt hoa/thường).
               </p>
             </div>
             <PrimaryButton

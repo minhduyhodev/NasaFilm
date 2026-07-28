@@ -4,7 +4,6 @@ import { Copy, Download, Maximize2, Printer, X } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useBoardingPass } from '../../../shared/hooks/queries/usePreShowQueries';
 import { notificationService } from '../../../shared/services/notificationService';
-import { resolveMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import { formatCountdown, getMovieGlowClass } from '../utils/preShowUtils';
 import { maskTicketCode } from '../utils/movieUtils';
 import './PreShowBoardingPage.css';
@@ -188,7 +187,7 @@ const PreShowBoardingPage = () => {
           <div className="cine-ticket__body">
             <section className="cine-ticket__cinema">
               {pass.posterUrl ? (
-                <img src={resolveMediaUrl(pass.posterUrl)} alt={pass.movieTitle} className="cine-ticket__poster" />
+                <img src={pass.posterUrl} alt={pass.movieTitle} className="cine-ticket__poster" />
               ) : (
                 <div className="cine-ticket__poster cine-ticket__poster--fallback" />
               )}
@@ -325,7 +324,7 @@ const PreShowBoardingPage = () => {
         <article className="pre-show-boarding__print-ticket" aria-hidden="true">
           <div className="print-ticket">
             {pass.posterUrl ? (
-              <img src={resolveMediaUrl(pass.posterUrl)} alt="" className="print-ticket__poster" />
+              <img src={pass.posterUrl} alt="" className="print-ticket__poster" />
             ) : (
               <div className="print-ticket__poster print-ticket__poster--fallback" />
             )}

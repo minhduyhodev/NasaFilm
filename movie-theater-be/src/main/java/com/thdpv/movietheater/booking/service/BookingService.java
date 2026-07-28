@@ -1259,29 +1259,15 @@ public class BookingService {
         if (movie == null || movie.getMovieMedias() == null) {
             return null;
         }
-        String raw = movie.getMovieMedias().stream()
-                .filter(media -> media != null && media.getMediaUrl() != null && !media.getMediaUrl().isBlank())
-                .filter(media -> {
-                    String type = media.getMediaType();
-                    return type != null && "POSTER".equalsIgnoreCase(type.trim());
-                })
-                .sorted((a, b) -> Boolean.compare(
-                        Boolean.TRUE.equals(b.getIsPrimary()),
-                        Boolean.TRUE.equals(a.getIsPrimary())))
-                .map(MovieMedia::getMediaUrl)
+        for (MovieMedia movieMedia : movie.getMovieMedias()) {
+            if (Boolean.TRUE.equals(movieMedia.getIsPrimary())) {
+                return movieMedia.getMediaUrl();
+            }
+        }
+        return movie.getMovieMedias().stream()
                 .findFirst()
-                .orElseGet(() -> movie.getMovieMedias().stream()
-                        .filter(media -> media != null && Boolean.TRUE.equals(media.getIsPrimary()))
-                        .map(MovieMedia::getMediaUrl)
-                        .filter(url -> url != null && !url.isBlank())
-                        .findFirst()
-                        .orElseGet(() -> movie.getMovieMedias().stream()
-                                .filter(media -> media != null)
-                                .map(MovieMedia::getMediaUrl)
-                                .filter(url -> url != null && !url.isBlank())
-                                .findFirst()
-                                .orElse(null)));
-        return S3MediaBorderUtils.toBorderUrl(raw);
+                .map(MovieMedia::getMediaUrl)
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)

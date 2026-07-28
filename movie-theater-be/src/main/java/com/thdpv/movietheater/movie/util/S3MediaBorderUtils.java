@@ -45,8 +45,7 @@ public final class S3MediaBorderUtils {
     }
 
     /**
-     * URL phát video same-origin (hỗ trợ HTTP Range).
-     * {@code movie/} cần token vé; {@code trailer/} công khai; poster vẫn {@link #toBorderUrl}.
+     * URL phát video same-origin (hỗ trợ HTTP Range). Poster/trailer vẫn dùng {@link #toBorderUrl}.
      */
     public static String toStreamUrl(String mediaUrl) {
         return toStreamUrl(mediaUrl, DEFAULT_BUCKET_HOST);
@@ -57,25 +56,10 @@ public final class S3MediaBorderUtils {
         if (key == null) {
             return toBorderUrl(mediaUrl, allowedHost);
         }
-        String lower = key.toLowerCase(Locale.ROOT);
-        if (!lower.startsWith("movie/") && !lower.startsWith("trailer/")) {
+        if (!key.toLowerCase(Locale.ROOT).startsWith("movie/")) {
             return toBorderUrl(mediaUrl, allowedHost);
         }
         return STREAM_PATH + "?key=" + URLEncoder.encode(key, StandardCharsets.UTF_8);
-    }
-
-    /** Key được phép Range-stream qua {@code /api/media/stream}. */
-    public static boolean isStreamableKey(String key) {
-        if (key == null || key.isBlank()) {
-            return false;
-        }
-        String lower = key.toLowerCase(Locale.ROOT);
-        return lower.startsWith("movie/") || lower.startsWith("trailer/");
-    }
-
-    /** File phim full cần vé VOD — không áp dụng cho trailer công khai. */
-    public static boolean requiresVodStreamToken(String key) {
-        return key != null && key.toLowerCase(Locale.ROOT).startsWith("movie/");
     }
 
     /** Stream URL kèm token vé VOD — FE/player phải gửi token khi gọi /api/media/stream. */
