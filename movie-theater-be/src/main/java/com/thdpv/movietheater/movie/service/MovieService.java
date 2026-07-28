@@ -1021,10 +1021,14 @@ public class MovieService {
     }
 
     private MovieMediaResponse toMovieMediaResponse(MovieMedia movieMedia) {
+        String mediaType = movieMedia.getMediaType();
+        String playableUrl = "TRAILER".equalsIgnoreCase(mediaType)
+                ? toPlayableStreamingUrl(movieMedia.getMediaUrl())
+                : toBorderMediaUrl(movieMedia.getMediaUrl());
         return new MovieMediaResponse(
                 movieMedia.getUuid(),
-                toBorderMediaUrl(movieMedia.getMediaUrl()),
-                movieMedia.getMediaType(),
+                playableUrl,
+                mediaType,
                 movieMedia.getTitle(),
                 movieMedia.getIsPrimary(),
                 movieMedia.getSortOrder(),
@@ -1036,7 +1040,7 @@ public class MovieService {
         return S3MediaBorderUtils.toBorderUrl(mediaUrl);
     }
 
-    /** File phim (movie/) → /api/media/stream; còn lại giữ border. */
+    /** File phim (movie/) hoặc trailer → /api/media/stream; poster giữ border. */
     private String toPlayableStreamingUrl(String mediaUrl) {
         return S3MediaBorderUtils.toStreamUrl(mediaUrl);
     }

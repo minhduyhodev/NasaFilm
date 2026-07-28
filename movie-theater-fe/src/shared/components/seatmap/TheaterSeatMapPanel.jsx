@@ -26,6 +26,7 @@ import {
 } from '../aisle/aisleMapRender';
 import '../aisle/AisleMapStyles.css';
 import './SeatMapGrid.css';
+import SeatMapZoomViewport from './SeatMapZoomViewport';
 
 const TheaterSeatMapPanel = ({
   seatRows = [],
@@ -227,24 +228,14 @@ const TheaterSeatMapPanel = ({
   };
 
   return (
-    <div className={`flex flex-col items-center w-full ${className}`}>
-      {/* Viewport container sử dụng Container Query để tự động co giãn ghế */}
-      <div
-        className="w-full border border-white/5 bg-[#0b0f19]/40 rounded-2xl p-4 md:p-6 relative select-none custom-scrollbar"
-        style={{ containerType: 'inline-size' }}
+    <div className={`flex flex-col items-center w-full min-w-0 overflow-hidden ${className}`}>
+      <SeatMapZoomViewport
+        cols={maxSeatNumber}
+        rowCount={bookingRowNames.length}
+        variant="booking"
+        className="w-full"
       >
-        <div 
-          className="flex flex-col gap-2 w-full"
-          style={{
-            '--seat-slot-gap': '0.7cqw',
-            '--seat-slot-w': 'calc((100cqw - 4rem - (var(--seat-map-cols) - 1) * var(--seat-slot-gap)) / var(--seat-map-cols))',
-            '--seat-slot-h': 'calc(var(--seat-slot-w) * 0.7)',
-            '--seat-font-size': 'calc(var(--seat-slot-w) * 0.3)',
-            '--seat-couple-font-size': 'calc(var(--seat-slot-w) * 0.28)',
-          }}
-        >
-          {/* Màn hình curved */}
-          <div className="w-full mb-6 text-center shrink-0">
+          <div className="w-full mb-4 md:mb-6 text-center shrink-0" data-no-pan>
             <div className={`screen-curve relative mx-auto w-[65%] h-1 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
             <p className="text-[9px] font-bold text-gray-500 mt-2 tracking-widest uppercase">{screenLabel}</p>
           </div>
@@ -253,16 +244,14 @@ const TheaterSeatMapPanel = ({
           const isFullHorizontalAisle = completeHorizontalRows.includes(row);
 
           return (
-            <div key={row} className="flex items-center gap-2 mb-1 justify-center w-full">
-              <div 
-                className="text-center font-bold text-gray-500 shrink-0 w-6 text-[10px] md:text-xs"
-              >
+            <div key={row} className="seat-map-row mb-1">
+              <div className="seat-map-row__label">
                 {row}
               </div>
 
               {isFullHorizontalAisle ? (
                 <div
-                  className="seat-map-grid seat-map-grid--booking"
+                  className="seat-map-grid seat-map-grid--booking seat-map-row__grid"
                   style={getSeatMapGridStyle(maxSeatNumber)}
                 >
                   {(() => {
@@ -312,7 +301,7 @@ const TheaterSeatMapPanel = ({
                 </div>
               ) : (
                 <div
-                  className="seat-map-grid seat-map-grid--booking seat-map-row-seats"
+                  className="seat-map-grid seat-map-grid--booking seat-map-row-seats seat-map-row__grid"
                   style={getSeatMapGridStyle(maxSeatNumber)}
                 >
                   {buildRowPlacedItems(
@@ -423,8 +412,7 @@ const TheaterSeatMapPanel = ({
             </div>
           );
         })}
-        </div>
-      </div>
+      </SeatMapZoomViewport>
 
       {hasGapViolation && (
         <div className="w-full mt-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 text-xs font-black text-center flex items-center justify-center gap-2 animate-fade-in">

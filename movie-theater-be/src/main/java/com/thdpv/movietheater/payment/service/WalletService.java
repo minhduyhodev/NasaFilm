@@ -67,14 +67,8 @@ public class WalletService {
     private final VietQRWebhookTransactionRepository vietQRWebhookRepo;
     private final WalletNotificationService walletNotificationService;
 
-    @Value("${app.wallet.top-up-provider:mock}")
+    @Value("${app.wallet.top-up-provider:stripe}")
     private String topUpProvider;
-
-    @Value("${app.wallet.default-balance:1000000}")
-    private BigDecimal defaultBalance;
-
-    @Value("${app.wallet.seed-demo-balance:false}")
-    private boolean seedDemoBalance;
 
     @Value("${app.wallet.min-top-up:10000}")
     private BigDecimal minTopUp;
@@ -110,10 +104,6 @@ public class WalletService {
         this.walletNotificationService = walletNotificationService;
     }
 
-    public boolean isMockTopUp() {
-        return "mock".equalsIgnoreCase(topUpProvider);
-    }
-
     @Transactional(readOnly = true)
     public WalletSummaryResponse getSummary(UUID userUuid) {
         User user = findUser(userUuid);
@@ -122,7 +112,7 @@ public class WalletService {
         WalletSummaryResponse response = new WalletSummaryResponse();
         response.setBalance(user.getWalletBalance());
         response.setProvider(topUpProvider);
-        response.setMockMode(isMockTopUp());
+        response.setMockMode(false);
         response.setMinTopUp(minTopUp);
         response.setMaxTopUp(maxTopUp);
         response.setQuickAmounts(parseQuickAmounts());
@@ -170,28 +160,9 @@ public class WalletService {
     }
 
     @Transactional
-    public WalletSummaryResponse mockTopUp(UUID userUuid, BigDecimal amount) {
-        if (!isMockTopUp()) {
-            throw new AppException(ErrorCode.BAD_REQUEST,
-                    "Chế độ mock đã tắt. Vui lòng nạp qua Stripe (tạo intent rồi xác nhận).");
-        }
-        validateAmount(amount);
-        ensureWalletInitialized(findUser(userUuid));
-        runWalletWriteWithRetry(userUuid, user -> credit(user, amount, null, "Nạp tiền mô phỏng (Mock Gateway)"));
-        walletNotificationService.notifyTopUpAfterCommit(
-                userUuid, amount, findUser(userUuid).getWalletBalance(), "Mock Gateway");
-        return getSummary(userUuid);
-    }
-
-    @Transactional
     public WalletTopUpIntentResponse createTopUpIntent(UUID userUuid, BigDecimal amount) {
         validateAmount(amount);
         ensureWalletInitialized(findUser(userUuid));
-
-        if (isMockTopUp()) {
-            mockTopUp(userUuid, amount);
-            return new WalletTopUpIntentResponse(null, null, "succeeded", amount.longValue(), "vnd", true);
-        }
 
         long amountVnd = amount.longValue();
         PaymentIntentInput input = new PaymentIntentInput(amountVnd, "vnd");
@@ -406,20 +377,6 @@ public class WalletService {
     }
 
     @Transactional
-    public WalletSummaryResponse mockWithdraw(UUID userUuid, BigDecimal amount) {
-        if (!isMockTopUp()) {
-            throw new AppException(ErrorCode.BAD_REQUEST,
-                    "Rút tiền mô phỏng chỉ khả dụng khi app.wallet.top-up-provider=mock");
-        }
-        validateAmount(amount);
-        ensureWalletInitialized(findUser(userUuid));
-        runWalletWriteWithRetry(userUuid, user -> debit(user, amount, null, "Rút tiền mô phỏng (Mock Gateway)"));
-        walletNotificationService.notifyWithdrawAfterCommit(
-                userUuid, amount, findUser(userUuid).getWalletBalance(), "Mock Gateway");
-        return getSummary(userUuid);
-    }
-
-    @Transactional
     public void debitForPayment(UUID userUuid, BigDecimal amount, UUID paymentUuid, String description) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return;
@@ -489,15 +446,6 @@ public class WalletService {
         if (user.getWalletBalance() == null) {
             user.setWalletBalance(BigDecimal.ZERO);
             userRepository.save(user);
-        }
-        if (!seedDemoBalance) {
-            return;
-        }
-        boolean hasTransactions = !walletTransactionRepository
-                .findTop20ByUserUuidOrderByCreatedAtDesc(user.getId())
-                .isEmpty();
-        if (!hasTransactions && user.getWalletBalance().compareTo(BigDecimal.ZERO) == 0) {
-            runWalletWriteWithRetry(user.getId(), loaded -> credit(loaded, defaultBalance, null, "Số dư khởi tạo demo"));
         }
     }
 

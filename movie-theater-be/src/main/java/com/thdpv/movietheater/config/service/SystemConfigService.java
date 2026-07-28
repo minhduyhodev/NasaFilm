@@ -200,6 +200,14 @@ public class SystemConfigService {
         Map<String, Object> merged = buildDefaultConfig();
         if (incoming != null) {
             merged.putAll(incoming);
+            // Preserve persisted custom banned words when client omits the key
+            // (e.g. NASA Bot page saves only { nasaBot: ... } and would otherwise wipe customs).
+            if (!incoming.containsKey("reviewBannedWords")) {
+                List<String> persistedBannedWords = readPersistedReviewBannedWordsRaw();
+                if (persistedBannedWords != null) {
+                    merged.put("reviewBannedWords", persistedBannedWords);
+                }
+            }
         }
         if (!(merged.get("roomTypes") instanceof List<?> list) || list.isEmpty()) {
             merged.put("roomTypes", defaultRoomTypes());
@@ -208,6 +216,42 @@ public class SystemConfigService {
             merged.put("screeningFormats", defaultScreeningFormats());
         }
         return merged;
+    }
+
+    /** Raw list from DB only — bypasses cache and default fallback. */
+    private List<String> readPersistedReviewBannedWordsRaw() {
+        try {
+            return systemConfigRepository.findById(CONFIG_KEY)
+                    .map(entry -> {
+                        try {
+                            Map<String, Object> parsed = objectMapper.readValue(
+                                    entry.getConfigJson(),
+                                    new TypeReference<Map<String, Object>>() {
+                                    });
+                            Object value = parsed.get("reviewBannedWords");
+                            if (!(value instanceof List<?> rawList)) {
+                                return null;
+                            }
+                            List<String> words = new ArrayList<>();
+                            for (Object item : rawList) {
+                                if (item == null) {
+                                    continue;
+                                }
+                                String text = String.valueOf(item).trim()
+                                        .toLowerCase(java.util.Locale.ROOT);
+                                if (!text.isEmpty() && !words.contains(text)) {
+                                    words.add(text);
+                                }
+                            }
+                            return words;
+                        } catch (Exception ignored) {
+                            return null;
+                        }
+                    })
+                    .orElse(null);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private Map<String, Object> buildDefaultConfig() {
@@ -355,8 +399,13 @@ public class SystemConfigService {
         }
         List<String> words = new ArrayList<>();
         for (Object item : rawList) {
-            if (item instanceof String text && !text.isBlank()) {
-                words.add(text.trim().toLowerCase());
+            if (item == null) {
+                continue;
+            }
+            // Coerce non-String cache/JSON values so newly saved words are never dropped.
+            String text = String.valueOf(item).trim().toLowerCase(java.util.Locale.ROOT);
+            if (!text.isEmpty() && !words.contains(text)) {
+                words.add(text);
             }
         }
         return words.isEmpty() ? defaultReviewBannedWords() : words;
@@ -369,7 +418,7 @@ public class SystemConfigService {
         if (incomingWords != null) {
             for (String word : incomingWords) {
                 if (word != null) {
-                    String trimmed = word.trim().toLowerCase();
+                    String trimmed = word.trim().toLowerCase(java.util.Locale.ROOT);
                     if (!trimmed.isEmpty() && !normalized.contains(trimmed)) {
                         normalized.add(trimmed);
                     }
@@ -377,7 +426,8 @@ public class SystemConfigService {
             }
         }
         config.put("reviewBannedWords", normalized);
-        saveConfig(config);
+        // Use proxied save so cache eviction side-effects always run.
+        self.saveConfig(config);
         return normalized;
     }
 

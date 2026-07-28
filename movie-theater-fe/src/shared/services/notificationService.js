@@ -6,6 +6,40 @@ const toastListeners = new Set();
 const toastTimeouts = new Map();
 let activeToasts = [];
 
+/** Chỉ thay/cắt localhost & lỗi kỹ thuật thuần. Giữ nguyên toast tiếng Việt bình thường. */
+const sanitizeToastText = (value) => {
+  if (value == null) return value;
+  if (typeof value !== 'string') return String(value);
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+
+  const isPureTechnical =
+    /^(https?:\/\/\S+)$/i.test(trimmed)
+    || /^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/\S*)?$/i.test(trimmed)
+    || /^(ECONNREFUSED|ENOTFOUND|ERR_CONNECTION)[:\s]*(.*)?$/i.test(trimmed)
+    || /^Network Error$/i.test(trimmed);
+
+  if (isPureTechnical) {
+    return 'Không kết nối được máy chủ. Vui lòng thử lại sau.';
+  }
+
+  // Cắt URL localhost/IP trong câu, giữ phần chữ còn lại.
+  const withoutLocalUrls = trimmed
+    .replace(/https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?(?:\/\S*)?/gi, '')
+    .replace(/\b(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d+)?(?:\/\S*)?/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  if (withoutLocalUrls !== trimmed) {
+    if (withoutLocalUrls.length >= 8) {
+      return withoutLocalUrls;
+    }
+    return 'Không kết nối được máy chủ. Vui lòng thử lại sau.';
+  }
+
+  return trimmed;
+};
+
 const getUserId = () => {
   const user = tokenService.getUser();
   return user?.id || 'guest';
@@ -62,11 +96,20 @@ const showToast = (type, message, options = {}) => {
   } else {
     toastActions.delete(toastId);
   }
+
+  const safeMessage = sanitizeToastText(message);
+  // Title tùy chọn chỉ dùng làm fallback nội dung — UI không hiện nhãn Success/Error/Info.
+  const safeTitle = options.title ? sanitizeToastText(options.title) : null;
+  const content = safeMessage || safeTitle;
+  if (!content) {
+    return toastId;
+  }
+
   const toast = {
     id: toastId,
     type,
-    title: options.title || null,
-    message,
+    title: null,
+    message: content,
     variant: options.variant || null,
     autoClose: options.autoClose ?? DEFAULT_AUTO_CLOSE,
     actionLabel: options.actionLabel || null,
@@ -147,8 +190,12 @@ export const notificationService = {
     const nextToast = {
       ...existingToast,
       type: options.type || existingToast.type,
-      title: options.title ?? existingToast.title,
-      message: options.render || options.message || existingToast.message,
+      title: options.title !== undefined
+        ? (options.title ? sanitizeToastText(options.title) : null)
+        : existingToast.title,
+      message: sanitizeToastText(
+        options.render || options.message || existingToast.message,
+      ),
       variant: options.variant ?? existingToast.variant,
       autoClose: options.autoClose ?? existingToast.autoClose,
       actionLabel: options.actionLabel ?? existingToast.actionLabel,

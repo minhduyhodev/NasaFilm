@@ -137,7 +137,7 @@ const RefundsPage = () => {
     <AdminPage>
       <PageHeader
         title="Duyệt hoàn tiền"
-        description="Các yêu cầu hoàn tiền từ khách hủy vé — duyệt để cộng tiền về Ví NASA hoặc hoàn qua Mock Gateway."
+        description="Các yêu cầu hoàn tiền từ khách hủy vé — duyệt để cộng tiền về Ví NASA hoặc hoàn qua cổng thanh toán gốc."
       />
 
       <AdminTableShell

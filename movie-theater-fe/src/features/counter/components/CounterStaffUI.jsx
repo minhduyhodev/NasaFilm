@@ -140,8 +140,17 @@ export const PrintTicketModal = ({ data, onClose }) => {
           </div>
 
           <div className="staff-control__ticket-movie">
-            <span className="staff-control__ticket-label">Tên phim</span>
-            <div className="staff-control__ticket-value staff-control__ticket-value--title">{data.movieTitle}</div>
+            {data.moviePoster ? (
+              <img
+                src={data.moviePoster}
+                alt={data.movieTitle || 'Poster phim'}
+                className="staff-control__ticket-poster"
+              />
+            ) : null}
+            <div className="staff-control__ticket-movie-copy">
+              <span className="staff-control__ticket-label">Tên phim</span>
+              <div className="staff-control__ticket-value staff-control__ticket-value--title">{data.movieTitle}</div>
+            </div>
           </div>
 
           <div className="staff-control__ticket-grid">
