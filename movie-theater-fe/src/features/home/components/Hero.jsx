@@ -12,51 +12,20 @@ import "./Hero.css";
 
 const DomeGallery = lazy(() => import("./DomeGallery"));
 
-const FALLBACK_POSTERS = [
-  {
-    src: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=480&auto=format&fit=crop",
-    alt: "Cinema",
-    movie: null,
-  },
-  {
-    src: "https://images.unsplash.com/photo-1536440136627-eb85e2c5e0e4?q=80&w=480&auto=format&fit=crop",
-    alt: "Movie night",
-    movie: null,
-  },
-  {
-    src: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?q=80&w=480&auto=format&fit=crop",
-    alt: "Film reel",
-    movie: null,
-  },
-  {
-    src: "https://images.unsplash.com/photo-1517604931441-175ad6222228?q=80&w=480&auto=format&fit=crop",
-    alt: "Theater seats",
-    movie: null,
-  },
-  {
-    src: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=480&auto=format&fit=crop",
-    alt: "Projector light",
-    movie: null,
-  },
-  {
-    src: "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=480&auto=format&fit=crop",
-    alt: "Popcorn",
-    movie: null,
-  },
-];
+const TARGET_DOME_COUNT = 24;
 
 const toDomeItems = (payload) => {
   const list = payload?.content || payload || [];
   if (!Array.isArray(list) || !list.length) return [];
 
-  const seen = new Set();
+  const seenSet = new Set();
   return mapApiMovies(list)
     .map((movie) => {
       const raw = pickPosterMediaUrl(movie) || movie?.primaryMediaUrl || movie?.poster || "";
       const src = resolveSafePosterUrl(raw, 360);
       if (!src || src === FALLBACK_POSTER) return null;
-      if (seen.has(src)) return null;
-      seen.add(src);
+      if (seenSet.has(src)) return null;
+      seenSet.add(src);
       return {
         src,
         alt: movie?.title || "Phim",
@@ -67,26 +36,53 @@ const toDomeItems = (payload) => {
     .filter(Boolean);
 };
 
+/** Lặp lại poster thật để đủ ô cầu — không dùng ảnh stock Unsplash. */
+const fillDomeItems = (valid = [], target = TARGET_DOME_COUNT) => {
+  if (!valid.length) return [];
+  if (valid.length >= target) return valid.slice(0, target);
+  const filled = [];
+  let i = 0;
+  while (filled.length < target) {
+    const item = valid[i % valid.length];
+    filled.push({
+      ...item,
+      src: item.src,
+      alt: item.alt,
+      // Keep movie ref; Dome may key by src — duplicate src is ok for visual fill
+    });
+    i += 1;
+  }
+  return filled;
+};
+
 const Hero = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [heroInView, setHeroInView] = useState(true);
-  const [domeItems, setDomeItems] = useState(FALLBACK_POSTERS);
+  const [domeItems, setDomeItems] = useState([]);
   const [postersReady, setPostersReady] = useState(false);
   const sectionRef = useRef(null);
-  const { data: nowShowingData } = useNowShowingMovies();
-  const { data: upcomingData } = useUpcomingMovies();
+  const { data: nowShowingData, isLoading: nowLoading } = useNowShowingMovies();
+  const { data: upcomingData, isLoading: upcomingLoading } = useUpcomingMovies();
+
+  const queriesLoading = nowLoading || upcomingLoading;
 
   const candidateItems = useMemo(() => {
     const items = [...toDomeItems(nowShowingData), ...toDomeItems(upcomingData)];
-    return items.slice(0, 24);
+    return items.slice(0, TARGET_DOME_COUNT);
   }, [nowShowingData, upcomingData]);
 
-  // Lọc poster 404 trước khi nhồi sphere — hết spam console + tile trống
+  // Lọc poster 404 trước khi nhồi sphere — chỉ hiện khi poster phim sẵn sàng
   useEffect(() => {
     let cancelled = false;
 
+    if (queriesLoading && !candidateItems.length) {
+      setPostersReady(false);
+      setDomeItems([]);
+      return undefined;
+    }
+
     if (!candidateItems.length) {
-      setDomeItems(FALLBACK_POSTERS);
+      setDomeItems([]);
       setPostersReady(true);
       return undefined;
     }
@@ -103,19 +99,14 @@ const Hero = () => {
       if (cancelled) return;
 
       const valid = results.filter(Boolean);
-      const filled =
-        valid.length >= 6
-          ? valid.slice(0, 24)
-          : [...valid, ...FALLBACK_POSTERS].slice(0, 24);
-
-      setDomeItems(filled);
+      setDomeItems(fillDomeItems(valid, TARGET_DOME_COUNT));
       setPostersReady(true);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [candidateItems]);
+  }, [candidateItems, queriesLoading]);
 
   const handleImageSelect = useCallback((item) => {
     setSelectedItem(item);
@@ -140,41 +131,62 @@ const Hero = () => {
   }, []);
 
   const galleryPaused = Boolean(selectedItem) || !heroInView;
+  const showLoading = !postersReady;
 
   return (
     <section
       ref={sectionRef}
       className="relative min-h-[90vh] w-full overflow-x-clip overflow-y-visible bg-transparent pt-24 pb-4 md:min-h-screen md:pb-6"
       aria-label="Hero gallery"
+      aria-busy={showLoading || undefined}
     >
       <div className="absolute inset-0 z-[1]">
-        <Suspense fallback={null}>
-          <DomeGallery
-            images={domeItems}
-            fit={0.72}
-            fitBasis="width"
-            minRadius={560}
-            overlayBlurColor="transparent"
-            grayscale={false}
-            imageBorderRadius="16px"
-            openedImageBorderRadius="22px"
-            openedImageWidth="340px"
-            openedImageHeight="486px"
-            segments={35}
-            dragSensitivity={20}
-            dragDampening={0.55}
-            autoRotate
-            autoRotateSpeed={5.5}
-            autoTiltDeg={-9}
-            autoTiltSwayDeg={2.2}
-            maxVerticalRotationDeg={12}
-            detailLayout
-            enlargeTransitionMs={320}
-            paused={galleryPaused}
-            onImageSelect={handleImageSelect}
-            onDetailClose={handleDetailClose}
-          />
-        </Suspense>
+        {showLoading ? (
+          <div className="hero-dome-loading" role="status" aria-live="polite">
+            <span className="hero-dome-loading__orb" aria-hidden />
+            <p className="hero-dome-loading__label">Đang tải phim…</p>
+          </div>
+        ) : domeItems.length > 0 ? (
+          <Suspense
+            fallback={(
+              <div className="hero-dome-loading" role="status" aria-live="polite">
+                <span className="hero-dome-loading__orb" aria-hidden />
+                <p className="hero-dome-loading__label">Đang tải phim…</p>
+              </div>
+            )}
+          >
+            <DomeGallery
+              images={domeItems}
+              fit={0.72}
+              fitBasis="width"
+              minRadius={560}
+              overlayBlurColor="transparent"
+              grayscale={false}
+              imageBorderRadius="16px"
+              openedImageBorderRadius="22px"
+              openedImageWidth="340px"
+              openedImageHeight="486px"
+              segments={35}
+              dragSensitivity={20}
+              dragDampening={0.55}
+              autoRotate
+              autoRotateSpeed={5.5}
+              autoTiltDeg={-9}
+              autoTiltSwayDeg={2.2}
+              maxVerticalRotationDeg={12}
+              detailLayout
+              enlargeTransitionMs={320}
+              paused={galleryPaused}
+              onImageSelect={handleImageSelect}
+              onDetailClose={handleDetailClose}
+            />
+          </Suspense>
+        ) : (
+          <div className="hero-dome-loading" role="status">
+            <span className="hero-dome-loading__orb" aria-hidden />
+            <p className="hero-dome-loading__label">Chưa có poster</p>
+          </div>
+        )}
       </div>
 
       <div className="hero-film-grain" aria-hidden />
