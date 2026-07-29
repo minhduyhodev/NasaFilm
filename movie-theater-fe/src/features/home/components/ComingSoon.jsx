@@ -13,7 +13,9 @@ const ComingSoon = () => {
 
   return (
     <HomeMovieCarousel
-      title="PHIM SẮP CHIẾU"
+      sectionId="home-coming-soon"
+      title="Phim sắp chiếu"
+      subtitle="Theo dõi phim yêu thích và đặt nhắc khi mở bán vé"
       viewAllTo="/movies?tab=coming-soon"
       moviesList={moviesList}
       isLoading={isLoading}

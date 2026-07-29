@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import './HomeSpaceBackdrop.css';
 
 const UNIVERSE_BG =
-  'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1920&auto=format&fit=crop';
+  'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1600&auto=format&fit=crop';
 
 const buildTwinkleStars = (count) =>
   Array.from({ length: count }, (_, i) => {
@@ -18,7 +18,7 @@ const buildTwinkleStars = (count) =>
   });
 
 /** Nền vũ trụ NASAFilm dùng chung toàn homepage */
-const HomeSpaceBackdrop = ({ starCount = 42 }) => {
+const HomeSpaceBackdrop = ({ starCount = 14 }) => {
   const rootRef = useRef(null);
   const stars = useMemo(() => buildTwinkleStars(starCount), [starCount]);
 
@@ -29,14 +29,23 @@ const HomeSpaceBackdrop = ({ starCount = 42 }) => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) return undefined;
 
+    // Skip parallax on small screens — scroll jank risk
+    const isNarrow = window.matchMedia('(max-width: 767px)').matches;
+    if (isNarrow) return undefined;
+
     let raf = 0;
+    let lastY = -1;
+
     const onScroll = () => {
+      if (document.hidden) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const scrollY = window.scrollY;
-        const imageShift = Math.min(scrollY * 0.14, 140);
-        const nebulaShift = Math.min(scrollY * 0.08, 80);
-        const glowShift = Math.min(scrollY * 0.05, 50);
+        if (Math.abs(scrollY - lastY) < 2) return;
+        lastY = scrollY;
+        const imageShift = Math.min(scrollY * 0.06, 56);
+        const nebulaShift = Math.min(scrollY * 0.035, 32);
+        const glowShift = Math.min(scrollY * 0.02, 20);
         node.style.setProperty('--parallax-image', `${imageShift}px`);
         node.style.setProperty('--parallax-nebula', `${nebulaShift}px`);
         node.style.setProperty('--parallax-glow', `${glowShift}px`);
@@ -60,6 +69,7 @@ const HomeSpaceBackdrop = ({ starCount = 42 }) => {
         alt=""
         decoding="async"
         fetchPriority="low"
+        loading="eager"
       />
       <div className="home-space-backdrop__nebula home-space-backdrop__layer--nebula" />
       <div className="home-space-backdrop__ambient home-space-backdrop__layer--glow">

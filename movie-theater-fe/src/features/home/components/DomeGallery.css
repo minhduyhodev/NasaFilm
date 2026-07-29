@@ -112,6 +112,8 @@ main.sphere-main {
   pointer-events: none;
   backface-visibility: hidden;
   filter: var(--image-filter, none);
+  transform: translateZ(0);
+  background: #12141c;
 }
 
 .viewer {
@@ -211,5 +213,10 @@ main.sphere-main {
 
 body.dg-scroll-lock {
   overflow: hidden !important;
+}
+
+/* Homepage detail mode never needs body lock — keep selector inert for safety */
+body.dg-scroll-lock:has([data-detail-layout='true']) {
+  overflow: visible !important;
 }
 

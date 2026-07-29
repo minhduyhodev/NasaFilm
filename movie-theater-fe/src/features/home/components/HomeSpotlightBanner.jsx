@@ -50,7 +50,7 @@ export default function HomeSpotlightBanner() {
   );
 
   if (isLoading) {
-    return <div className="home-spotlight home-spotlight--loading" aria-hidden />;
+    return <div id="home-spotlight" className="home-spotlight home-spotlight--loading" aria-hidden />;
   }
 
   if (!movie) return null;
@@ -63,7 +63,7 @@ export default function HomeSpotlightBanner() {
   ].filter(Boolean);
 
   return (
-    <section className="home-spotlight" aria-label={`Phim nổi bật: ${movie.title}`}>
+    <section id="home-spotlight" className="home-spotlight" aria-label={`Phim nổi bật: ${movie.title}`}>
       <div className="home-spotlight__glow" aria-hidden />
       <div className="home-spotlight__inner">
         <Link to={detailPath} className="home-spotlight__poster-link">

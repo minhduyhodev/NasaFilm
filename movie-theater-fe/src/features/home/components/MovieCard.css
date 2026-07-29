@@ -266,6 +266,8 @@
 .movie-card--showcase .movie-card__poster-wrap {
   border-radius: 0.75rem;
   margin-bottom: 1rem;
+  content-visibility: auto;
+  contain-intrinsic-size: 240px 360px;
 }
 
 .movie-card--showcase:hover .movie-card__poster {

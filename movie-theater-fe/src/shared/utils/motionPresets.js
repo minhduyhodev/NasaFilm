@@ -1,9 +1,9 @@
 /** Soft cinema fades — opacity-first, tiny lift, no heavy motion */
 
 export const pageTransition = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -6 },
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
 };
 
 export const tabTransition = {
@@ -41,7 +41,7 @@ export const softFade = {
 
 export const smoothEase = [0.16, 1, 0.3, 1];
 
-export const pageTransitionMs = 0.3;
+export const pageTransitionMs = 0.18;
 export const tabTransitionMs = 0.22;
 export const softFadeMs = 0.2;
 export const dashboardCardTransitionMs = 0.36;

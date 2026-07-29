@@ -82,6 +82,124 @@
   }
 }
 
+/* Homepage twin panel: vertical stack, centered — mirrors Radar column */
+.nsf-matchmaker-cta--panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.nsf-matchmaker-cta--panel .nsf-matchmaker-cta__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.nsf-matchmaker-cta--panel .nsf-matchmaker-cta__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.75rem;
+  flex: 1;
+  min-height: 14rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-matchmaker-cta__copy {
+  width: 100%;
+}
+
+.nsf-matchmaker-cta--panel .nsf-matchmaker-cta__panel-hint {
+  margin: 0 0 0.15rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.nsf-matchmaker-cta--panel .nsf-matchmaker-cta__orbit-ring,
+.nsf-matchmaker-cta--panel .nsf-matchmaker-cta__orbit-track,
+.nsf-matchmaker-cta--panel .nsf-matchmaker-cta__orbit-core-halo,
+.nsf-matchmaker-cta--panel .nsf-matchmaker-cta__orbit-node-upright {
+  animation-play-state: paused;
+}
+
+.nsf-matchmaker-cta--panel:hover .nsf-matchmaker-cta__orbit-ring,
+.nsf-matchmaker-cta--panel:hover .nsf-matchmaker-cta__orbit-track,
+.nsf-matchmaker-cta--panel:hover .nsf-matchmaker-cta__orbit-core-halo,
+.nsf-matchmaker-cta--panel:hover .nsf-matchmaker-cta__orbit-node-upright,
+.nsf-matchmaker-cta--panel:focus-within .nsf-matchmaker-cta__orbit-ring,
+.nsf-matchmaker-cta--panel:focus-within .nsf-matchmaker-cta__orbit-track,
+.nsf-matchmaker-cta--panel:focus-within .nsf-matchmaker-cta__orbit-core-halo,
+.nsf-matchmaker-cta--panel:focus-within .nsf-matchmaker-cta__orbit-node-upright {
+  animation-play-state: running;
+}
+
+.nsf-matchmaker-cta--panel .nsf-matchmaker-cta__orbit-wrap {
+  width: 100%;
+  justify-content: center;
+  min-height: 168px;
+  padding-right: 0;
+  transform: none;
+}
+
+@media (min-width: 768px) {
+  .nsf-matchmaker-cta--panel .nsf-matchmaker-cta__inner {
+    grid-template-columns: none;
+  }
+
+  .nsf-matchmaker-cta--panel .nsf-matchmaker-cta__orbit-wrap {
+    transform: none;
+  }
+}
+
+/* Expanded quiz stays inside the Matchmaker column — never spill into Radar */
+.nsf-matchmaker-cta--panel.nsf-matchmaker-cta--expanded,
+.nsf-matchmaker-cta--panel.nsf-matchmaker-cta--expanded .nsf-matchmaker-cta__content,
+.nsf-matchmaker-cta--panel.nsf-matchmaker-cta--expanded .nsf-quiz-inline {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.nsf-matchmaker-cta--panel.nsf-matchmaker-cta--expanded .nsf-quiz-inline {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: min(70vh, 36rem);
+  padding-right: 0.15rem;
+  --nsf-quiz-heading: clamp(1rem, 0.85rem + 0.45vw, 1.2rem);
+  --nsf-quiz-lead: clamp(0.82rem, 0.75rem + 0.3vw, 0.95rem);
+  --nsf-quiz-label: clamp(0.88rem, 0.8rem + 0.3vw, 1rem);
+  --nsf-quiz-hint: clamp(0.75rem, 0.7rem + 0.25vw, 0.85rem);
+  --nsf-quiz-kicker: clamp(0.72rem, 0.68rem + 0.2vw, 0.82rem);
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__options--grid-2,
+.nsf-matchmaker-cta--panel .nsf-quiz__options--grid-3 {
+  grid-template-columns: 1fr;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-grid {
+  grid-template-columns: 1fr;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__timeline {
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__footer {
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__next,
+.nsf-matchmaker-cta--panel .nsf-quiz__back {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .nsf-matchmaker-cta__title {
   font-size: clamp(0.92rem, 0.55rem + 1.35vw, 1.5rem);
   line-height: 1.35;

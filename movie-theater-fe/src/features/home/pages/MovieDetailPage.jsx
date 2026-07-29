@@ -34,6 +34,7 @@ import PosterImage from "../../../shared/components/PosterImage";
 import MovieReviewsSection from "../components/MovieReviewsSection";
 import FavoriteButton from "../components/FavoriteButton";
 import ShareButton from "../../../shared/components/ShareButton";
+import MovieReminderButton from "../components/MovieReminderButton";
 import PageMeta from "../../../shared/components/PageMeta";
 import { resolveMediaUrl } from "../../../shared/utils/mediaUrlUtils";
 
@@ -707,9 +708,7 @@ const MovieDetailPage = () => {
                   </button>
                 )}
                 {isComingSoon && !isFromOnline && (
-                  <span className="px-6 py-3.5 bg-amber-500/10 text-amber-300 rounded-xl font-bold text-sm uppercase tracking-wider border border-amber-400/30">
-                    Sắp chiếu
-                  </span>
+                  <MovieReminderButton movie={dbMovie} />
                 )}
 
                 {/* 2. Vé xem Online VOD */}

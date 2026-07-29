@@ -283,7 +283,33 @@
   padding: 1.25rem 1.35rem 1.35rem;
 }
 
+.home-section-shell .showtime-radar-widget--bar .showtime-radar-widget__bar-head {
+  margin-bottom: 0.75rem;
+}
+
+.home-section-shell .showtime-radar-widget--bar .showtime-radar-widget__kicker {
+  font-size: 0.72rem;
+}
+
+.showtime-radar-widget__bar-head--embedded {
+  margin-bottom: 0.5rem;
+}
+
+.showtime-radar-widget__embedded-status {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.home-radar-bar {
+  margin-top: 0;
+  width: 100%;
+  min-width: 0;
+}
+
 /* Home: Radar bar — no container chrome, hidden horizontal scrollbar */
+.home-radar-bar .showtime-radar-widget--bar,
 .home-upcoming-radar-bar .showtime-radar-widget--bar {
   padding: 1.25rem 0.25rem 0.5rem;
   border: none;
@@ -294,16 +320,19 @@
   border-radius: 0;
 }
 
+.home-radar-bar .showtime-radar-widget__glow,
 .home-upcoming-radar-bar .showtime-radar-widget__glow {
   display: none;
 }
 
+.home-radar-bar .radar-suggestions--strip,
 .home-upcoming-radar-bar .radar-suggestions--strip {
   scrollbar-width: none;
   -ms-overflow-style: none;
   padding-bottom: 0;
 }
 
+.home-radar-bar .radar-suggestions--strip::-webkit-scrollbar,
 .home-upcoming-radar-bar .radar-suggestions--strip::-webkit-scrollbar {
   display: none;
   height: 0;

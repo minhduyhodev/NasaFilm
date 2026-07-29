@@ -6,6 +6,8 @@
   min-height: 100vh;
   background: #050508;
   color: #fff;
+  /* Prevent child overflow from collapsing document scroll unexpectedly */
+  overflow-x: clip;
 }
 
 .home-page__backdrop {
@@ -14,6 +16,10 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  /* Cover full viewport including over footer while on homepage */
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
 }
 
 .home-page__main {
@@ -82,9 +88,10 @@
 
 .home-space-backdrop__image {
   position: absolute;
-  inset: -6%;
-  width: 112%;
-  height: 112%;
+  /* Extra bleed so parallax shift never reveals hard edges */
+  inset: -18%;
+  width: 136%;
+  height: 136%;
   object-fit: cover;
   object-position: center;
   opacity: 0.45;
@@ -189,6 +196,19 @@
   .home-space-backdrop__star {
     animation: none;
     opacity: 0.4;
+  }
+
+  .home-space-backdrop__layer--image,
+  .home-space-backdrop__layer--nebula,
+  .home-space-backdrop__layer--glow {
+    transform: none;
+    will-change: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .home-space-backdrop__stars {
+    display: none;
   }
 
   .home-space-backdrop__layer--image,

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useGesture } from '@use-gesture/react';
+import { FALLBACK_POSTER, handlePosterError, unwrapMediaUrl } from '../../../shared/utils/mediaUrlUtils';
 import './DomeGallery.css';
 
 const DEFAULT_IMAGES = [
@@ -61,7 +62,7 @@ function buildItems(pool, seg) {
 
   const totalSlots = coords.length;
   if (pool.length === 0) {
-    return coords.map(c => ({ ...c, src: '', alt: '', movie: null }));
+    return coords.map(c => ({ ...c, src: FALLBACK_POSTER, alt: '', movie: null }));
   }
   if (pool.length > totalSlots) {
     console.warn(
@@ -71,12 +72,18 @@ function buildItems(pool, seg) {
 
   const normalizedImages = pool.map(image => {
     if (typeof image === 'string') {
-      return { src: image, alt: '', movie: null };
+      return { src: image || FALLBACK_POSTER, alt: '', movie: null };
     }
-    return { src: image.src || '', alt: image.alt || '', movie: image.movie ?? null };
-  });
+    return {
+      src: image.src || FALLBACK_POSTER,
+      alt: image.alt || '',
+      movie: image.movie ?? null,
+    };
+  }).filter((image) => Boolean(image.src));
 
-  const usedImages = Array.from({ length: totalSlots }, (_, i) => normalizedImages[i % normalizedImages.length]);
+  const safePool = normalizedImages.length ? normalizedImages : [{ src: FALLBACK_POSTER, alt: '', movie: null }];
+
+  const usedImages = Array.from({ length: totalSlots }, (_, i) => safePool[i % safePool.length]);
 
   for (let i = 1; i < usedImages.length; i++) {
     if (usedImages[i].src === usedImages[i - 1].src) {
@@ -156,11 +163,14 @@ export default function DomeGallery({
   const lastDragEndAt = useRef(0);
 
   const scrollLockedRef = useRef(false);
+  // Homepage detailLayout must not lock page scroll — auto-highlight + panel
+  // would hide the scrollbar and trap users at the bottom of the page.
   const lockScroll = useCallback(() => {
+    if (detailLayout) return;
     if (scrollLockedRef.current) return;
     scrollLockedRef.current = true;
     document.body.classList.add('dg-scroll-lock');
-  }, []);
+  }, [detailLayout]);
   const unlockScroll = useCallback(() => {
     if (!scrollLockedRef.current) return;
     if (rootRef.current?.getAttribute('data-enlarging') === 'true') return;
@@ -306,31 +316,72 @@ export default function DomeGallery({
     }
 
     let lastTs = performance.now();
+    let running = true;
+    let frameBudget = 0;
+    // ~30fps while idle — dense sphere still looks smooth, half the GPU work
+    const FRAME_MS = 1000 / 30;
+
     const tick = (now) => {
-      const dt = Math.min(0.05, (now - lastTs) / 1000);
+      if (!running) return;
+
+      // Stop scheduling frames while paused / tab hidden — biggest GPU win
+      if (paused || document.hidden) {
+        autoRotateRAF.current = null;
+        return;
+      }
+
+      const elapsed = now - lastTs;
       lastTs = now;
+      frameBudget += elapsed;
 
-      const idle =
-        !paused &&
-        !draggingRef.current &&
-        !inertiaRAF.current &&
-        !focusedElRef.current &&
-        !openingRef.current &&
-        rootRef.current?.getAttribute('data-enlarging') !== 'true';
+      if (frameBudget >= FRAME_MS) {
+        const dt = Math.min(0.05, frameBudget / 1000);
+        frameBudget = 0;
 
-      if (idle) {
-        const nextY = wrapAngleSigned(rotationRef.current.y + autoRotateSpeed * dt);
-        const sway = Math.sin(now / 2800) * autoTiltSwayDeg;
-        const nextX = clamp(autoTiltDeg + sway, -maxVerticalRotationDeg, maxVerticalRotationDeg);
-        rotationRef.current = { x: nextX, y: nextY };
-        applyTransform(nextX, nextY);
+        const idle =
+          !draggingRef.current &&
+          !inertiaRAF.current &&
+          !focusedElRef.current &&
+          !openingRef.current &&
+          rootRef.current?.getAttribute('data-enlarging') !== 'true';
+
+        if (idle) {
+          const nextY = wrapAngleSigned(rotationRef.current.y + autoRotateSpeed * dt);
+          const sway = Math.sin(now / 2800) * autoTiltSwayDeg;
+          const nextX = clamp(autoTiltDeg + sway, -maxVerticalRotationDeg, maxVerticalRotationDeg);
+          rotationRef.current = { x: nextX, y: nextY };
+          applyTransform(nextX, nextY);
+        }
       }
 
       autoRotateRAF.current = requestAnimationFrame(tick);
     };
 
-    autoRotateRAF.current = requestAnimationFrame(tick);
+    const resume = () => {
+      if (paused || document.hidden || autoRotateRAF.current) return;
+      lastTs = performance.now();
+      autoRotateRAF.current = requestAnimationFrame(tick);
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (autoRotateRAF.current) {
+          cancelAnimationFrame(autoRotateRAF.current);
+          autoRotateRAF.current = null;
+        }
+      } else {
+        resume();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    if (!paused && !document.hidden) {
+      autoRotateRAF.current = requestAnimationFrame(tick);
+    }
+
     return () => {
+      running = false;
+      document.removeEventListener('visibilitychange', onVisibility);
       if (autoRotateRAF.current) {
         cancelAnimationFrame(autoRotateRAF.current);
         autoRotateRAF.current = null;
@@ -510,8 +561,10 @@ export default function DomeGallery({
                 el.style.transition = '';
                 el.style.opacity = '';
                 openingRef.current = false;
-                if (!draggingRef.current && rootRef.current?.getAttribute('data-enlarging') !== 'true')
+                if (!draggingRef.current && rootRef.current?.getAttribute('data-enlarging') !== 'true') {
+                  scrollLockedRef.current = false;
                   document.body.classList.remove('dg-scroll-lock');
+                }
               }, 300);
             });
           });
@@ -712,9 +765,18 @@ export default function DomeGallery({
 
   useEffect(() => {
     return () => {
+      scrollLockedRef.current = false;
       document.body.classList.remove('dg-scroll-lock');
     };
   }, []);
+
+  // Safety: never leave page scroll locked if detailLayout flips on
+  useEffect(() => {
+    if (!detailLayout) return undefined;
+    scrollLockedRef.current = false;
+    document.body.classList.remove('dg-scroll-lock');
+    return undefined;
+  }, [detailLayout]);
 
   return (
     <div
@@ -757,7 +819,17 @@ export default function DomeGallery({
                   onClick={onTileClick}
                   onPointerUp={onTilePointerUp}
                 >
-                  <img src={it.src} draggable={false} alt={it.alt} />
+                  <img
+                    src={it.src || FALLBACK_POSTER}
+                    data-original-url={unwrapMediaUrl(it.src) || ''}
+                    data-width="360"
+                    draggable={false}
+                    alt=""
+                    loading={i < 8 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    fetchPriority={i < 4 ? 'high' : 'low'}
+                    onError={handlePosterError}
+                  />
                 </div>
               </div>
             ))}

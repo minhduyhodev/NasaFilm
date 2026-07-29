@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { favoriteService } from '../../../shared/services/favoriteService';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -20,22 +20,40 @@ export const writeGuestFavorites = (ids) => {
   localStorage.setItem(FAVORITE_STORAGE_KEY, JSON.stringify(ids));
 };
 
+const toFavoriteUuid = (item) =>
+  String(item?.movieUuid || item?.uuid || item?.movie?.uuid || item?.id || '');
+
+/** Single shared favorites list — avoids N+1 isFavorite calls per movie card */
+export const useFavoriteIdSet = () => {
+  const { isAuthenticated } = useAuthContext();
+
+  return useQuery({
+    queryKey: queryKeys.favorites,
+    queryFn: () => favoriteService.list(),
+    enabled: isAuthenticated,
+    staleTime: 2 * 60_000,
+    select: (data) => {
+      const list = Array.isArray(data) ? data : [];
+      return new Set(list.map(toFavoriteUuid).filter(Boolean));
+    },
+  });
+};
+
 export const useMovieFavorite = (movieUuid, { quiet = false } = {}) => {
   const { isAuthenticated } = useAuthContext();
   const queryClient = useQueryClient();
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { data: favoriteIds } = useFavoriteIdSet();
+  const [guestTick, setGuestTick] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!movieUuid) return;
+  const isFavorite = useMemo(() => {
+    if (!movieUuid) return false;
     if (!isAuthenticated) {
-      setIsFavorite(readGuestFavorites().includes(movieUuid));
-      return;
+      void guestTick;
+      return readGuestFavorites().includes(movieUuid);
     }
-    favoriteService.isFavorite(movieUuid)
-      .then(setIsFavorite)
-      .catch(() => setIsFavorite(false));
-  }, [movieUuid, isAuthenticated]);
+    return favoriteIds?.has(String(movieUuid)) ?? false;
+  }, [movieUuid, isAuthenticated, favoriteIds, guestTick]);
 
   const toggleFavorite = useCallback(async (event) => {
     event?.preventDefault?.();
@@ -50,23 +68,30 @@ export const useMovieFavorite = (movieUuid, { quiet = false } = {}) => {
           ? guest.filter((id) => id !== movieUuid)
           : [...guest, movieUuid];
         writeGuestFavorites(next);
-        setIsFavorite(next.includes(movieUuid));
+        setGuestTick((n) => n + 1);
         if (!quiet) {
           notificationService.success(next.includes(movieUuid) ? 'Đã lưu phim' : 'Đã bỏ lưu phim');
         }
         return;
       }
+
       if (isFavorite) {
         await favoriteService.remove(movieUuid);
-        setIsFavorite(false);
-        queryClient.invalidateQueries({ queryKey: queryKeys.favorites });
+        queryClient.setQueryData(queryKeys.favorites, (prev) => {
+          const list = Array.isArray(prev) ? prev : [];
+          return list.filter((item) => toFavoriteUuid(item) !== String(movieUuid));
+        });
         if (!quiet) notificationService.success('Đã bỏ lưu phim');
       } else {
         await favoriteService.add(movieUuid);
-        setIsFavorite(true);
-        queryClient.invalidateQueries({ queryKey: queryKeys.favorites });
+        queryClient.setQueryData(queryKeys.favorites, (prev) => {
+          const list = Array.isArray(prev) ? prev : [];
+          if (list.some((item) => toFavoriteUuid(item) === String(movieUuid))) return list;
+          return [...list, { movieUuid, uuid: movieUuid }];
+        });
         if (!quiet) notificationService.success('Đã lưu vào Phim của tôi');
       }
+      queryClient.invalidateQueries({ queryKey: queryKeys.favorites });
     } catch (err) {
       notificationService.error(err?.message || 'Không thể cập nhật yêu thích');
     } finally {
