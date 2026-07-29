@@ -64,10 +64,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #9ca3af;
 }
 
@@ -136,7 +136,9 @@
 .seat-map-viewport--zoomable {
   position: relative;
   flex: 1 1 auto;
-  min-height: 0;
+  /* Reserve panel height so auto-scale can enlarge small rooms instead of
+     collapsing the viewport to content height (which locked zoom at ~100%). */
+  min-height: min(48vh, 440px);
   max-width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 1rem;
