@@ -36,12 +36,15 @@ public class WebSocketHandshakeAuthInterceptor implements HandshakeInterceptor {
         }
 
         HttpServletRequest httpRequest = servletRequest.getServletRequest();
-        String token = httpRequest.getParameter("access_token");
+        // Prefer Authorization (not logged in access logs / Referer). Query access_token remains a
+        // SockJS fallback because browser SockJS handshakes cannot set custom headers.
+        String token = null;
+        String authorization = httpRequest.getHeader("Authorization");
+        if (StringUtils.hasText(authorization) && authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            token = authorization.substring(7).trim();
+        }
         if (!StringUtils.hasText(token)) {
-            String authorization = httpRequest.getHeader("Authorization");
-            if (StringUtils.hasText(authorization) && authorization.startsWith("Bearer ")) {
-                token = authorization.substring(7).trim();
-            }
+            token = httpRequest.getParameter("access_token");
         }
 
         if (StringUtils.hasText(token) && jwtUtils.validateToken(token)) {

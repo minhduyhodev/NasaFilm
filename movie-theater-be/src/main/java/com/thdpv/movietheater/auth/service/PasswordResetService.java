@@ -1,6 +1,8 @@
 package com.thdpv.movietheater.auth.service;
 
 
+import java.time.LocalDateTime;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.thdpv.movietheater.auth.repository.UserSessionRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import com.thdpv.movietheater.security.JwtUtils;
@@ -22,6 +25,7 @@ public class PasswordResetService {
     private static final Logger logger = LoggerFactory.getLogger(PasswordResetService.class);
 
     private final UserRepository userRepository;
+    private final UserSessionRepository userSessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final EmailService emailService;
@@ -31,10 +35,12 @@ public class PasswordResetService {
 
     public PasswordResetService(
             UserRepository userRepository,
+            UserSessionRepository userSessionRepository,
             PasswordEncoder passwordEncoder,
             JwtUtils jwtUtils,
             EmailService emailService) {
         this.userRepository = userRepository;
+        this.userSessionRepository = userSessionRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.emailService = emailService;
@@ -90,7 +96,9 @@ public class PasswordResetService {
             user.setPassword(passwordEncoder.encode(newPassword));
             userRepository.save(user);
 
-            logger.info("[PasswordResetService] Password reset successfully for email: {}", email);
+            int revoked = userSessionRepository.revokeAllActiveSessions(user.getId(), LocalDateTime.now());
+            logger.info("[PasswordResetService] Password reset successfully for email: {} (revoked {} session(s))",
+                    email, revoked);
 
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
             logger.error("[PasswordResetService] Reset token expired: {}", e.getMessage());

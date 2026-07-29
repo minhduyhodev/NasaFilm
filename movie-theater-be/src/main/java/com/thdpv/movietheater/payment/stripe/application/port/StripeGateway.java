@@ -9,5 +9,10 @@ public interface StripeGateway {
 
     PaymentIntentResult retrievePaymentIntent(String paymentIntentId);
 
+    /**
+     * Creates a Stripe Refund against a succeeded PaymentIntent. Returns the refund id (re_...).
+     */
+    String refundPaymentIntent(String paymentIntentId, long amountVnd, String idempotencyKey);
+
     WebhookResult verifyWebhook(String payload, String signature);
 }

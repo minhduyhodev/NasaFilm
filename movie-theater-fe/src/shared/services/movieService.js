@@ -89,6 +89,19 @@ class MovieService {
   }
 
   // Admin APIs
+  async getAdminMovies(params = {}) {
+    try {
+      const requestParams = { ...params };
+      if (Array.isArray(requestParams.genreUuids)) {
+        requestParams.genreUuids = requestParams.genreUuids.join(',');
+      }
+      const response = await authService.api.get('/api/admin/movies', { params: requestParams });
+      return response.data.data ?? response.data;
+    } catch (error) {
+      throw authService.handleError(error);
+    }
+  }
+
   async createMovie(data) {
     try {
       const response = await authService.api.post('/api/admin/movies', data);

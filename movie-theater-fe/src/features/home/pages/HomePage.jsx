@@ -105,9 +105,9 @@ const HomePage = () => {
                 <HomeSectionShell
                   id="home-radar"
                   spacing="tight"
-                  className="home-personalize-duo__panel"
+                  className="home-personalize-duo__panel home-personalize-duo__panel--radar"
                   title="Radar sở thích"
-                  subtitle="Gợi ý suất chiếu trong 48 giờ tới theo thói quen xem phim của bạn"
+                  subtitle="Suất chiếu 48h tới khớp sở thích của bạn"
                 >
                   <HomeShowtimeRadarBar />
                 </HomeSectionShell>
@@ -117,9 +117,9 @@ const HomePage = () => {
                 <HomeSectionShell
                   id="home-matchmaker"
                   spacing="tight"
-                  className="home-personalize-duo__panel"
+                  className="home-personalize-duo__panel home-personalize-duo__panel--match"
                   title="Gợi ý cho bạn"
-                  subtitle="Trả lời vài câu hỏi — nhận danh sách phim phù hợp tâm trạng"
+                  subtitle="Vài câu hỏi nhanh — tìm phim đúng tâm trạng"
                 >
                   <Suspense fallback={<SectionPlaceholder minHeight="10rem" />}>
                     <MovieMatchmakerWidget layout="panel" />
