@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Minus, Plus, Maximize2, Move } from 'lucide-react';
+import { Minus, Plus, Move } from 'lucide-react';
 import './SeatMapGrid.css';
 
 const ABSOLUTE_MIN_ZOOM = 0.12;
@@ -20,26 +20,64 @@ const isInteractiveSeatTarget = (target) => {
   ));
 };
 
-/** Larger rooms need a lower zoom floor so "Vừa khung" still fits. */
+const approxSeatCount = (cols = 1, rowCount = 0) =>
+  Math.max(cols, 1) * Math.max(rowCount, 1);
+
 const resolveMinZoom = (cols = 1, rowCount = 0) => {
-  const seatsApprox = Math.max(cols, 1) * Math.max(rowCount, 1);
-  if (seatsApprox >= 900 || cols >= 40) return 0.12;
-  if (seatsApprox >= 500 || cols >= 30) return 0.16;
-  if (seatsApprox >= 300 || cols >= 22) return 0.2;
+  const seats = approxSeatCount(cols, rowCount);
+  if (seats >= 900 || cols >= 40) return 0.12;
+  if (seats >= 500 || cols >= 30) return 0.16;
+  if (seats >= 300 || cols >= 22) return 0.2;
   return 0.25;
 };
 
-/** Shrink natural seat size for very wide rooms so fit zoom stays usable. */
-const resolveBaseScale = (cols = 1) => {
-  if (cols >= 40) return 0.65;
-  if (cols >= 32) return 0.75;
-  if (cols >= 24) return 0.85;
+/** Cap for auto-scale — small rooms may zoom well above 100%. */
+const resolveFitMaxZoom = (cols = 1, rowCount = 0) => {
+  const seats = approxSeatCount(cols, rowCount);
+  if (seats <= 40) return 1.95;
+  if (seats <= 80) return 1.8;
+  if (seats <= 140) return 1.65;
+  if (seats <= 220) return 1.4;
+  if (seats <= 320) return 1.2;
   return 1;
 };
 
+const resolveBaseScale = (cols = 1, rowCount = 0) => {
+  const seats = approxSeatCount(cols, rowCount);
+  if (cols >= 40 || seats >= 900) return 0.65;
+  if (cols >= 32 || seats >= 600) return 0.75;
+  if (cols >= 24 || seats >= 350) return 0.85;
+  if (seats <= 60 && cols <= 14) return 1.08;
+  return 1;
+};
+
+/** Ideal on-screen seat width (px) by room size — drives auto-scale. */
+const resolveIdealSeatPx = (cols = 1, rowCount = 0) => {
+  const seats = approxSeatCount(cols, rowCount);
+  if (seats <= 40) return 52;
+  if (seats <= 80) return 48;
+  if (seats <= 140) return 44;
+  if (seats <= 220) return 36;
+  if (seats <= 350) return 30;
+  if (seats <= 550) return 26;
+  return 22;
+};
+
+const readRemPx = () => {
+  if (typeof window === 'undefined') return 16;
+  const value = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  return Number.isFinite(value) && value > 0 ? value : 16;
+};
+
+const baseMetrics = (variant) => (
+  variant === 'admin'
+    ? { w: 2.75, h: 1.75, gap: 0.375 }
+    : { w: 2.25, h: 1.5, gap: 0.4 }
+);
+
 /**
- * Comfortable-size seat map with zoom (+/−/fit) and drag-to-pan.
- * Large rooms (300–1000 seats) auto-fit into the panel instead of overflowing UI.
+ * Comfortable seat map with zoom (+/−/auto-scale) and drag-to-pan.
+ * Auto-scale sizes seats from seat count, then clamps to the viewport.
  */
 const SeatMapZoomViewport = ({
   cols = 1,
@@ -54,72 +92,149 @@ const SeatMapZoomViewport = ({
   const contentRef = useRef(null);
   const dragRef = useRef(null);
   const zoomRef = useRef(1);
+  const applyGenerationRef = useRef(0);
 
   const [zoom, setZoom] = useState(1);
-  const [fitZoom, setFitZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [didInit, setDidInit] = useState(false);
 
+  const seatsApprox = approxSeatCount(cols, rowCount);
   const minZoom = resolveMinZoom(cols, rowCount);
-  const baseScale = resolveBaseScale(cols);
+  const fitMaxZoom = resolveFitMaxZoom(cols, rowCount);
+  const baseScale = resolveBaseScale(cols, rowCount);
   zoomRef.current = zoom;
+
+  const centerViewport = useCallback(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    vp.scrollLeft = Math.max(0, (vp.scrollWidth - vp.clientWidth) / 2);
+    vp.scrollTop = Math.max(0, (vp.scrollHeight - vp.clientHeight) / 2);
+  }, []);
 
   const measureFit = useCallback(() => {
     const vp = viewportRef.current;
     const content = contentRef.current;
     if (!vp || !content) return 1;
 
-    const current = zoomRef.current || 1;
-    const naturalW = Math.max(content.scrollWidth / current, 1);
-    const naturalH = Math.max(content.scrollHeight / current, 1);
-    const pad = 12;
-    const nextFit = Math.min(
-      (vp.clientWidth - pad) / naturalW,
-      (vp.clientHeight - pad) / naturalH,
-      1,
-    );
-    const floor = Math.max(ABSOLUTE_MIN_ZOOM, minZoom);
-    const clamped = Math.max(floor, Math.min(1, nextFit));
-    setFitZoom(clamped);
-    return clamped;
-  }, [minZoom]);
+    const rem = readRemPx();
+    const metrics = baseMetrics(variant);
+    const naturalSeatW = metrics.w * rem * baseScale;
+    const naturalSeatH = metrics.h * rem * baseScale;
+    const naturalGap = metrics.gap * rem * baseScale;
+    const labelW = 2 * rem;
+    const padX = 36;
+    const padY = 56;
 
-  const layoutKey = `${cols}-${rowCount}`;
+    const estimatedW = labelW + cols * naturalSeatW + Math.max(0, cols - 1) * naturalGap + padX;
+    const estimatedH = padY + rowCount * (naturalSeatH + rem * 0.35) + rem * 2.5;
+
+    // Prefer measuring real seat rows (ignore full-width screen chrome).
+    const current = zoomRef.current || 1;
+    const rows = content.querySelectorAll('.seat-map-row');
+    let measuredW = 0;
+    let measuredH = 0;
+    rows.forEach((row) => {
+      measuredW = Math.max(measuredW, row.scrollWidth / current);
+      measuredH += row.getBoundingClientRect().height / current;
+    });
+    const screen = content.querySelector('[data-no-pan]');
+    if (screen) {
+      measuredH += screen.getBoundingClientRect().height / current;
+    }
+
+    const naturalW = Math.max(estimatedW, measuredW || 0, 1);
+    const naturalH = Math.max(estimatedH, measuredH || 0, 1);
+
+    const widthFit = (vp.clientWidth - 16) / naturalW;
+    const heightFit = (vp.clientHeight - 16) / naturalH;
+
+    // Target seat size from room density, then clamp into the panel.
+    const idealSeatPx = resolveIdealSeatPx(cols, rowCount);
+    const preferredZoom = idealSeatPx / Math.max(naturalSeatW, 1);
+    const viewportHasSpareHeight = vp.clientHeight > naturalH * 1.1;
+
+    let nextFit;
+    if (seatsApprox <= 140) {
+      // Small / medium: seat-count target first. Only clamp height when panel is taller.
+      nextFit = Math.min(preferredZoom, widthFit * 1.35, fitMaxZoom, MAX_ZOOM);
+      if (viewportHasSpareHeight) {
+        nextFit = Math.min(nextFit, heightFit);
+      }
+    } else if (seatsApprox <= 320) {
+      nextFit = Math.min(preferredZoom, widthFit, heightFit, fitMaxZoom, MAX_ZOOM);
+    } else {
+      // Large rooms: shrink to show the whole map.
+      nextFit = Math.min(widthFit, heightFit, 1, MAX_ZOOM);
+    }
+
+    const floor = Math.max(ABSOLUTE_MIN_ZOOM, minZoom);
+    return Math.max(floor, nextFit);
+  }, [baseScale, cols, fitMaxZoom, minZoom, rowCount, seatsApprox, variant]);
+
+  const applySmartZoom = useCallback((opts = { center: true }) => {
+    const fitted = measureFit();
+    setZoom(fitted);
+    if (opts.center) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(centerViewport);
+      });
+    }
+    return fitted;
+  }, [centerViewport, measureFit]);
+
+  const layoutKey = `${cols}-${rowCount}-${variant}`;
 
   useEffect(() => {
     setDidInit(false);
+    applyGenerationRef.current += 1;
   }, [layoutKey]);
 
   useLayoutEffect(() => {
-    if (didInit) return;
-    const fitted = measureFit();
-    setZoom(fitted);
+    if (didInit) return undefined;
+    const generation = applyGenerationRef.current;
+    const fitted = applySmartZoom({ center: true });
     setDidInit(true);
-  }, [layoutKey, measureFit, didInit]);
+
+    // Re-measure after paint — fonts/images can shift row size.
+    const t = window.setTimeout(() => {
+      if (generation !== applyGenerationRef.current) return;
+      applySmartZoom({ center: true });
+    }, 60);
+
+    return () => window.clearTimeout(t);
+  }, [layoutKey, applySmartZoom, didInit]);
 
   useEffect(() => {
     const vp = viewportRef.current;
     const content = contentRef.current;
     if (!vp || !content || typeof ResizeObserver === 'undefined') return undefined;
 
+    let frame = 0;
     const ro = new ResizeObserver(() => {
-      const fitted = measureFit();
-      if (!didInit) {
-        setZoom(fitted);
-        setDidInit(true);
-      }
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!didInit) {
+          applySmartZoom({ center: true });
+          setDidInit(true);
+        }
+      });
     });
     ro.observe(vp);
     ro.observe(content);
-    return () => ro.disconnect();
-  }, [layoutKey, measureFit, didInit]);
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+    };
+  }, [layoutKey, applySmartZoom, didInit]);
 
   const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(Math.max(ABSOLUTE_MIN_ZOOM, minZoom), value));
 
   const zoomIn = () => setZoom((z) => clampZoom(Number((z + ZOOM_STEP).toFixed(2))));
   const zoomOut = () => setZoom((z) => clampZoom(Number((z - ZOOM_STEP).toFixed(2))));
-  const zoomFit = () => setZoom(measureFit());
-  const zoomReset = () => setZoom(1);
+  const zoomReset = () => {
+    setZoom(1);
+    requestAnimationFrame(() => requestAnimationFrame(centerViewport));
+  };
 
   const onWheel = (e) => {
     if (!(e.ctrlKey || e.metaKey)) return;
@@ -165,7 +280,7 @@ const SeatMapZoomViewport = ({
     vp.scrollTop = drag.top - dy;
   };
 
-  const endDrag = (e) => {
+  const endDrag = () => {
     const drag = dragRef.current;
     const vp = viewportRef.current;
     if (drag && vp && drag.active) {
@@ -186,7 +301,7 @@ const SeatMapZoomViewport = ({
       <div className="seat-map-zoom__toolbar" data-no-pan>
         <span className="seat-map-zoom__hint">
           <Move className="w-3.5 h-3.5 shrink-0 opacity-70" aria-hidden />
-          Kéo để xem · Ctrl+cuộn để zoom
+          Kéo bản đồ · Ctrl + cuộn để zoom
         </span>
         <div className="seat-map-zoom__controls">
           <button type="button" className="seat-map-zoom__btn" onClick={zoomOut} title="Thu nhỏ" aria-label="Thu nhỏ">
@@ -197,10 +312,6 @@ const SeatMapZoomViewport = ({
           </button>
           <button type="button" className="seat-map-zoom__btn" onClick={zoomIn} title="Phóng to" aria-label="Phóng to">
             <Plus className="w-3.5 h-3.5" />
-          </button>
-          <button type="button" className="seat-map-zoom__btn seat-map-zoom__btn--fit" onClick={zoomFit} title="Vừa màn hình">
-            <Maximize2 className="w-3.5 h-3.5" />
-            <span>Vừa khung</span>
           </button>
         </div>
       </div>
@@ -226,14 +337,6 @@ const SeatMapZoomViewport = ({
           {children}
         </div>
       </div>
-
-      {zoom <= fitZoom + 0.02 && fitZoom < 0.95 && (
-        <p className="seat-map-zoom__tip">
-          {cols >= 30 || (cols * Math.max(rowCount, 1)) >= 500
-            ? 'Phòng lớn — đang xem toàn cảnh. Bấm + hoặc 100% rồi kéo để chọn ghế.'
-            : 'Đang xem toàn phòng — bấm + hoặc 100% để ghế to hơn, rồi kéo để chọn.'}
-        </p>
-      )}
     </div>
   );
 };
