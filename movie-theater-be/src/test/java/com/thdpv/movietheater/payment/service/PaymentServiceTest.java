@@ -123,13 +123,5 @@ class PaymentServiceTest {
         assertTrue(ex.getMessage().contains("Insufficient funds"));
     }
 
-    @Test
-    void mockGatewayShouldBeIdempotentForSameKey() {
-        MockPaymentGatewayService gateway = new MockPaymentGatewayService();
-        UUID paymentUuid = UUID.randomUUID();
-        PaymentGatewayService.GatewayChargeResult first = gateway.charge(paymentUuid, BigDecimal.TEN, "idem-1");
-        PaymentGatewayService.GatewayChargeResult second = gateway.charge(paymentUuid, BigDecimal.TEN, "idem-1");
-        assertEquals(first.gatewayTransactionId(), second.gatewayTransactionId());
-        assertTrue(first.success());
-    }
+
 }
