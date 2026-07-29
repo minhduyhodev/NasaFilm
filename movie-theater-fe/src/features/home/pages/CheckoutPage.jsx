@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, Armchair, Wallet, CreditCard, Info, AlertTriangle, QrCode } from 'lucide-react';
 import { vodService } from '../../../shared/services/vodService';
@@ -25,6 +25,51 @@ import {
 import { removeOrbitRoom } from '../../../shared/utils/orbitRecentStorage';
 import { orbitService } from '../../../shared/services/orbitService';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+
+/** Đếm ngược tách riêng — tránh re-render cả trang mỗi giây (gây nháy glass-panel). */
+function CheckoutLockTimer({ lockExpiresAt, onExpire }) {
+  const [timeLeft, setTimeLeft] = useState(null);
+  const expiredRef = useRef(false);
+
+  useEffect(() => {
+    if (!lockExpiresAt) return undefined;
+
+    expiredRef.current = false;
+
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((lockExpiresAt - Date.now()) / 1000));
+      setTimeLeft(diff);
+      if (diff <= 0 && !expiredRef.current) {
+        expiredRef.current = true;
+        onExpire?.();
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [lockExpiresAt, onExpire]);
+
+  if (timeLeft === null) return null;
+
+  const urgent = timeLeft < 60;
+
+  return (
+    <div
+      className={`checkout-lock-timer${urgent ? ' checkout-lock-timer--urgent' : ''}`}
+      role="timer"
+      aria-live="off"
+    >
+      <div className="checkout-lock-timer__label">
+        <Clock className="checkout-lock-timer__icon" aria-hidden />
+        <span>Thời gian thanh toán còn lại:</span>
+      </div>
+      <span className="checkout-lock-timer__value">
+        {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+      </span>
+    </div>
+  );
+}
 
 const CheckoutPage = () => {
   const confirm = useConfirm();
@@ -73,7 +118,6 @@ const CheckoutPage = () => {
   const [discount, setDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState('');
   const [isPaying, setIsPaying] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
   const [userScore, setUserScore] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -208,23 +252,7 @@ const CheckoutPage = () => {
     fetchVouchers();
   }, [isStateValid]);
 
-  useEffect(() => {
-    if (!isStateValid || isVod) return;
-    if (lockExpiresAt) {
-      const calculateTimeLeft = () => {
-        const diff = Math.max(0, Math.floor((lockExpiresAt - Date.now()) / 1000));
-        if (diff <= 0) {
-          setIsExpired(true);
-          setTimeLeft(0);
-        } else {
-          setTimeLeft(diff);
-        }
-      };
-      calculateTimeLeft();
-      const interval = setInterval(calculateTimeLeft, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isStateValid, isVod, lockExpiresAt]);
+  const handleLockExpire = useCallback(() => setIsExpired(true), []);
 
   useEffect(() => {
     if (!isExpired || !isOrbit || !orbitRoomUuid || orbitAutoAbortRef.current) return;
@@ -566,9 +594,9 @@ const CheckoutPage = () => {
             <button
               type="button"
               onClick={handleBackToConcessions}
-              className="inline-flex items-center gap-2.5 self-start rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/10 hover:border-red-500/40 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 self-start rounded-xl border border-red-500/35 bg-red-500/10 px-4 py-2.5 text-sm font-bold text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors cursor-pointer"
             >
-              <ArrowLeft className="w-4 h-4 text-red-500 shrink-0" />
+              <ArrowLeft className="w-4 h-4 shrink-0" />
               Quay lại bắp nước
             </button>
           ) : (
@@ -759,21 +787,10 @@ const CheckoutPage = () => {
 
           {/* Right Column: Payment Options & CTA */}
           <div className="lg:col-span-5 space-y-6">
-            <section className="glass-panel p-6 rounded-2xl flex flex-col h-full text-left">
-              {timeLeft !== null && !isVod && (
-                <div className={`flex items-center justify-between p-3.5 rounded-xl border text-xs font-bold mb-6 ${timeLeft < 60
-                  ? 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
-                  : 'bg-amber-500/10 border-amber-500/20 text-amber-500'
-                  }`}>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className={`w-4 h-4 shrink-0 ${timeLeft < 60 ? 'text-red-500' : 'text-amber-500'}`} />
-                    <span>Thời gian thanh toán còn lại:</span>
-                  </div>
-                  <span className="font-mono text-sm font-black">
-                    {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-                  </span>
-                </div>
-              )}
+            <section className="glass-panel glass-panel--payment p-6 rounded-2xl flex flex-col h-full text-left">
+              {!isVod && lockExpiresAt ? (
+                <CheckoutLockTimer lockExpiresAt={lockExpiresAt} onExpire={handleLockExpire} />
+              ) : null}
 
               <h2 className="text-xl font-bold mb-2 text-white uppercase tracking-wider">Phương thức thanh toán</h2>
               <div className="space-y-4 flex-grow">
@@ -921,11 +938,11 @@ const CheckoutPage = () => {
               </div>
 
               {/* Final Total & CTA */}
-              <div className="mt-12 pt-6 border-t border-white/10">
+              <div className="checkout-cta-block mt-12 pt-6 border-t border-white/10">
                 <div className="flex justify-between items-end mb-6">
                   <div>
                     <span className="block text-[10px] font-black uppercase text-gray-400 tracking-wider mb-1">Tổng tiền thanh toán</span>
-                    <span className="text-3xl font-black text-white leading-none">{(finalTotal).toLocaleString('vi-VN')} đ</span>
+                    <span className="text-3xl font-black text-white leading-none tabular-nums">{(finalTotal).toLocaleString('vi-VN')} đ</span>
                   </div>
                   <div className="text-right">
                     <span className="block text-[10px] font-bold text-red-500 uppercase tracking-wider">Đã bao gồm VAT</span>
@@ -939,26 +956,17 @@ const CheckoutPage = () => {
                 )}
 
                 <button
+                  type="button"
                   onClick={handlePay}
                   disabled={isPaying || isExpired || hasUncompletedMembers}
-                  className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${isPaying || isExpired || hasUncompletedMembers
-                    ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5 shadow-none'
-                    : 'bg-[#E61E2A] text-white neon-glow-red hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-[0_0_20px_rgba(230,30,42,0.35)]'
+                  className={`checkout-pay-btn w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 ${isPaying || isExpired || hasUncompletedMembers
+                    ? 'checkout-pay-btn--disabled'
+                    : 'checkout-pay-btn--active'
                     }`}
                 >
                   {isPaying ? 'Đang xử lý thanh toán...' : isExpired ? 'Đã hết hạn giữ ghế' : (hasUncompletedMembers ? 'Chờ thành viên chọn bắp nước' : (isOrbit ? 'Xác nhận nhóm & Thanh toán' : 'Xác nhận & Thanh toán'))}
                 </button>
 
-                {!isVod && (
-                  <button
-                    type="button"
-                    onClick={handleBackToConcessions}
-                    className="w-full py-3.5 rounded-xl border border-red-500/35 bg-red-500/10 text-sm font-bold text-red-400 hover:bg-red-500/20 hover:text-red-300 cursor-pointer mt-3 flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <ArrowLeft className="w-4 h-4 shrink-0" />
-                    Quay lại bắp nước
-                  </button>
-                )}
                 {isOrbit && (
                   <button
                     type="button"

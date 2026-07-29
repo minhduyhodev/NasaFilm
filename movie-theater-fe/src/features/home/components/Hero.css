@@ -4,6 +4,57 @@
   display: none;
 }
 
+.hero-dome-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 45% at 50% 48%, rgba(229, 9, 20, 0.12), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, rgba(8, 12, 20, 0.35), transparent 75%);
+}
+
+.hero-dome-loading__orb {
+  width: min(42vmin, 18rem);
+  height: min(42vmin, 18rem);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.14), transparent 42%),
+    radial-gradient(circle at 50% 55%, rgba(229, 9, 20, 0.22), rgba(8, 12, 20, 0.55) 68%);
+  box-shadow:
+    0 0 0 1px rgba(229, 9, 20, 0.12),
+    0 0 48px rgba(229, 9, 20, 0.18),
+    inset 0 0 40px rgba(0, 0, 0, 0.35);
+  animation: hero-dome-pulse 2.2s ease-in-out infinite;
+}
+
+.hero-dome-loading__label {
+  margin: 0;
+  font-size: clamp(0.95rem, 2.2vw, 1.15rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+@keyframes hero-dome-pulse {
+  0%,
+  100% {
+    transform: scale(0.97);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
 /*
  * Nguyên nhân dải màu cắt ngang: overflow:hidden + contain:paint
  * cắt đáy quả cầu 3D → poster bị “cắt đôi”, phía dưới tối hơn.

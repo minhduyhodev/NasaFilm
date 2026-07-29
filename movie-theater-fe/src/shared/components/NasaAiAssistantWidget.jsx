@@ -896,6 +896,30 @@ const NasaAiAssistantWidget = () => {
     }
   }, [messages, ticketMessages, typing, open, isWaitingLive, isStaffView, chatView]);
 
+  /* Chặn scroll chaining: lăn trong bot không kéo trang web phía sau */
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const nodes = [botScrollRef.current, staffScrollRef.current].filter(Boolean);
+
+    const lockWheel = (event) => {
+      const el = event.currentTarget;
+      event.preventDefault();
+      event.stopPropagation();
+      el.scrollTop += event.deltaY;
+    };
+
+    nodes.forEach((node) => {
+      node.addEventListener('wheel', lockWheel, { passive: false });
+    });
+
+    return () => {
+      nodes.forEach((node) => {
+        node.removeEventListener('wheel', lockWheel);
+      });
+    };
+  }, [open, isStaffView, chatView, isBotPickIntent, isSupportIntent]);
+
   useEffect(() => {
     const needsRating = Boolean(
       activeTicket?.ticketCode
