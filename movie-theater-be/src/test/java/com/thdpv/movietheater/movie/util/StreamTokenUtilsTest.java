@@ -29,12 +29,14 @@ class StreamTokenUtilsTest {
     }
 
     @Test
-    void matchesHashedAndLegacyTokensDuringMigration() {
+    void matchesAcceptsHashedOrLegacyPlaintextStoredTokens() {
         String raw = "sample-stream-token";
 
         assertTrue(StreamTokenUtils.matches(raw, StreamTokenUtils.hash(raw)));
-        assertTrue(StreamTokenUtils.matches(raw, raw));
+        assertTrue(StreamTokenUtils.matches(raw, raw)); // legacy plaintext row
         assertFalse(StreamTokenUtils.matches("other-token", StreamTokenUtils.hash(raw)));
+        assertTrue(StreamTokenUtils.looksLikeHash(StreamTokenUtils.hash(raw)));
+        assertFalse(StreamTokenUtils.looksLikeHash(raw));
     }
 
     @Test

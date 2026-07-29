@@ -4,6 +4,8 @@ public class PaymentIntentResult {
     private String id;
     private String clientSecret;
     private String status;
+    /** Charged amount in VND (server-quoted for booking intents). */
+    private Long amount;
 
     public PaymentIntentResult() {
     }
@@ -12,6 +14,13 @@ public class PaymentIntentResult {
         this.id = id;
         this.clientSecret = clientSecret;
         this.status = status;
+    }
+
+    public PaymentIntentResult(String id, String clientSecret, String status, Long amount) {
+        this.id = id;
+        this.clientSecret = clientSecret;
+        this.status = status;
+        this.amount = amount;
     }
 
     public String getId() {
@@ -36,5 +45,13 @@ public class PaymentIntentResult {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Long getAmount() {
+        return amount;
+    }
+
+    public void setAmount(Long amount) {
+        this.amount = amount;
     }
 }

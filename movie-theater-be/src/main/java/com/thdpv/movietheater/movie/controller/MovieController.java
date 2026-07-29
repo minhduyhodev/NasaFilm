@@ -80,6 +80,15 @@ public class MovieController {
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa mem phim thanh cong"));
     }
 
+    @GetMapping("/admin/movies")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('MOVIE_WRITE') or hasAuthority('SHOWTIME_WRITE')")
+    public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getAdminMovieList(
+            MovieFilterRequest filter,
+            @PageableDefault(page = 0, size = 10, sort = "releaseDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<MovieListResponse> response = movieService.getAdminMovieList(filter, pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/movies")
     public ResponseEntity<ApiResponse<Page<MovieListResponse>>> getMovieList(
             MovieFilterRequest filter,

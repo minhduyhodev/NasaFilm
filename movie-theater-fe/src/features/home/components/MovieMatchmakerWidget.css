@@ -241,8 +241,128 @@
   background: rgba(229, 9, 20, 0.12);
 }
 
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest {
+  padding-top: 0;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-header {
+  margin-bottom: 0.85rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-badge {
+  margin-bottom: 0.45rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.56rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-flight {
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-flight svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-label {
+  font-size: 0.82rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-code {
+  font-size: 0.6rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-copy {
+  margin-top: 0.4rem;
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
 .nsf-matchmaker-cta--panel .nsf-quiz__manifest-grid {
   grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+/* Compact horizontal match cards inside homepage panel */
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-card {
+  flex-direction: row;
+  align-items: stretch;
+  border-radius: 12px;
+  min-height: 0;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-rank {
+  top: 0.35rem;
+  left: 0.35rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.52rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-poster {
+  width: 4.75rem;
+  flex: 0 0 4.75rem;
+  aspect-ratio: auto;
+  align-self: stretch;
+  min-height: 6.5rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-favorite {
+  top: 0.3rem;
+  right: 0.3rem;
+  transform: scale(0.85);
+  transform-origin: top right;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-body {
+  gap: 0.25rem;
+  padding: 0.55rem 0.65rem 0.6rem;
+  min-width: 0;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-title {
+  font-size: 0.8rem;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-meta {
+  font-size: 0.64rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-reasons {
+  gap: 0.1rem;
+  padding-left: 0.85rem;
+  font-size: 0.62rem;
+  line-height: 1.3;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-reasons li {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-actions {
+  gap: 0.3rem;
+  padding-top: 0.2rem;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-cta {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.62rem;
+  border-radius: 999px;
+}
+
+.nsf-matchmaker-cta--panel .nsf-quiz__manifest-retry {
+  margin-top: 0.75rem;
+  font-size: 0.72rem;
 }
 
 .nsf-matchmaker-cta--panel .nsf-quiz__footer {
@@ -1342,7 +1462,7 @@
 
 .nsf-quiz__manifest-grid {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 @media (min-width: 640px) {
@@ -1355,7 +1475,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
   overflow: hidden;
@@ -1380,15 +1500,13 @@
   aspect-ratio: 2 / 3;
   overflow: hidden;
   background: #0f121d;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .nsf-quiz__manifest-poster img {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
 }
 

@@ -739,7 +739,12 @@ const MovieMatchmakerWidget = ({ layout = 'banner' }) => {
               <article key={movie.uuid} className="nsf-quiz__manifest-card">
                 <div className="nsf-quiz__manifest-rank">#{index + 1}</div>
                 <div className="nsf-quiz__manifest-poster">
-                  <PosterImage src={poster} alt={movie.title} width={500} loading="eager" />
+                  <PosterImage
+                    src={poster}
+                    alt={movie.title}
+                    width={layout === 'panel' ? 180 : 400}
+                    loading="eager"
+                  />
                   <FavoriteIconButton movieUuid={movie.uuid} className="nsf-quiz__manifest-favorite" />
                 </div>
                 <div className="nsf-quiz__manifest-body">
