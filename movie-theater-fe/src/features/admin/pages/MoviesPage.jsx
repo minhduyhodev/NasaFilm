@@ -213,7 +213,7 @@ const MoviesPage = () => {
 
   const fetchOverallStats = async () => {
     try {
-      const data = await movieService.getMovies({ size: 1000 });
+      const data = await movieService.getAdminMovies({ size: 1000 });
       if (data?.content) {
         setOverallStats({
           total: data.totalElements || data.content.length,
@@ -245,7 +245,7 @@ const MoviesPage = () => {
 
     (async () => {
       try {
-        const data = await movieService.getMovies({
+        const data = await movieService.getAdminMovies({
           keyword: debouncedKeyword || undefined,
           status: statusFilter || undefined,
           genreUuids: genreFilter ? [genreFilter] : undefined,

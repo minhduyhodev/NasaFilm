@@ -19,11 +19,23 @@ public interface VietQRWebhookTransactionRepository extends JpaRepository<VietQR
     boolean existsByReferenceCode(String referenceCode);
 
     /**
-     * Finds an unused transaction matching the transfer content containing the unique code and matching amount.
+     * Prefer exact transfer_code match; fall back to word-boundary regex on transfer_content for legacy rows.
      */
-    @Query("SELECT t FROM VietQRWebhookTransaction t WHERE t.status = 'UNUSED' AND LOWER(t.transferContent) LIKE LOWER(CONCAT('%', :code, '%')) AND t.amount = :amount ORDER BY t.createdAt DESC")
+    @Query(value = """
+            SELECT * FROM vietqr_webhook_transaction t
+            WHERE t.status = 'UNUSED'
+              AND t.amount = :amount
+              AND (
+                UPPER(t.transfer_code) = UPPER(:code)
+                OR (
+                  (t.transfer_code IS NULL OR t.transfer_code = '')
+                  AND LOWER(t.transfer_content) ~ ('(^|[^a-z0-9])' || LOWER(:code) || '([^a-z0-9]|$)')
+                )
+              )
+            ORDER BY t.created_at DESC
+            """, nativeQuery = true)
     List<VietQRWebhookTransaction> findMatchingUnusedTransaction(
-            @Param("code") String code, 
+            @Param("code") String code,
             @Param("amount") BigDecimal amount);
 
     /**

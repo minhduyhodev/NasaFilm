@@ -70,7 +70,7 @@ const MatchmakerSuggestionsTab = ({ moodOptions = [] }) => {
 
   const loadMovies = async () => {
     try {
-      const data = await movieService.getMovies({ size: 500 });
+      const data = await movieService.getAdminMovies({ size: 500 });
       const content = data?.content || data?.data?.content || data || [];
       setMovies(Array.isArray(content) ? content : []);
     } catch {

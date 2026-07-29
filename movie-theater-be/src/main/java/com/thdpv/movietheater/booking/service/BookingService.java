@@ -45,6 +45,7 @@ import com.thdpv.movietheater.booking.repository.PromotionRepository;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
+import com.thdpv.movietheater.booking.repository.SeatLockedRepository;
 import com.thdpv.movietheater.booking.repository.ShowtimeRepository;
 import com.thdpv.movietheater.cinema.entity.CinemaRoom;
 import com.thdpv.movietheater.cinema.enums.CinemaRoomStatus;
@@ -67,6 +68,9 @@ import com.thdpv.movietheater.payment.entity.VietQRWebhookTransaction;
 import com.thdpv.movietheater.payment.repository.PaymentTransactionRepository;
 import com.thdpv.movietheater.payment.repository.VietQRWebhookTransactionRepository;
 import com.thdpv.movietheater.payment.service.PaymentService;
+import com.thdpv.movietheater.payment.service.WalletService;
+import com.thdpv.movietheater.payment.stripe.application.port.StripeGateway;
+import com.thdpv.movietheater.payment.stripe.domain.PaymentIntentResult;
 import com.thdpv.movietheater.mission.dto.MissionEventPayload;
 import com.thdpv.movietheater.mission.dto.response.MissionCompletionResponse;
 import com.thdpv.movietheater.mission.service.MissionService;
@@ -106,11 +110,165 @@ public class BookingService {
     private final PaymentService paymentService;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final VietQRWebhookTransactionRepository vietQRWebhookTransactionRepository;
+    private final StripeGateway stripeGateway;
     private final ShowtimeCapacityService showtimeCapacityService;
     private final MissionService missionService;
     private final OrbitRoomService orbitRoomService;
     private final SeatGapValidationService seatGapValidationService;
     private final ShowtimeOverlapSupport showtimeOverlapSupport;
+    private final SeatLockedRepository seatLockedRepository;
+
+    /**
+     * Server-side checkout total for Stripe PaymentIntent creation. Never trust a client-supplied amount.
+     * Theater quotes may touch seat locks (FOR UPDATE), so this is not read-only.
+     */
+    @Transactional
+    public BigDecimal quoteCheckoutTotal(UUID userUuid, com.thdpv.movietheater.payment.dto.CreateBookingPaymentIntentRequest request) {
+        if (request == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Thiếu thông tin đặt vé");
+        }
+        if (request.getMovieUuid() != null) {
+            return quoteOnlineTotal(userUuid, request.getMovieUuid(), request.getPromotionCode());
+        }
+        if (request.getShowtimeUuid() != null) {
+            return quoteTheaterTotal(userUuid, request);
+        }
+        throw new AppException(ErrorCode.BAD_REQUEST, "Thiếu showtimeUuid hoặc movieUuid để tính tiền");
+    }
+
+    private BigDecimal quoteOnlineTotal(UUID userUuid, UUID movieUuid, String promotionCode) {
+        Movie movie = movieRepository.findById(movieUuid)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
+        if (movie.getScreeningMode() == ScreeningMode.THEATER_ONLY || movie.getScreeningMode() == ScreeningMode.NONE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phim không hỗ trợ xem trực tuyến");
+        }
+        OffsetDateTime now = OffsetDateTime.now();
+        BigDecimal basePrice = movie.getOnlinePrice() != null
+                ? movie.getOnlinePrice()
+                : systemConfigService.getDefaultOnlinePrice();
+        BigDecimal discountAmount = resolvePromotionQuote(userUuid, promotionCode, basePrice, now, false)
+                .discountAmount();
+        BigDecimal total = basePrice.subtract(discountAmount);
+        return total.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : total;
+    }
+
+    private BigDecimal quoteTheaterTotal(UUID userUuid,
+            com.thdpv.movietheater.payment.dto.CreateBookingPaymentIntentRequest request) {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<UUID> seatUuids = normalizeSeatUuids(request.getSeatUuids());
+        Map<UUID, Integer> comboQuantities = normalizeCombos(request.getCombos());
+        UUID orbitRoomUuid = request.getOrbitRoomUuid();
+
+        if (orbitRoomUuid != null) {
+            orbitRoomService.assertCheckoutReady(orbitRoomUuid, userUuid, request.getShowtimeUuid(), seatUuids);
+            Map<UUID, Integer> memberCombos = orbitRoomService.collectNonHostMemberComboQuantities(orbitRoomUuid);
+            if (!memberCombos.isEmpty()) {
+                Map<UUID, Integer> mergedCombos = new LinkedHashMap<>(comboQuantities);
+                memberCombos.forEach((comboUuid, quantity) -> mergedCombos.merge(comboUuid, quantity, Integer::sum));
+                comboQuantities = mergedCombos;
+            }
+        }
+
+        bookingRepository.cleanupExpiredLocks(request.getShowtimeUuid(), now);
+        List<LockedSeat> lockedSeats = bookingRepository.lockActiveSeatsForConfirm(
+                request.getShowtimeUuid(), userUuid, seatUuids, now);
+        if (lockedSeats.size() != seatUuids.size()) {
+            throw new AppException(ErrorCode.CONFLICT,
+                    "Ghế đã hết thời gian giữ hoặc chưa được giữ. Vui lòng quay lại chọn ghế.");
+        }
+        // Extend lock TTL through the Stripe checkout window so confirm is not racing seat expiry.
+        int lockTtlSeconds = Math.max(systemConfigService.getSeatLockTtlSeconds(), 600);
+        OffsetDateTime lockExpiresAt = now.plusSeconds(lockTtlSeconds);
+        seatLockedRepository.refreshSeatLocks(
+                request.getShowtimeUuid(), userUuid, seatUuids, now, lockExpiresAt);
+
+        List<ResolvedCombo> combos = resolveCombos(comboQuantities);
+        BigDecimal seatTotal = lockedSeats.stream()
+                .map(LockedSeat::price)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Integer userScore = userRepository.findById(userUuid).map(User::getScore).orElse(0);
+        BigDecimal comboDiscountRate = comboLoyaltyMultiplier(userScore);
+
+        BigDecimal comboTotal = BigDecimal.ZERO;
+        for (ResolvedCombo combo : combos) {
+            comboTotal = comboTotal.add(
+                    combo.lineTotal().multiply(comboDiscountRate).setScale(0, RoundingMode.HALF_UP));
+        }
+
+        BigDecimal discountAmount = resolvePromotionQuote(
+                userUuid, request.getPromotionCode(), seatTotal, now, false).discountAmount();
+        BigDecimal total = seatTotal.add(comboTotal).subtract(discountAmount);
+        return total.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : total;
+    }
+
+    /**
+     * @param forUpdate when true uses pessimistic lock (confirm path); quote uses plain read.
+     */
+    private PromotionQuote resolvePromotionQuote(UUID userUuid, String promotionCode, BigDecimal baseForPercent,
+            OffsetDateTime now, boolean forUpdate) {
+        if (promotionCode == null || promotionCode.isBlank()) {
+            return PromotionQuote.none();
+        }
+        Promotion resolvedPromotion = (forUpdate
+                ? promotionRepository.findByCodeIgnoreCaseForUpdate(promotionCode.trim())
+                : promotionRepository.findByCodeIgnoreCase(promotionCode.trim()))
+                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi không tồn tại"));
+
+        if (!"ACTIVE".equalsIgnoreCase(resolvedPromotion.getStatus())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã hết hạn hoặc vô hiệu lực");
+        }
+        if (resolvedPromotion.getStartDate() != null && now.isBefore(resolvedPromotion.getStartDate())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi chưa bắt đầu");
+        }
+        if (resolvedPromotion.getEndDate() != null && now.isAfter(resolvedPromotion.getEndDate())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi đã kết thúc");
+        }
+        if (resolvedPromotion.getMaxUsage() != null && resolvedPromotion.getUsedCount() != null
+                && resolvedPromotion.getUsedCount() >= resolvedPromotion.getMaxUsage()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã đạt số lượt sử dụng tối đa");
+        }
+        if (Boolean.TRUE.equals(resolvedPromotion.getOncePerUser())) {
+            boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(userUuid, resolvedPromotion.getId());
+            if (alreadyUsed) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã sử dụng mã khuyến mãi này rồi");
+            }
+        }
+        if (!resolvedPromotion.requiresPointRedemption()
+                && resolvedPromotion.getMaxUsagePerUser() != null) {
+            long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
+                    userUuid, resolvedPromotion.getId());
+            if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
+            }
+        }
+
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
+            discountAmount = baseForPercent.multiply(resolvedPromotion.getDiscountValue())
+                    .setScale(0, RoundingMode.HALF_UP);
+        } else if ("FIXED_AMOUNT".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
+            discountAmount = resolvedPromotion.getDiscountValue();
+        }
+        return new PromotionQuote(resolvedPromotion, discountAmount);
+    }
+
+    private record PromotionQuote(Promotion promotion, BigDecimal discountAmount) {
+        static PromotionQuote none() {
+            return new PromotionQuote(null, BigDecimal.ZERO);
+        }
+    }
+
+    /** VIP ≥10000 → 15% combo off; Friend ≥5000 → 10%; otherwise full price. */
+    private static BigDecimal comboLoyaltyMultiplier(int userScore) {
+        if (userScore >= 10000) {
+            return BigDecimal.valueOf(0.85);
+        }
+        if (userScore >= 5000) {
+            return BigDecimal.valueOf(0.90);
+        }
+        return BigDecimal.ONE;
+    }
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
@@ -149,54 +307,11 @@ public class BookingService {
         BigDecimal basePrice = movie.getOnlinePrice() != null
                 ? movie.getOnlinePrice()
                 : systemConfigService.getDefaultOnlinePrice();
-        BigDecimal discountAmount = BigDecimal.ZERO;
-        UUID promotionUuid = null;
-        Promotion resolvedPromotion = null;
-
-        if (request.getPromotionCode() != null && !request.getPromotionCode().isBlank()) {
-            resolvedPromotion = promotionRepository.findByCodeIgnoreCaseForUpdate(request.getPromotionCode().trim())
-                    .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi không tồn tại"));
-
-            if (!"ACTIVE".equalsIgnoreCase(resolvedPromotion.getStatus())) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã hết hạn hoặc vô hiệu lực");
-            }
-
-            if (resolvedPromotion.getStartDate() != null && now.isBefore(resolvedPromotion.getStartDate())) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi chưa bắt đầu");
-            }
-
-            if (resolvedPromotion.getEndDate() != null && now.isAfter(resolvedPromotion.getEndDate())) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi đã kết thúc");
-            }
-
-            if (resolvedPromotion.getMaxUsage() != null && resolvedPromotion.getUsedCount() != null
-                    && resolvedPromotion.getUsedCount() >= resolvedPromotion.getMaxUsage()) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã đạt số lượt sử dụng tối đa");
-            }
-
-            if (Boolean.TRUE.equals(resolvedPromotion.getOncePerUser())) {
-                boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(userUuid, resolvedPromotion.getId());
-                if (alreadyUsed) {
-                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã sử dụng mã khuyến mãi này rồi");
-                }
-            }
-
-            if (!resolvedPromotion.requiresPointRedemption()
-                    && resolvedPromotion.getMaxUsagePerUser() != null) {
-                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
-                        userUuid, resolvedPromotion.getId());
-                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
-                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
-                }
-            }
-
-            promotionUuid = resolvedPromotion.getId();
-            if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
-                discountAmount = basePrice.multiply(resolvedPromotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
-            } else if ("FIXED_AMOUNT".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
-                discountAmount = resolvedPromotion.getDiscountValue();
-            }
-        }
+        PromotionQuote promoQuote = resolvePromotionQuote(
+                userUuid, request.getPromotionCode(), basePrice, now, true);
+        Promotion resolvedPromotion = promoQuote.promotion();
+        BigDecimal discountAmount = promoQuote.discountAmount();
+        UUID promotionUuid = resolvedPromotion != null ? resolvedPromotion.getId() : null;
 
         BigDecimal totalPrice = basePrice.subtract(discountAmount);
         if (totalPrice.compareTo(BigDecimal.ZERO) < 0) {
@@ -229,6 +344,8 @@ public class BookingService {
             voucherRedemptionService.consumeActiveVoucher(userUuid, resolvedPromotion, bookingUuid, now);
         }
 
+        reconcileExternalCardPayment(userUuid, bookingUuid, totalPrice, request.getPaymentMethod(),
+                request.getPaymentIntentId());
         reconcileExternalVietQRPayment(userUuid, bookingUuid, totalPrice, request.getPaymentMethod(),
                 request.getPaymentIntentId());
 
@@ -314,14 +431,7 @@ public class BookingService {
         Integer userScore = userRepository.findById(userUuid)
                 .map(User::getScore)
                 .orElse(0);
-        BigDecimal comboDiscountRate;
-        if (userScore >= 10000) {
-            comboDiscountRate = BigDecimal.valueOf(0.85); // 15% discount
-        } else if (userScore >= 5000) {
-            comboDiscountRate = BigDecimal.valueOf(0.90); // 10% discount
-        } else {
-            comboDiscountRate = BigDecimal.valueOf(1.00); // 0% discount
-        }
+        BigDecimal comboDiscountRate = comboLoyaltyMultiplier(userScore);
 
         BigDecimal comboTotal = BigDecimal.ZERO;
         List<ResolvedCombo> discountedResolvedCombos = new ArrayList<>();
@@ -332,55 +442,11 @@ public class BookingService {
         }
 
         // Apply Promotion Code
-        UUID promotionUuid = null;
-        BigDecimal discountAmount = BigDecimal.ZERO;
-        Promotion resolvedPromotion = null;
-        if (request.getPromotionCode() != null && !request.getPromotionCode().isBlank()) {
-            resolvedPromotion = promotionRepository.findByCodeIgnoreCaseForUpdate(request.getPromotionCode().trim())
-                    .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi không tồn tại"));
-
-            if (!"ACTIVE".equalsIgnoreCase(resolvedPromotion.getStatus())) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã hết hạn hoặc vô hiệu lực");
-            }
-
-            if (resolvedPromotion.getStartDate() != null && now.isBefore(resolvedPromotion.getStartDate())) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi chưa bắt đầu");
-            }
-
-            if (resolvedPromotion.getEndDate() != null && now.isAfter(resolvedPromotion.getEndDate())) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi đã kết thúc");
-            }
-
-            if (resolvedPromotion.getMaxUsage() != null && resolvedPromotion.getUsedCount() != null
-                    && resolvedPromotion.getUsedCount() >= resolvedPromotion.getMaxUsage()) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã đạt số lượt sử dụng tối đa");
-            }
-
-            if (Boolean.TRUE.equals(resolvedPromotion.getOncePerUser())) {
-                boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(userUuid, resolvedPromotion.getId());
-                if (alreadyUsed) {
-                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã sử dụng mã khuyến mãi này rồi");
-                }
-            }
-
-            if (!resolvedPromotion.requiresPointRedemption()
-                    && resolvedPromotion.getMaxUsagePerUser() != null) {
-                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
-                        userUuid, resolvedPromotion.getId());
-                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
-                    throw new AppException(ErrorCode.BAD_REQUEST, "Bạn đã đạt giới hạn sử dụng voucher này");
-                }
-            }
-
-            promotionUuid = resolvedPromotion.getId();
-            if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
-                // Percentage discount applies to ticket sum (seatTotal)
-                discountAmount = seatTotal.multiply(resolvedPromotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
-            } else if ("FIXED_AMOUNT".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
-                // Fixed amount discount applies directly
-                discountAmount = resolvedPromotion.getDiscountValue();
-            }
-        }
+        PromotionQuote promoQuote = resolvePromotionQuote(
+                userUuid, request.getPromotionCode(), seatTotal, now, true);
+        Promotion resolvedPromotion = promoQuote.promotion();
+        BigDecimal discountAmount = promoQuote.discountAmount();
+        UUID promotionUuid = resolvedPromotion != null ? resolvedPromotion.getId() : null;
 
         BigDecimal subtotal = seatTotal.add(comboTotal);
         BigDecimal totalPrice = subtotal.subtract(discountAmount);
@@ -582,14 +648,7 @@ public class BookingService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Integer userScore = customer.getScore() != null ? customer.getScore() : 0;
-        BigDecimal comboDiscountRate;
-        if (userScore >= 10000) {
-            comboDiscountRate = BigDecimal.valueOf(0.85);
-        } else if (userScore >= 5000) {
-            comboDiscountRate = BigDecimal.valueOf(0.90);
-        } else {
-            comboDiscountRate = BigDecimal.valueOf(1.00);
-        }
+        BigDecimal comboDiscountRate = comboLoyaltyMultiplier(userScore);
 
         BigDecimal comboTotal = BigDecimal.ZERO;
         List<ResolvedCombo> discountedResolvedCombos = new ArrayList<>();
@@ -599,48 +658,11 @@ public class BookingService {
             discountedResolvedCombos.add(new ResolvedCombo(combo.comboUuid(), combo.name(), combo.quantity(), discountedLineTotal));
         }
 
-        UUID promotionUuid = null;
-        BigDecimal discountAmount = BigDecimal.ZERO;
-        Promotion resolvedPromotion = null;
-        if (request.getPromotionCode() != null && !request.getPromotionCode().isBlank()) {
-            resolvedPromotion = promotionRepository.findByCodeIgnoreCaseForUpdate(request.getPromotionCode().trim())
-                    .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi không tồn tại"));
-
-            if (!"ACTIVE".equalsIgnoreCase(resolvedPromotion.getStatus())) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã hết hạn hoặc vô hiệu lực");
-            }
-            if (resolvedPromotion.getStartDate() != null && now.isBefore(resolvedPromotion.getStartDate())) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi chưa bắt đầu");
-            }
-            if (resolvedPromotion.getEndDate() != null && now.isAfter(resolvedPromotion.getEndDate())) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Chương trình khuyến mãi đã kết thúc");
-            }
-            if (resolvedPromotion.getMaxUsage() != null && resolvedPromotion.getUsedCount() != null
-                    && resolvedPromotion.getUsedCount() >= resolvedPromotion.getMaxUsage()) {
-                throw new AppException(ErrorCode.BAD_REQUEST, "Mã khuyến mãi đã đạt số lượt sử dụng tối đa");
-            }
-            if (Boolean.TRUE.equals(resolvedPromotion.getOncePerUser())) {
-                boolean alreadyUsed = bookingJpaRepository.existsByUserUuidAndPromotionUuid(customerUuid, resolvedPromotion.getId());
-                if (alreadyUsed) {
-                    throw new AppException(ErrorCode.BAD_REQUEST, "Khách hàng đã sử dụng mã khuyến mãi này rồi");
-                }
-            }
-            if (!resolvedPromotion.requiresPointRedemption()
-                    && resolvedPromotion.getMaxUsagePerUser() != null) {
-                long userUsageCount = bookingJpaRepository.countByUserUuidAndPromotionUuid(
-                        customerUuid, resolvedPromotion.getId());
-                if (userUsageCount >= resolvedPromotion.getMaxUsagePerUser()) {
-                    throw new AppException(ErrorCode.BAD_REQUEST, "Khách hàng đã đạt giới hạn sử dụng voucher này");
-                }
-            }
-
-            promotionUuid = resolvedPromotion.getId();
-            if ("PERCENTAGE".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
-                discountAmount = seatTotal.multiply(resolvedPromotion.getDiscountValue()).setScale(0, RoundingMode.HALF_UP);
-            } else if ("FIXED_AMOUNT".equalsIgnoreCase(resolvedPromotion.getDiscountType())) {
-                discountAmount = resolvedPromotion.getDiscountValue();
-            }
-        }
+        PromotionQuote promoQuote = resolvePromotionQuote(
+                customerUuid, request.getPromotionCode(), seatTotal, now, true);
+        Promotion resolvedPromotion = promoQuote.promotion();
+        BigDecimal discountAmount = promoQuote.discountAmount();
+        UUID promotionUuid = resolvedPromotion != null ? resolvedPromotion.getId() : null;
 
         BigDecimal subtotal = seatTotal.add(comboTotal);
         BigDecimal totalPrice = subtotal.subtract(discountAmount);
@@ -869,17 +891,17 @@ public class BookingService {
     }
 
     /**
-     * Interim guard against the "pay-what-you-want" card exploit. The server-side card charge currently goes
-     * through the mock gateway (always succeeds), while the real money is a client-chosen Stripe amount — so a
-     * client could pay 1đ and still get full-price tickets. Until the full webhook-driven confirmation flow
-     * lands, a real card booking must be backed by a Stripe {@link PaymentTransaction} that (a) belongs to this
-     * user, (b) is for a booking, (c) has succeeded (webhook-confirmed), and (d) covers the order total, and
-     * each transaction can back only one booking. Enforced only when a real gateway is configured; mock/demo
-     * runs keep their existing behavior so local testing is not blocked.
+     * Guards against underpay / replay on card bookings. Requires a Stripe {@link PaymentTransaction} that
+     * (a) belongs to this user, (b) is for a booking, (c) has succeeded (webhook or live retrieve), and (d)
+     * covers the order total; each PI backs only one booking. Skipped for mock provider (local demo).
      */
     private void reconcileExternalCardPayment(UUID userUuid, UUID bookingUuid, BigDecimal totalPrice,
             String paymentMethod, String paymentIntentId) {
         if (!"card".equalsIgnoreCase(paymentMethod)) {
+            return;
+        }
+        // Free after voucher — no Stripe PI required.
+        if (totalPrice == null || totalPrice.compareTo(BigDecimal.ZERO) <= 0) {
             return;
         }
         if (paymentService.isMockProvider()) {
@@ -894,12 +916,8 @@ public class BookingService {
         if (tx.getUserUuid() == null || !tx.getUserUuid().equals(userUuid)) {
             throw new AppException(ErrorCode.FORBIDDEN, "Giao dịch thanh toán không thuộc về bạn.");
         }
-        if (tx.getPurpose() != null && !"BOOKING".equalsIgnoreCase(tx.getPurpose())) {
+        if (tx.getPurpose() != null && !WalletService.PURPOSE_BOOKING.equalsIgnoreCase(tx.getPurpose())) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Giao dịch thanh toán không hợp lệ cho đặt vé.");
-        }
-        if (!"SUCCESS".equalsIgnoreCase(tx.getStatus())) {
-            throw new AppException(ErrorCode.BAD_REQUEST,
-                    "Chưa nhận được xác nhận thanh toán. Vui lòng thử lại sau giây lát.");
         }
         if (tx.getAmount() == null || tx.getAmount().compareTo(totalPrice) < 0) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Số tiền đã thanh toán không đủ cho đơn đặt vé.");
@@ -907,9 +925,35 @@ public class BookingService {
         if (tx.getBookingUuid() != null && !tx.getBookingUuid().equals(bookingUuid)) {
             throw new AppException(ErrorCode.CONFLICT, "Giao dịch thanh toán đã được dùng cho đơn khác.");
         }
-        int claimed = paymentTransactionRepository.claimSucceededForBooking(intentId, bookingUuid, OffsetDateTime.now());
-        if (claimed == 0 && !bookingUuid.equals(tx.getBookingUuid())) {
-            throw new AppException(ErrorCode.CONFLICT, "Giao dịch thanh toán đã được sử dụng.");
+
+        OffsetDateTime now = OffsetDateTime.now();
+        if (!"SUCCESS".equalsIgnoreCase(tx.getStatus())) {
+            if ("FAILED".equalsIgnoreCase(tx.getStatus()) || "CANCELED".equalsIgnoreCase(tx.getStatus())
+                    || "CANCELLED".equalsIgnoreCase(tx.getStatus())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Giao dịch thanh toán đã thất bại hoặc bị hủy.");
+            }
+            PaymentIntentResult stripePi;
+            try {
+                stripePi = stripeGateway.retrievePaymentIntent(intentId);
+            } catch (RuntimeException ex) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Không xác minh được thanh toán Stripe");
+            }
+            if (!"succeeded".equalsIgnoreCase(stripePi.getStatus())) {
+                throw new AppException(ErrorCode.BAD_REQUEST,
+                        "Chưa nhận được xác nhận thanh toán. Vui lòng thử lại sau giây lát.");
+            }
+            tx.setStatus("SUCCESS");
+            tx.setUpdatedAt(now);
+            paymentTransactionRepository.saveAndFlush(tx);
+        }
+
+        int claimed = paymentTransactionRepository.claimSucceededForBooking(intentId, bookingUuid, now);
+        if (claimed == 0) {
+            PaymentTransaction refreshed = paymentTransactionRepository.findByGatewayTransactionId(intentId)
+                    .orElse(tx);
+            if (!bookingUuid.equals(refreshed.getBookingUuid())) {
+                throw new AppException(ErrorCode.CONFLICT, "Giao dịch thanh toán đã được sử dụng.");
+            }
         }
     }
 
@@ -921,7 +965,10 @@ public class BookingService {
         if (paymentIntentId == null || paymentIntentId.isBlank()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Thiếu mã chuyển khoản VietQR.");
         }
-        String transferCode = paymentIntentId.trim();
+        String transferCode = paymentIntentId.trim().toUpperCase();
+        if (!transferCode.matches("^[A-Z0-9]{6,16}$")) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Mã chuyển khoản VietQR không hợp lệ.");
+        }
 
         // Query database for unused VietQR transaction matching code and amount
         List<VietQRWebhookTransaction> txs = vietQRWebhookTransactionRepository.findMatchingUnusedTransaction(transferCode, totalPrice);
@@ -1405,7 +1452,9 @@ public class BookingService {
             return null;
         }
         if ("PERCENTAGE".equalsIgnoreCase(discountType)) {
-            return "Giảm " + discountValue.stripTrailingZeros().toPlainString() + "%";
+            BigDecimal percentPoints = discountValue.multiply(BigDecimal.valueOf(100))
+                    .stripTrailingZeros();
+            return "Giảm " + percentPoints.toPlainString() + "%";
         }
         return "Giảm " + formatPrice(discountValue);
     }

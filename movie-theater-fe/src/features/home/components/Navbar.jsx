@@ -223,7 +223,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="navbar-header">
+    <header className={`navbar-header${openCatalog ? ' navbar-header--menu-open' : ''}`}>
       <div className="navbar-container">
         <div className="navbar-logo-group">
           <Link to="/" className="navbar-logo-link gap-3" onClick={(e) => handleLinkClick(e, '/')}>

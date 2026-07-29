@@ -31,7 +31,11 @@ public class VietQRWebhookTransaction {
     private BigDecimal amount;
 
     @Column(name = "transfer_content", nullable = false)
-    private String transferContent; // Message transferred, e.g., NASAFILM 9F8D2B
+    private String transferContent; // Message transferred, e.g., NASAFILM NFABC12345
+
+    /** Normalized code extracted from transfer content (e.g. NFABC12345) for exact match. */
+    @Column(name = "transfer_code", length = 32)
+    private String transferCode;
 
     @Column(name = "sub_account")
     private String subAccount; // Sub account of receiver
@@ -84,6 +88,14 @@ public class VietQRWebhookTransaction {
 
     public void setTransferContent(String transferContent) {
         this.transferContent = transferContent;
+    }
+
+    public String getTransferCode() {
+        return transferCode;
+    }
+
+    public void setTransferCode(String transferCode) {
+        this.transferCode = transferCode;
     }
 
     public String getSubAccount() {

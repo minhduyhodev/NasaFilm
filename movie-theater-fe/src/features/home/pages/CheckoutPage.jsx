@@ -236,12 +236,14 @@ const CheckoutPage = () => {
   const memberDiscountRate = getMemberDiscountRate(userScore);
   const memberTier = getMemberTierLabel(userScore);
   const comboOriginalPrice = checkoutCombos.reduce((sum, c) => sum + (c.price * c.quantity), 0);
-  const comboDiscountAmount = Math.round(comboOriginalPrice * memberDiscountRate);
-  const comboPrice = comboOriginalPrice - comboDiscountAmount;
+  // Host pays Orbit total — BE applies host loyalty to host + member combos alike.
+  const allCombosOriginal = comboOriginalPrice + otherMembersCombosTotal;
+  const comboDiscountAmount = Math.round(allCombosOriginal * memberDiscountRate);
+  const comboPrice = allCombosOriginal - comboDiscountAmount;
   const hasCombo = checkoutCombos.length > 0 || resolvedOtherMembersCombos.length > 0;
 
   const ticketSum = isVod ? totalAmount : selectedSeats.reduce((acc, curr) => acc + curr.price, 0);
-  const subtotal = ticketSum + comboPrice + otherMembersCombosTotal;
+  const subtotal = ticketSum + comboPrice;
   const finalTotal = Math.max(0, subtotal - discount);
 
   // Group seats by type for breakdown display
@@ -348,6 +350,63 @@ const CheckoutPage = () => {
     // authoritatively from the room (BookingService.confirmBooking), so pre-merging them here would
     // double-charge members. finalTotal above already reflects the full host + members amount.
     const hostCombos = checkoutCombos.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity }));
+
+    // Free after voucher — skip Stripe/VietQR and confirm directly (BE skips card reconcile when total=0).
+    if (finalTotal <= 0 && (paymentMethod === 'card' || paymentMethod === 'vietqr')) {
+      setIsPaying(true);
+      try {
+        let response;
+        if (isVod) {
+          response = await vodService.confirmOnlineBooking(
+            movieUuid,
+            discount > 0 ? voucherInput.trim() : null,
+            'wallet',
+          );
+        } else {
+          const seatUuids = selectedSeats.map(s => s.seatUuid);
+          response = await bookingService.confirmBooking(
+            showtimeUuid,
+            seatUuids,
+            hostCombos,
+            discount > 0 ? voucherInput.trim() : null,
+            'wallet',
+            checkoutState.orbitRoomUuid || null,
+            null,
+          );
+        }
+        // reuse success navigation below via falling through is awkward — duplicate minimal success path
+        notificationService.success('Đặt vé thành công (miễn phí sau khuyến mãi)!');
+        showMissionCompletionToasts(response?.missionCompletions);
+        clearAllBookingSessions();
+        navigate('/booking-confirmed', {
+          state: {
+            bookingUuid: response.bookingUuid,
+            movie: checkoutState.movie,
+            moviePoster: checkoutState.moviePoster,
+            ...(isVod
+              ? {
+                  movieFormat: 'VOD Online',
+                  theater: 'Trình phát video NASA VOD',
+                  date: 'Mọi lúc, mọi nơi',
+                  showtime: 'Xem trực tuyến',
+                }
+              : {
+                  theater: checkoutState.theater,
+                  date: checkoutState.date,
+                  showtime: checkoutState.showtime,
+                  selectedSeats: checkoutState.selectedSeats,
+                }),
+            totalPrice: 0,
+          },
+        });
+      } catch (err) {
+        logger.error('Free booking confirm failed:', err);
+        notificationService.error(err?.message || 'Không thể xác nhận đặt vé miễn phí.');
+      } finally {
+        setIsPaying(false);
+      }
+      return;
+    }
 
     if (paymentMethod === 'card') {
       navigate('/payment', {
