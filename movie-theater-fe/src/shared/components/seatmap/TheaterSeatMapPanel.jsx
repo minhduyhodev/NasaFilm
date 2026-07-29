@@ -235,7 +235,7 @@ const TheaterSeatMapPanel = ({
         variant="booking"
         className="w-full"
       >
-          <div className="w-full mb-4 md:mb-6 text-center shrink-0" data-no-pan>
+          <div className="mx-auto mb-4 md:mb-6 text-center shrink-0 w-max max-w-full" data-no-pan>
             <div className={`screen-curve relative mx-auto w-[65%] h-1 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
             <p className="text-[9px] font-bold text-gray-500 mt-2 tracking-widest uppercase">{screenLabel}</p>
           </div>
