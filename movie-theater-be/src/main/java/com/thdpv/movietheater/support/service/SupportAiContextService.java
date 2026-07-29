@@ -4,16 +4,23 @@ import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +74,8 @@ public class SupportAiContextService {
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.forLanguageTag("vi-VN"));
     private static final NumberFormat MONEY_FMT = NumberFormat.getInstance(Locale.forLanguageTag("vi-VN"));
+    private static final Pattern MOVIE_PATH_PATTERN =
+            Pattern.compile("/movie/([0-9a-fA-F-]{36})");
 
     private final MovieService movieService;
     private final ShowtimeService showtimeService;
@@ -78,6 +87,15 @@ public class SupportAiContextService {
     private final MissionTemplateRepository missionTemplateRepository;
     private final MissionCampaignRepository missionCampaignRepository;
     private final ReviewVibeTagService reviewVibeTagService;
+
+    @Value("${app.wallet.min-top-up:10000}")
+    private BigDecimal walletMinTopUp;
+
+    @Value("${app.wallet.max-top-up:10000000}")
+    private BigDecimal walletMaxTopUp;
+
+    @Value("${app.wallet.quick-amounts:100000,200000,500000,1000000}")
+    private String walletQuickAmounts;
 
     private final AtomicReference<CachedContext> cache = new AtomicReference<>();
 
@@ -155,6 +173,75 @@ public class SupportAiContextService {
         }
     }
 
+    /**
+     * Collect poster cards for movies mentioned as {@code /movie/{uuid}} links in a Giải đáp reply.
+     * Used by the frontend to render clickable posters under the bot bubble.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, String>> moviesMentionedIn(String reply) {
+        if (reply == null || reply.isBlank() || !reply.contains("/movie/")) {
+            return List.of();
+        }
+
+        Map<UUID, MovieListResponse> byUuid = currentMovieCatalogByUuid();
+        Matcher matcher = MOVIE_PATH_PATTERN.matcher(reply);
+        List<Map<String, String>> cards = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+
+        while (matcher.find()) {
+            String uuidText = matcher.group(1);
+            if (!seen.add(uuidText)) {
+                continue;
+            }
+            UUID uuid;
+            try {
+                uuid = UUID.fromString(uuidText);
+            } catch (IllegalArgumentException ex) {
+                continue;
+            }
+            MovieListResponse movie = byUuid.get(uuid);
+            if (movie == null) {
+                continue;
+            }
+            Map<String, String> card = new LinkedHashMap<>();
+            card.put("uuid", uuidText);
+            card.put("title", movie.getTitle() == null ? "Phim" : movie.getTitle());
+            if (movie.getPrimaryMediaUrl() != null && !movie.getPrimaryMediaUrl().isBlank()) {
+                card.put("posterUrl", movie.getPrimaryMediaUrl());
+            }
+            card.put("path", "/movie/" + uuidText);
+            cards.add(card);
+        }
+        return cards;
+    }
+
+    private Map<UUID, MovieListResponse> currentMovieCatalogByUuid() {
+        Map<UUID, MovieListResponse> byUuid = new LinkedHashMap<>();
+        try {
+            MovieFilterRequest nowFilter = new MovieFilterRequest();
+            nowFilter.setRequireBookableShowtime(true);
+            indexMoviesByUuid(byUuid, movieService.getMovieList(nowFilter, PageRequest.of(0, MOVIE_LIMIT)).getContent());
+            indexMoviesByUuid(byUuid, nowShowingByStatus());
+            indexMoviesByUuid(byUuid, movieService.getUpcomingMovieList(PageRequest.of(0, COMING_SOON_LIMIT)).getContent());
+
+            MovieFilterRequest vodFilter = new MovieFilterRequest();
+            vodFilter.setOnlineOnly(true);
+            indexMoviesByUuid(byUuid, movieService.getMovieList(vodFilter, PageRequest.of(0, VOD_LIMIT)).getContent());
+        } catch (Exception ex) {
+            log.warn("Failed to build movie catalog for Support AI posters: {}", ex.getMessage());
+        }
+        return byUuid;
+    }
+
+    private void indexMoviesByUuid(Map<UUID, MovieListResponse> byUuid, List<MovieListResponse> movies) {
+        for (MovieListResponse movie : movies) {
+            if (movie == null || movie.getUuid() == null) {
+                continue;
+            }
+            byUuid.putIfAbsent(movie.getUuid(), movie);
+        }
+    }
+
     private String buildSharedCatalogContext() {
         long now = System.currentTimeMillis();
         CachedContext cached = cache.get();
@@ -183,6 +270,7 @@ public class SupportAiContextService {
 
         appendSiteMap(sb);
         appendPolicies(sb);
+        appendWalletGuide(sb);
         appendRoomFormats(sb);
         appendCinemas(sb);
         appendNowShowing(sb);
@@ -198,6 +286,8 @@ public class SupportAiContextService {
                 QUY TẮC DỮ LIỆU:
                 - Chỉ nêu phim/suất/rạp/combo/voucher/mission có trong snapshot. Ngoài snapshot → bảo khách mở trang tương ứng trên web.
                 - Không bịa mã đơn, ghế trống realtime, giá ngoài snapshot.
+                - Không chủ động nói giá (vé / VOD / combo) trừ khi khách hỏi rõ về giá hoặc số tiền.
+                - KHÔNG nêu số dư Ví NASA / số tiền trong ví của khách (dù có trong dữ liệu). Hướng khách tự xem tại /wallet.
                 - Nếu có khối KHÁCH ĐANG ĐĂNG NHẬP → được dùng điểm/hạng đó; không bịa điểm cho khách khác.
                 - Câu hỏi về đơn hàng/vé cụ thể → hướng sang mục Hỗ trợ.
                 """);
@@ -208,8 +298,48 @@ public class SupportAiContextService {
         sb.append("\nSƠ ĐỒ TÍNH NĂNG WEB (điều hướng khách):\n");
         sb.append("- Trang chủ / Phim đang chiếu / Sắp chiếu / Xem online (VOD).\n");
         sb.append("- Chi tiết phim → chọn suất → ghế → combo → thanh toán → QR vé.\n");
-        sb.append("- Offers (voucher/điểm), Missions, Orbit Rooms (đặt nhóm), Ví NASA, Profile, FAQ widget NASA BOT.\n");
+        sb.append("- Offers (voucher/điểm), Missions, Orbit Rooms (đặt nhóm), Ví NASA (trang /wallet), Profile, FAQ widget NASA BOT.\n");
         sb.append("- Hỗ trợ: tạo ticket / chat staff qua NASA BOT (tab Hỗ trợ / Nhắn staff).\n");
+    }
+
+    private void appendWalletGuide(StringBuilder sb) {
+        sb.append("\nVÍ NASA (kiến thức thanh toán ví — trả lời khi khách hỏi nạp / dùng ví):\n");
+        sb.append("- Ví NASA là số dư trong tài khoản đăng nhập; dùng để thanh toán đặt vé / combo / VOD trên web nhanh hơn.\n");
+        sb.append("- Mở trang: menu tài khoản → Ví NASA, hoặc đường dẫn /wallet (cần đăng nhập).\n");
+        sb.append("- Nạp tiền (top-up) trên trang Ví bằng 1 trong 2 cách:\n");
+        sb.append("  1) VietQR: chọn số tiền → VietQR → quét mã bằng app ngân hàng → hệ thống tự xác nhận và cộng số dư.\n");
+        sb.append("  2) Stripe (thẻ quốc tế Visa/Mastercard/Amex): chọn số tiền → Stripe → nhập thẻ → xác nhận → cộng số dư.\n");
+        sb.append("- Hạn mức nạp: tối thiểu ").append(formatMoney(walletMinTopUp))
+                .append(", tối đa ").append(formatMoney(walletMaxTopUp))
+                .append(". Gợi ý nhanh: ").append(formatQuickAmounts()).append(".\n");
+        sb.append("- Khi đặt vé (checkout): chọn phương thức \"Ví NASA / số dư tài khoản\". Nếu báo thiếu số dư → hướng khách vào /wallet nạp thêm rồi quay lại (KHÔNG đọc/nêu số dư hiện tại của khách).\n");
+        sb.append("- Lịch sử ví: Nạp (TOP_UP), Thanh toán đặt vé (PAYMENT), Hoàn tiền vào ví (REFUND). Có lọc theo loại / ngày trên trang Ví.\n");
+        sb.append("- Phân biệt: VietQR / Stripe ở checkout là thanh toán trực tiếp cho đơn; VietQR / Stripe trên trang Ví là để NẠP số dư. Sau khi có số dư mới chọn Ví NASA lúc thanh toán đơn.\n");
+        sb.append("- Khách không tự rút tiền mặt từ ví trên website. Hoàn vé (khi đủ điều kiện) có thể được cộng lại vào Ví NASA.\n");
+        sb.append("- CẤM nêu số dư ví khách trong chat. Bảo khách mở /wallet để tự xem số dư / lịch sử.\n");
+        sb.append("- Lỗi nạp / trừ sai / chưa cộng số dư → mời chuyển tab Hỗ trợ (không bịa trạng thái giao dịch).\n");
+    }
+
+    private String formatQuickAmounts() {
+        if (walletQuickAmounts == null || walletQuickAmounts.isBlank()) {
+            return "100.000đ, 200.000đ, 500.000đ, 1.000.000đ";
+        }
+        StringBuilder out = new StringBuilder();
+        for (String part : walletQuickAmounts.split(",")) {
+            String raw = part == null ? "" : part.trim();
+            if (raw.isEmpty()) {
+                continue;
+            }
+            try {
+                if (out.length() > 0) {
+                    out.append(", ");
+                }
+                out.append(formatMoney(new BigDecimal(raw)));
+            } catch (NumberFormatException ignored) {
+                // skip bad config token
+            }
+        }
+        return out.length() > 0 ? out.toString() : "100.000đ, 200.000đ, 500.000đ, 1.000.000đ";
     }
 
     private String buildUserContextBlock(String userEmail) {
@@ -273,7 +403,7 @@ public class SupportAiContextService {
                 .append("), NASA VIP (≥")
                 .append(MemberTierUtils.TIER_VIP_MIN_SCORE)
                 .append("). Combo Friend -10%, VIP -15%.\n");
-        sb.append("- Giá VOD mặc định: ").append(formatMoney(systemConfigService.getDefaultOnlinePrice())).append(".\n");
+        sb.append("- Giá VOD mặc định (CHỈ dùng khi khách hỏi giá): ").append(formatMoney(systemConfigService.getDefaultOnlinePrice())).append(".\n");
         sb.append("- Đồng hồ đếm ngược VOD: ")
                 .append(systemConfigService.isOnlineCountdownEnabled() ? "bật" : "tắt")
                 .append("; hệ số giữ ghế online ×")
@@ -284,7 +414,8 @@ public class SupportAiContextService {
         sb.append("- Orbit Room TTL: ").append(systemConfigService.getOrbitRoomTtlMinutes())
                 .append(" phút; checkout TTL: ").append(systemConfigService.getOrbitCheckoutTtlMinutes())
                 .append(" phút.\n");
-        sb.append("- Thanh toán: MoMo, VNPay, ZaloPay, thẻ, ví NASA, quầy.\n");
+        sb.append("- Thanh toán website khi đặt vé: Stripe (thẻ), Ví NASA (trừ số dư), VietQR (chuyển khoản trực tiếp đơn). Không có MoMo/VNPay/ZaloPay trên web.\n");
+        sb.append("- Chi tiết nạp/dùng Ví NASA: xem khối \"VÍ NASA\" bên dưới.\n");
     }
 
     private void appendRoomFormats(StringBuilder sb) {
@@ -382,14 +513,12 @@ public class SupportAiContextService {
         for (MovieListResponse movie : movies) {
             sb.append(i++).append(". ").append(safe(movie.getTitle()));
             appendMovieMeta(sb, movie);
-            if (movie.getOnlinePrice() != null) {
-                sb.append(" · ").append(formatMoney(movie.getOnlinePrice()));
-            }
             if (movie.getScreeningMode() != null && !movie.getScreeningMode().isBlank()) {
                 sb.append(" · ").append(movie.getScreeningMode().trim());
             }
             sb.append('\n');
         }
+        sb.append("(Giá từng phim VOD: chỉ nêu khi khách hỏi giá — xem \"Giá VOD mặc định\" trong chính sách.)\n");
     }
 
     private void appendShowtimes(StringBuilder sb) {

@@ -88,7 +88,8 @@
   display: grid;
   gap: 0.2rem;
   min-width: 0;
-  max-width: calc(100% - 2.5rem);
+  max-width: 100%;
+  width: 100%;
 }
 
 .nasa-assistant-avatar--bot {

@@ -342,7 +342,12 @@ public class SystemConfigService {
                 - Đặt vé: chọn phim → suất → ghế → combo → thanh toán → mã QR. Giữ ghế trong thời gian quy định,
                   tối đa 8 ghế mỗi lần.
                 - Định dạng: 2D/3D/IMAX/4DX/Dolby/ScreenX; ghế Thường/VIP/Couple.
-                - Thanh toán: MoMo, VNPay, ZaloPay, thẻ ngân hàng, ví NASA, tại quầy.
+                - Thanh toán trên web khi đặt vé: Stripe (thẻ), Ví NASA (trừ số dư ví), VietQR (chuyển khoản trực tiếp đơn).
+                  Không có MoMo / VNPay / ZaloPay trên website.
+                - Ví NASA: trang /wallet. Nạp bằng VietQR (quét app ngân hàng) hoặc Stripe (thẻ quốc tế).
+                  Sau khi có số dư, chọn "Ví NASA" lúc checkout. Số dư thiếu → vào /wallet nạp thêm.
+                  Không tự rút tiền mặt trên web; hoàn vé đủ điều kiện có thể cộng lại vào ví.
+                  CẤM nêu số dư ví của khách trong chat — hướng họ tự xem tại /wallet.
                 - Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP email, quên/đổi mật khẩu, kích hoạt, khóa/mở khóa.
                 - Hội viên: Member (0) · Friend (≥5.000 lifetime) · VIP (≥10.000 lifetime); combo giảm 10% (Friend) / 15% (VIP).
                 - Khuyến mãi: nhập mã ở bước thanh toán; voucher đổi điểm phải đổi trong Offers trước;
@@ -355,11 +360,11 @@ public class SystemConfigService {
                 KHÔNG hứa hoàn tiền/đổi vé thay admin.
 
                 🎨 TRÌNH BÀY (bố cục gọn, dễ đọc, có link phim)
-                - Khi liệt kê phim/suất/combo/voucher: MỖI mục MỘT DÒNG, bắt đầu bằng "• " và XUỐNG DÒNG rõ ràng.
-                  KHÔNG dồn tất cả vào một đoạn văn dài.
-                - Bố cục gợi ý: 1 câu mở đầu ngắn → danh sách gạch đầu dòng → 1 câu hỏi chốt.
+                - Khi gợi ý PHIM: 1 câu mở đầu ngắn + nêu tên phim ĐÚNG NGUYÊN VĂN (cách nhau dấu phẩy nếu cần).
+                  KHÔNG viết danh sách gạch đầu dòng với thể loại / độ tuổi / thời lượng — giao diện sẽ hiện poster.
+                - Khi liệt kê suất chiếu / combo / voucher: MỖI mục MỘT DÒNG, bắt đầu bằng "• ".
                 - Ghi ĐÚNG NGUYÊN VĂN tên phim như trong "DỮ LIỆU THỰC TẾ" (không dịch, không rút gọn, không thêm bớt)
-                  để hệ thống tự gắn link cho khách bấm mở trang phim. Bạn KHÔNG tự chèn URL hay mã UUID.
+                  để hệ thống tự gắn link / poster. Bạn KHÔNG tự chèn URL hay mã UUID.
 
                 💬 PHONG CÁCH TRẢ LỜI
                 - Tiếng Việt, ấm áp, lịch sự, đi thẳng vào vấn đề.
@@ -382,7 +387,7 @@ public class SystemConfigService {
                 shortcutEntry("Mô tả vấn đề khác", "other_support", "Gửi mô tả ngắn cho các vấn đề chưa thuộc nhóm có sẵn", "Tôi có một vấn đề khác và cần được hỗ trợ.")));
         bot.put("categoryKeywords", Map.of(
                 "ticket", List.of("ve", "ticket", "dat ve", "ma ve", "ma don", "suat chieu", "lich chieu", "ghe", "doi ve", "hoan ve", "huy ve", "phong chieu"),
-                "payment", List.of("thanh toan", "payment", "giao dich", "refund", "hoan tien", "tru tien", "chua nhan ve", "zalopay", "momo", "vnpay", "the ngan hang"),
+                "payment", List.of("thanh toan", "payment", "giao dich", "refund", "hoan tien", "tru tien", "chua nhan ve", "stripe", "vietqr", "vi nasa", "the ngan hang"),
                 "account", List.of("tai khoan", "account", "login", "dang nhap", "dang ky", "otp", "mat khau", "quen mat khau", "khoa tai khoan", "profile"),
                 "promo", List.of("voucher", "khuyen mai", "promo", "ma giam gia", "uu dai", "coupon", "combo", "bap nuoc"),
                 "membership", List.of("hoi vien", "membership", "vip", "diem", "diem thuong", "tich diem", "hang thanh vien", "quyen loi")));
