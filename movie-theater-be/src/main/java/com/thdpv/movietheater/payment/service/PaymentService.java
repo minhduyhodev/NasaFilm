@@ -26,7 +26,7 @@ public class PaymentService {
     private final WalletService walletService;
     private final PaymentTransactionRepository paymentTransactionRepository;
 
-    @Value("${app.payment.provider:mock}")
+    @Value("${app.payment.provider:stripe}")
     private String paymentProvider;
 
     public PaymentService(
@@ -47,11 +47,10 @@ public class PaymentService {
     }
 
     /**
-     * True when the booking payment gateway is the always-succeeds mock
-     * (demo/local), not a real provider.
+     * True only when an explicit local/demo mock provider is configured.
      */
     public boolean isMockProvider() {
-        return paymentProvider == null || "mock".equalsIgnoreCase(paymentProvider.trim());
+        return "mock".equalsIgnoreCase(paymentProvider != null ? paymentProvider.trim() : null);
     }
 
     @Transactional(readOnly = true)
