@@ -58,7 +58,7 @@ const HomePage = () => {
 
             <LazySection
               as="div"
-              className="home-section"
+              className="home-section home-page__section--movies"
               rootMargin="120px 0px"
               fallback={<SectionPlaceholder minHeight="14rem" />}
             >

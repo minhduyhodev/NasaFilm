@@ -78,6 +78,7 @@ const HomeSpaceBackdrop = ({ starCount = 14 }) => {
         <span className="home-space-backdrop__glow home-space-backdrop__glow--bottom-right" />
       </div>
       <div className="home-space-backdrop__cosmos" />
+      <div className="home-space-backdrop__veil" aria-hidden />
       <div className="home-space-backdrop__stars">
         {stars.map((star) => (
           <span

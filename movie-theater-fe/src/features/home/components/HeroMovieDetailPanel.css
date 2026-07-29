@@ -17,28 +17,33 @@
 
 .hero-movie-detail__group {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: var(--hero-detail-gap);
   width: min(
     100%,
     calc(var(--hero-poster-w) + var(--hero-detail-gap) + var(--hero-info-w))
   );
+  height: var(--hero-poster-h);
   margin: 0 auto;
 }
 
 /* Chừa chỗ đúng size poster để DomeGallery đặt ảnh sát cạnh info */
 .hero-movie-detail__poster-slot {
   width: var(--hero-poster-w);
-  height: var(--hero-poster-h);
+  height: 100%;
   flex-shrink: 0;
   visibility: hidden;
   pointer-events: none;
 }
 
 .hero-movie-detail__info {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
   max-width: var(--hero-info-w);
+  height: 100%;
+  box-sizing: border-box;
   pointer-events: auto;
   text-align: left;
   color: #fff;
@@ -111,20 +116,24 @@
 
 .hero-movie-detail__desc {
   margin: 1.1rem 0 0;
+  flex: 1 1 auto;
+  min-height: 0;
   color: rgba(255, 255, 255, 0.86);
   font-size: 1rem;
   line-height: 1.6;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 6;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 .hero-movie-detail__actions {
-  margin-top: 1.35rem;
+  margin-top: auto;
+  padding-top: 1.1rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .hero-movie-detail__btn {
@@ -188,14 +197,22 @@
 
   .hero-movie-detail__group {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 1rem;
     width: 100%;
+    height: auto;
+  }
+
+  .hero-movie-detail__poster-slot {
+    width: var(--hero-poster-w);
+    height: var(--hero-poster-h);
+    align-self: center;
   }
 
   .hero-movie-detail__info {
     width: 100%;
     max-width: 100%;
+    height: auto;
   }
 
   .hero-movie-detail__title {
@@ -204,10 +221,12 @@
 
   .hero-movie-detail__desc {
     -webkit-line-clamp: 3;
+    flex: 0 1 auto;
   }
 
   .hero-movie-detail__actions {
     margin-top: 1rem;
+    padding-top: 0;
   }
 
   .hero-movie-detail__btn {

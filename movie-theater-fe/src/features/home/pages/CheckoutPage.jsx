@@ -14,8 +14,14 @@ import { promotionService } from '../../../shared/services/promotionService';
 import { walletService } from '../../../shared/services/walletService';
 import { comboService } from '../../../shared/services/comboService';
 import PosterImage from '../../../shared/components/PosterImage';
+import './CheckoutPage.css';
 
-import { BOOKING_SESSION_KEYS, readBookingSession, clearAllBookingSessions } from '../../../shared/utils/bookingSessionStorage';
+import {
+  BOOKING_SESSION_KEYS,
+  readBookingSession,
+  writeBookingSession,
+  clearAllBookingSessions,
+} from '../../../shared/utils/bookingSessionStorage';
 import { removeOrbitRoom } from '../../../shared/utils/orbitRecentStorage';
 import { orbitService } from '../../../shared/services/orbitService';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
@@ -506,6 +512,24 @@ const CheckoutPage = () => {
     }
   };
 
+  const buildBookingPayload = () => ({
+    ...checkoutState,
+    selectedCombos: checkoutCombos,
+  });
+
+  /** Bước trước checkout: chọn bắp nước (giữ ghế / phiên Orbit). */
+  const handleBackToConcessions = () => {
+    if (isVod) {
+      navigate(-1);
+      return;
+    }
+    const payload = buildBookingPayload();
+    writeBookingSession(BOOKING_SESSION_KEYS.BOOKING, payload);
+    writeBookingSession(BOOKING_SESSION_KEYS.CHECKOUT, payload);
+    navigate('/concessions', { state: payload });
+  };
+
+  /** Quay lại chọn ghế / phòng nhóm — Orbit sẽ hủy phiên checkout. */
   const handleBackToBooking = async () => {
     if (isOrbit && orbitRoomUuid) {
       const ok = await confirm({
@@ -521,6 +545,8 @@ const CheckoutPage = () => {
         logger.error('Failed to abort checkout on back navigation:', err);
       }
       navigate(`/booking/orbit/${orbitRoomUuid}`);
+    } else if (isVod) {
+      navigate(-1);
     } else {
       navigate(-1);
     }
@@ -535,14 +561,35 @@ const CheckoutPage = () => {
 
       <main className="mt-8 flex-grow pt-4 pb-20 px-4 md:px-16 lg:px-20 max-w-7xl mx-auto w-full">
         {/* Navigation Breadcrumb / Back Action */}
-        <div
-          className="mb-8 flex items-center gap-2 group cursor-pointer w-fit"
-          onClick={handleBackToBooking}
-        >
-          <ArrowLeft className="w-4.5 h-4.5 text-[#c8c6c8] group-hover:-translate-x-1 group-hover:text-white transition-all duration-300 shrink-0" />
-          <span className="text-sm font-semibold text-[#c8c5ca] group-hover:text-white transition-colors">
-            {isVod ? 'Quay lại chi tiết phim' : isOrbit ? 'Quay lại phòng nhóm' : 'Quay lại chọn ghế'}
-          </span>
+        <div className="mb-8 flex flex-col gap-3">
+          {!isVod ? (
+            <button
+              type="button"
+              onClick={handleBackToConcessions}
+              className="inline-flex items-center gap-2.5 self-start rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/10 hover:border-red-500/40 transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4 text-red-500 shrink-0" />
+              Quay lại bắp nước
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleBackToBooking}
+              className="inline-flex items-center gap-2 self-start text-sm font-semibold text-[#c8c5ca] hover:text-white transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4 shrink-0" />
+              Quay lại chi tiết phim
+            </button>
+          )}
+          {isOrbit && !isVod ? (
+            <button
+              type="button"
+              onClick={handleBackToBooking}
+              className="text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors self-start cursor-pointer"
+            >
+              Quay lại phòng nhóm
+            </button>
+          ) : null}
         </div>
 
         {isOrbit && (
@@ -628,10 +675,27 @@ const CheckoutPage = () => {
                 {/* Selected Combo packs breakdown */}
                 {!isVod && (
                   <div className="pt-4 border-t border-white/5 space-y-3">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">Combo bắp nước đã chọn</h3>
+                      <button
+                        type="button"
+                        onClick={handleBackToConcessions}
+                        className="text-[11px] font-bold uppercase tracking-wide text-red-500 hover:text-red-400 cursor-pointer"
+                      >
+                        Chỉnh sửa
+                      </button>
+                    </div>
                     {checkoutCombos.length === 0 && resolvedOtherMembersCombos.length === 0 ? (
                       <div className="text-gray-500 font-medium text-xs py-3 text-center italic">
                         Không mua kèm bắp nước.
+                        {' '}
+                        <button
+                          type="button"
+                          onClick={handleBackToConcessions}
+                          className="text-red-500 hover:text-red-400 font-bold not-italic cursor-pointer"
+                        >
+                          Thêm bắp nước
+                        </button>
                       </div>
                     ) : (
                       <>
@@ -885,13 +949,23 @@ const CheckoutPage = () => {
                   {isPaying ? 'Đang xử lý thanh toán...' : isExpired ? 'Đã hết hạn giữ ghế' : (hasUncompletedMembers ? 'Chờ thành viên chọn bắp nước' : (isOrbit ? 'Xác nhận nhóm & Thanh toán' : 'Xác nhận & Thanh toán'))}
                 </button>
 
+                {!isVod && (
+                  <button
+                    type="button"
+                    onClick={handleBackToConcessions}
+                    className="w-full py-3.5 rounded-xl border border-red-500/35 bg-red-500/10 text-sm font-bold text-red-400 hover:bg-red-500/20 hover:text-red-300 cursor-pointer mt-3 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4 shrink-0" />
+                    Quay lại bắp nước
+                  </button>
+                )}
                 {isOrbit && (
                   <button
                     type="button"
                     onClick={handleBackToBooking}
-                    className="w-full py-3 rounded-xl border border-white/10 text-xs font-bold text-zinc-300 hover:bg-white/5 cursor-pointer mt-3 flex items-center justify-center transition-colors"
+                    className="w-full py-3 rounded-xl border border-white/10 text-xs font-bold text-zinc-500 hover:text-zinc-300 hover:bg-white/5 cursor-pointer mt-2 flex items-center justify-center transition-colors"
                   >
-                    Quay lại chọn ghế
+                    Quay lại phòng nhóm
                   </button>
                 )}
                 <p className="text-center text-[10px] font-medium text-gray-500 mt-4 leading-relaxed">

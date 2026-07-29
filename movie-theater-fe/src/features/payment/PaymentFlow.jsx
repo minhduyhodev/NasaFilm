@@ -105,9 +105,14 @@ export default function PaymentFlow() {
         logger.error('Failed to abort checkout on back navigation:', err);
       }
       navigate(`/booking/orbit/${checkoutState.orbitRoomUuid}`);
-    } else {
-      navigate(-1);
+      return;
     }
+
+    if (checkoutState && Object.keys(checkoutState).length > 0) {
+      navigate('/checkout', { state: checkoutState });
+      return;
+    }
+    navigate(-1);
   };
 
   useEffect(() => {
@@ -270,7 +275,7 @@ export default function PaymentFlow() {
             onClick={handleBack}
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            <span className="text-xs font-semibold">Quay lại chọn ghế</span>
+            <span className="text-xs font-semibold">Quay lại xác nhận đơn</span>
           </div>
 
           <div className="flex items-center gap-3 mb-6">
@@ -402,7 +407,7 @@ export default function PaymentFlow() {
                       onClick={handleBack}
                       className="w-full py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-black uppercase tracking-wider text-slate-600 transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Quay lại chọn ghế
+                      Quay lại phòng nhóm
                     </button>
                   )}
                 </div>

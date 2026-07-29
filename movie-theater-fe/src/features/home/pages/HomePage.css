@@ -28,21 +28,9 @@
   }
 }
 
-/* Soft blend Hero → sections without painting a solid dark band */
+/* Tắt fade — chồng với đáy hero tạo đường cắt ngang */
 .home-space-zone__fade {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4.5rem;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(5, 5, 8, 0.28) 0%,
-    rgba(5, 5, 8, 0.08) 55%,
-    transparent 100%
-  );
-  z-index: 0;
+  display: none;
 }
 
 .home-page__orbit-wrap {
@@ -279,6 +267,6 @@
 
 @media (min-width: 768px) {
   .home-space-zone__fade {
-    height: 5.5rem;
+    display: none;
   }
 }
