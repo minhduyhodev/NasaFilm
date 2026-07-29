@@ -160,7 +160,7 @@ const ShowtimesPage = () => {
   const fetchMovies = async () => {
     setIsLoadingMovies(true);
     try {
-      const data = await movieService.getMovies({ size: 500 });
+      const data = await movieService.getAdminMovies({ size: 500 });
       if (data && data.content) {
         setMovies(data.content);
       }

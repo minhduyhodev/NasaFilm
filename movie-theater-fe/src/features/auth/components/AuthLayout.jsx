@@ -13,7 +13,7 @@ export const AuthLayout = ({
 }) => {
   const { startTransition } = useCosmosHomeTransition({
     to: '/',
-    durationMs: 3400,
+    durationMs: 550,
   });
 
   const brand = heroTitle.replace(/\s/g, '');

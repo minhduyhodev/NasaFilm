@@ -84,7 +84,7 @@ public class SecurityConfig {
             "/stomp/**",
             "/actuator/health",
             "/actuator/health/**",
-            "/v1/payments/**",
+            // Stripe/VietQR provider callbacks only — booking payment-intents require auth
             "/v1/webhooks/**"
     };
 

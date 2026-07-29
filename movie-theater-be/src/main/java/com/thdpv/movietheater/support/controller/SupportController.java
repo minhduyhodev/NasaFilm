@@ -26,6 +26,7 @@ import com.thdpv.movietheater.support.dto.response.SupportAiMessageResponse;
 import com.thdpv.movietheater.support.dto.response.SupportAiSessionResponse;
 import com.thdpv.movietheater.support.dto.response.SupportTicketMessageResponse;
 import com.thdpv.movietheater.support.dto.response.SupportTicketResponse;
+import com.thdpv.movietheater.support.service.SupportAiContextService;
 import com.thdpv.movietheater.support.service.SupportAiService;
 import com.thdpv.movietheater.support.service.SupportAiSessionService;
 import com.thdpv.movietheater.support.service.SupportChatPenaltyService;
@@ -42,6 +43,7 @@ public class SupportController {
     private final SupportAiService supportAiService;
     private final SupportTicketService supportTicketService;
     private final SupportAiSessionService supportAiSessionService;
+    private final SupportAiContextService supportAiContextService;
     private final SupportActionRateLimiter supportActionRateLimiter;
     private final SupportChatPenaltyService supportChatPenaltyService;
 
@@ -49,11 +51,13 @@ public class SupportController {
             SupportAiService supportAiService,
             SupportTicketService supportTicketService,
             SupportAiSessionService supportAiSessionService,
+            SupportAiContextService supportAiContextService,
             SupportActionRateLimiter supportActionRateLimiter,
             SupportChatPenaltyService supportChatPenaltyService) {
         this.supportAiService = supportAiService;
         this.supportTicketService = supportTicketService;
         this.supportAiSessionService = supportAiSessionService;
+        this.supportAiContextService = supportAiContextService;
         this.supportActionRateLimiter = supportActionRateLimiter;
         this.supportChatPenaltyService = supportChatPenaltyService;
     }
@@ -96,6 +100,21 @@ public class SupportController {
 
         // Persist the conversation server-side (chat lives in DB, not only in the browser).
         String sessionCode = request.sessionId();
+        boolean answerMode = "ANSWER".equalsIgnoreCase(request.mode() == null ? "" : request.mode().trim());
+        List<Map<String, String>> movies = List.of();
+        String replyForClient = result.reply();
+        if (answerMode && result.reply() != null) {
+            try {
+                movies = supportAiContextService.moviesMentionedIn(result.reply());
+            } catch (Exception e) {
+                movies = List.of();
+            }
+            // Posters carry the catalog; drop redundant bullet lines from the bubble text.
+            if (!movies.isEmpty()) {
+                replyForClient = SupportAiService.stripMovieCatalogLines(result.reply());
+            }
+        }
+
         if (ownerEmail != null) {
             try {
                 List<Map<String, String>> choiceList = null;
@@ -111,7 +130,7 @@ public class SupportController {
                         null,
                         request.mode(),
                         request.message(),
-                        result.reply(),
+                        replyForClient,
                         choiceList);
                 if (session != null) {
                     sessionCode = session.getSessionCode();
@@ -122,12 +141,13 @@ public class SupportController {
         }
 
         return ResponseEntity.ok(ApiResponse.success(SupportAiResponse.of(
-                result.reply(),
+                replyForClient,
                 result.suggestedCategory(),
                 createdTicket != null ? createdTicket.getTicketCode() : null,
                 createdTicket,
                 result.choices(),
-                sessionCode)));
+                sessionCode,
+                movies)));
     }
 
     @GetMapping("/support-ai/sessions")
@@ -230,8 +250,22 @@ public class SupportController {
     public record SupportAiMessageRequest(String role, String content) {
     }
 
-    public record SupportAiResponse(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<Map<String, String>> choices, String sessionId) {
-        public static SupportAiResponse of(String reply, String suggestedCategory, String autoTicketCode, SupportTicketResponse autoTicket, List<SupportAiService.ChoiceButton> choiceButtons, String sessionId) {
+    public record SupportAiResponse(
+            String reply,
+            String suggestedCategory,
+            String autoTicketCode,
+            SupportTicketResponse autoTicket,
+            List<Map<String, String>> choices,
+            String sessionId,
+            List<Map<String, String>> movies) {
+        public static SupportAiResponse of(
+                String reply,
+                String suggestedCategory,
+                String autoTicketCode,
+                SupportTicketResponse autoTicket,
+                List<SupportAiService.ChoiceButton> choiceButtons,
+                String sessionId,
+                List<Map<String, String>> movies) {
             List<Map<String, String>> choiceList = null;
             if (choiceButtons != null) {
                 choiceList = new ArrayList<>();
@@ -239,7 +273,14 @@ public class SupportController {
                     choiceList.add(Map.of("text", c.text(), "value", c.value()));
                 }
             }
-            return new SupportAiResponse(reply, suggestedCategory, autoTicketCode, autoTicket, choiceList, sessionId);
+            return new SupportAiResponse(
+                    reply,
+                    suggestedCategory,
+                    autoTicketCode,
+                    autoTicket,
+                    choiceList,
+                    sessionId,
+                    movies == null ? List.of() : movies);
         }
     }
 

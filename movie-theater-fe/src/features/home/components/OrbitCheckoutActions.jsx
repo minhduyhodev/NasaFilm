@@ -47,7 +47,7 @@ const OrbitCheckoutActions = ({
           className="orbit-booking__cta-host w-full py-4 rounded-xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2"
         >
           {isPreparing ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-          Xác nhận nhóm &amp; Thanh toán
+          Tiếp tục chọn bắp nước
         </button>
         <button
           type="button"

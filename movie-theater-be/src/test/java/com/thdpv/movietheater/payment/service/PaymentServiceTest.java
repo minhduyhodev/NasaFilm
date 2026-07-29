@@ -28,6 +28,8 @@ import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.booking.repository.PaymentRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.payment.entity.PaymentTransaction;
+import com.thdpv.movietheater.payment.repository.PaymentTransactionRepository;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceTest {
@@ -43,6 +45,9 @@ class PaymentServiceTest {
 
     @Mock
     private WalletService walletService;
+
+    @Mock
+    private PaymentTransactionRepository paymentTransactionRepository;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -73,22 +78,27 @@ class PaymentServiceTest {
     }
 
     @Test
-    void chargeBookingShouldPersistCompletedPaymentViaMockGateway() {
+    void chargeBookingCardShouldCompleteFromStripePaymentIntentWithoutGenericGateway() {
         UUID bookingUuid = UUID.randomUUID();
         String key = "pay-" + bookingUuid;
+        String piId = "pi_test_abc123";
+
+        PaymentTransaction tx = new PaymentTransaction();
+        tx.setGatewayTransactionId(piId);
 
         when(paymentRepository.findByIdempotencyKey(key)).thenReturn(Optional.empty());
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(paymentGatewayService.charge(any(), any(), any()))
-                .thenReturn(new PaymentGatewayService.GatewayChargeResult(true, "MOCK-PAY-ABCDEF12", null));
+        when(paymentTransactionRepository.findByBookingUuid(bookingUuid)).thenReturn(Optional.of(tx));
 
         Payment result = paymentService.chargeBooking(
                 bookingUuid, new BigDecimal("150000"), "card", key, null);
 
         assertEquals(PaymentStatus.COMPLETED.name(), result.getStatus());
         assertEquals("CARD", result.getMethod());
-        assertEquals("MOCK-PAY-ABCDEF12", result.getGatewayTransactionId());
+        assertEquals("STRIPE", result.getGatewayProvider());
+        assertEquals(piId, result.getGatewayTransactionId());
         assertEquals(bookingUuid, result.getBookingUuid());
+        verify(paymentGatewayService, never()).charge(any(), any(), any());
 
         ArgumentCaptor<Payment> captor = ArgumentCaptor.forClass(Payment.class);
         verify(paymentRepository, org.mockito.Mockito.atLeastOnce()).save(captor.capture());
@@ -97,7 +107,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    void chargeBookingShouldMarkFailedWhenGatewayRejects() {
+    void chargeBookingShouldMarkFailedWhenGatewayRejectsUnsupportedMethod() {
         UUID bookingUuid = UUID.randomUUID();
         String key = "pay-" + bookingUuid;
 
@@ -107,7 +117,7 @@ class PaymentServiceTest {
                 .thenReturn(new PaymentGatewayService.GatewayChargeResult(false, null, "Insufficient funds"));
 
         AppException ex = assertThrows(AppException.class, () -> paymentService.chargeBooking(
-                bookingUuid, new BigDecimal("150000"), "MOCK", key, null));
+                bookingUuid, new BigDecimal("150000"), "MOMO", key, null));
 
         assertEquals(ErrorCode.BAD_REQUEST, ex.getErrorCode());
         assertTrue(ex.getMessage().contains("Insufficient funds"));

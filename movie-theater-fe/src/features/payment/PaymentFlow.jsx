@@ -16,32 +16,43 @@ import { logger } from '../../shared/utils/logger';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
-function CheckoutForm({ amount, onSuccess, onFail }) {
+function CheckoutForm({ amount, onSuccess, onFail, confirming }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const busy = loading || confirming;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || busy) return;
 
     setLoading(true);
     setMessage('Đang xử lý thanh toán...');
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: 'if_required',
-    });
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: 'if_required',
+      });
 
-    setLoading(false);
+      if (error) {
+        setMessage(error.message || 'Thanh toán thất bại');
+        if (onFail) onFail(error);
+        return;
+      }
 
-    if (error) {
-      setMessage(error.message || 'Thanh toán thất bại');
-      if (onFail) onFail(error);
-    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-      setMessage('Thanh toán thành công! Đang xác nhận đặt vé...');
-      if (onSuccess) onSuccess(paymentIntent);
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        setMessage('Thanh toán thành công! Đang xác nhận đặt vé...');
+        if (onSuccess) {
+          await onSuccess(paymentIntent);
+        }
+      }
+    } catch (err) {
+      setMessage(err?.message || 'Thanh toán thất bại');
+      if (onFail) onFail(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,13 +62,11 @@ function CheckoutForm({ amount, onSuccess, onFail }) {
         <PaymentElement />
       </div>
 
-      {/* Bỏ tóm tắt đơn hàng ở form nhỏ, chuyển sang cột bên trái ở giao diện chính */}
-
       <button
-        disabled={!stripe || loading}
+        disabled={!stripe || busy}
         className="w-full bg-[#E61E2A] hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-sm"
       >
-        {loading ? 'Đang xử lý...' : `Thanh toán ${amount.toLocaleString('vi-VN')} đ`}
+        {busy ? 'Đang xử lý...' : `Thanh toán ${amount.toLocaleString('vi-VN')} đ`}
       </button>
 
       {message && (
@@ -96,13 +105,18 @@ export default function PaymentFlow() {
         logger.error('Failed to abort checkout on back navigation:', err);
       }
       navigate(`/booking/orbit/${checkoutState.orbitRoomUuid}`);
-    } else {
-      navigate(-1);
+      return;
     }
+
+    if (checkoutState && Object.keys(checkoutState).length > 0) {
+      navigate('/checkout', { state: checkoutState });
+      return;
+    }
+    navigate(-1);
   };
 
   useEffect(() => {
-    if (location.state?.amount && !clientSecret && !isInitializing) {
+    if (!clientSecret && !isInitializing) {
       handleCreateIntent();
     }
   }, []);
@@ -110,16 +124,39 @@ export default function PaymentFlow() {
   const handleCreateIntent = async () => {
     setIsInitializing(true);
     try {
-      const { data } = await authService.api.post('/v1/payments/payment-intents', {
-        amount,
+      const {
+        isVod, movieUuid, showtimeUuid, selectedSeats,
+        selectedCombos, orbitRoomUuid, voucherCode,
+      } = checkoutState;
+
+      const payload = {
         currency: 'vnd',
-      });
+        promotionCode: voucherCode || null,
+        orbitRoomUuid: orbitRoomUuid || null,
+      };
+      if (isVod && movieUuid) {
+        payload.movieUuid = movieUuid;
+      } else if (showtimeUuid) {
+        payload.showtimeUuid = showtimeUuid;
+        payload.seatUuids = selectedSeats?.map((s) => s.seatUuid) || [];
+        payload.combos = selectedCombos?.map((c) => ({
+          comboUuid: c.comboUuid,
+          quantity: c.quantity,
+        })) || [];
+      } else {
+        throw new Error('Thiếu thông tin đặt vé để tạo thanh toán');
+      }
+
+      const { data } = await authService.api.post('/v1/payments/payment-intents', payload);
       if (data.success && data.data?.clientSecret) {
         setClientSecret(data.data.clientSecret);
+        if (data.data.amount != null) {
+          _setAmount(Number(data.data.amount));
+        }
       }
     } catch (err) {
       logger.error('Stripe payment failed:', err);
-      alert('Không thể khởi tạo thanh toán. Vui lòng thử lại.');
+      alert(err?.message || 'Không thể khởi tạo thanh toán. Vui lòng thử lại.');
     } finally {
       setIsInitializing(false);
     }
@@ -136,7 +173,7 @@ export default function PaymentFlow() {
 
       let response;
       if (isVod && movieUuid) {
-        response = await vodService.confirmOnlineBooking(movieUuid, voucherCode || null, 'card');
+        response = await vodService.confirmOnlineBooking(movieUuid, voucherCode || null, 'card', paymentIntent?.id || null);
       } else if (showtimeUuid) {
         const seatUuids = selectedSeats?.map(s => s.seatUuid) || [];
         const combos = selectedCombos?.map(c => ({ comboUuid: c.comboUuid, quantity: c.quantity })) || [];
@@ -194,7 +231,23 @@ export default function PaymentFlow() {
       }
     } catch (err) {
       logger.error('Booking confirmation failed after Stripe payment:', err);
-      notificationService.error(err.message || 'Stripe thanh toán thành công nhưng xác nhận vé thất bại. Vui lòng liên hệ hỗ trợ.');
+      if (paymentIntent?.id) {
+        try {
+          await authService.api.post(`/v1/payments/payment-intents/${encodeURIComponent(paymentIntent.id)}/abandon`);
+          notificationService.error(
+            err.message
+              || 'Xác nhận vé thất bại. Đã hoàn tiền giao dịch thẻ (hoặc cộng ví NASA).',
+          );
+        } catch (compensateErr) {
+          logger.error('Failed to compensate abandoned Stripe payment:', compensateErr);
+          notificationService.error(
+            err.message
+              || 'Stripe đã trừ tiền nhưng xác nhận vé thất bại. Vui lòng liên hệ hỗ trợ kèm mã thanh toán.',
+          );
+        }
+      } else {
+        notificationService.error(err.message || 'Xác nhận vé thất bại.');
+      }
     } finally {
       setIsConfirming(false);
     }
@@ -222,7 +275,7 @@ export default function PaymentFlow() {
             onClick={handleBack}
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            <span className="text-xs font-semibold">Quay lại chọn ghế</span>
+            <span className="text-xs font-semibold">Quay lại xác nhận đơn</span>
           </div>
 
           <div className="flex items-center gap-3 mb-6">
@@ -323,7 +376,7 @@ export default function PaymentFlow() {
                 <Elements stripe={stripePromise} options={{ clientSecret }}>
                   <CheckoutForm
                     amount={amount}
-                    checkoutState={checkoutState}
+                    confirming={isConfirming}
                     onSuccess={handleSuccess}
                     onFail={handleFail}
                   />
@@ -354,7 +407,7 @@ export default function PaymentFlow() {
                       onClick={handleBack}
                       className="w-full py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-black uppercase tracking-wider text-slate-600 transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Quay lại chọn ghế
+                      Quay lại phòng nhóm
                     </button>
                   )}
                 </div>

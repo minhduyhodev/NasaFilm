@@ -1,0 +1,47 @@
+/* Hero sits on shared homepage universe backdrop */
+
+.hero-universe {
+  display: none;
+}
+
+/*
+ * Nguyên nhân dải màu cắt ngang: overflow:hidden + contain:paint
+ * cắt đáy quả cầu 3D → poster bị “cắt đôi”, phía dưới tối hơn.
+ */
+section[aria-label="Hero gallery"] .sphere-main {
+  overflow: visible;
+}
+
+section[aria-label="Hero gallery"] .stage {
+  /* bỏ paint containment — không clip poster 3D */
+  contain: layout;
+  overflow: visible;
+}
+
+/* Soft blend đáy hero — TẮT (gây dải cắt ngang với space-zone) */
+.hero-bottom-fade {
+  display: none;
+}
+
+/* Film grain chuyển sang backdrop cố định — không cắt ở đáy hero */
+.hero-film-grain {
+  display: none;
+}
+
+/* Kill DomeGallery edge vignette — it painted a dark vertical strip on the right */
+section[aria-label="Hero gallery"] .overlay,
+section[aria-label="Hero gallery"] .overlay--blur,
+section[aria-label="Hero gallery"] .edge-fade--bottom,
+section[aria-label="Hero gallery"] .edge-fade--top {
+  display: none !important;
+}
+
+/* Dense sphere: isolate compositing to the rotating layer only */
+section[aria-label="Hero gallery"] .sphere {
+  will-change: transform;
+  contain: layout style;
+}
+
+section[aria-label="Hero gallery"] .item__image img {
+  content-visibility: auto;
+}

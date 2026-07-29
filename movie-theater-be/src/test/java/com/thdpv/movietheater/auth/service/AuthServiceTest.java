@@ -3,7 +3,10 @@ package com.thdpv.movietheater.auth.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,11 +48,11 @@ import com.thdpv.movietheater.user.enums.AuthProvider;
 import com.thdpv.movietheater.user.enums.RoleName;
 import com.thdpv.movietheater.user.enums.UserStatus;
 import com.thdpv.movietheater.user.repository.UserRepository;
+import com.thdpv.movietheater.auth.dto.TokenRefreshRequest;
 import com.thdpv.movietheater.auth.dto.VerifyRequest;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
 import java.time.LocalDateTime;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -296,5 +299,57 @@ class AuthServiceTest {
         });
 
         assertEquals(ErrorCode.ACCOUNT_SUSPENDED, exception.getErrorCode());
+    }
+
+    @Test
+    void refreshTokenShouldNotRevokeFamilyOnRecentPreviousHashReuse() {
+        String staleRefresh = "stale-but-recent-refresh";
+        String tokenHash = RefreshTokenHasher.hash(staleRefresh);
+        UUID userId = UUID.randomUUID();
+
+        UserSession rotatedSession = new UserSession();
+        rotatedSession.setUserId(userId);
+        rotatedSession.setPreviousRefreshTokenHash(tokenHash);
+        rotatedSession.setLastActivityAt(LocalDateTime.now().minusSeconds(5));
+        rotatedSession.setStatus("ACTIVE");
+
+        when(userSessionRepository.findByRefreshTokenHash(tokenHash)).thenReturn(Optional.empty());
+        when(userSessionRepository.findByPreviousRefreshTokenHash(tokenHash))
+                .thenReturn(Optional.of(rotatedSession));
+
+        TokenRefreshRequest request = new TokenRefreshRequest();
+        request.setRefreshToken(staleRefresh);
+
+        AppException exception = assertThrows(AppException.class,
+                () -> authService.refreshToken(request, new MockHttpServletRequest()));
+
+        assertEquals(ErrorCode.TOKEN_INVALID, exception.getErrorCode());
+        verify(userSessionRepository, never()).revokeAllActiveSessions(any(), any());
+    }
+
+    @Test
+    void refreshTokenShouldRevokeFamilyOnStalePreviousHashReuse() {
+        String stolenRefresh = "stolen-old-refresh";
+        String tokenHash = RefreshTokenHasher.hash(stolenRefresh);
+        UUID userId = UUID.randomUUID();
+
+        UserSession rotatedSession = new UserSession();
+        rotatedSession.setUserId(userId);
+        rotatedSession.setPreviousRefreshTokenHash(tokenHash);
+        rotatedSession.setLastActivityAt(LocalDateTime.now().minusMinutes(5));
+        rotatedSession.setStatus("ACTIVE");
+
+        when(userSessionRepository.findByRefreshTokenHash(tokenHash)).thenReturn(Optional.empty());
+        when(userSessionRepository.findByPreviousRefreshTokenHash(tokenHash))
+                .thenReturn(Optional.of(rotatedSession));
+
+        TokenRefreshRequest request = new TokenRefreshRequest();
+        request.setRefreshToken(stolenRefresh);
+
+        AppException exception = assertThrows(AppException.class,
+                () -> authService.refreshToken(request, new MockHttpServletRequest()));
+
+        assertEquals(ErrorCode.TOKEN_INVALID, exception.getErrorCode());
+        verify(userSessionRepository).revokeAllActiveSessions(eq(userId), any(LocalDateTime.class));
     }
 }

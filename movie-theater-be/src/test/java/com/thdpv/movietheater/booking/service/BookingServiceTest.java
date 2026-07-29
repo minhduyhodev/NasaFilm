@@ -56,6 +56,9 @@ import com.thdpv.movietheater.orbit.service.OrbitRoomService;
 class BookingServiceTest {
 
     @Mock
+    private com.thdpv.movietheater.booking.repository.SeatLockedRepository seatLockedRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock

@@ -67,7 +67,12 @@ public class SupportAiService {
             - Đặt vé: chọn phim → suất → ghế → combo → thanh toán → mã QR. Giữ ghế trong thời gian quy định,
               tối đa 8 ghế mỗi lần.
             - Định dạng: 2D/3D/IMAX/4DX/Dolby/ScreenX; ghế Thường/VIP/Couple.
-            - Thanh toán: MoMo, VNPay, ZaloPay, thẻ ngân hàng, ví NASA, tại quầy.
+            - Thanh toán trên web khi đặt vé: Stripe (thẻ), Ví NASA (trừ số dư ví), VietQR (chuyển khoản trực tiếp đơn).
+              Không có MoMo / VNPay / ZaloPay trên website.
+            - Ví NASA: trang /wallet. Nạp bằng VietQR (quét app ngân hàng) hoặc Stripe (thẻ quốc tế).
+              Sau khi có số dư, chọn "Ví NASA" lúc checkout. Số dư thiếu → vào /wallet nạp thêm.
+              Không tự rút tiền mặt trên web; hoàn vé đủ điều kiện có thể cộng lại vào ví.
+              CẤM nêu số dư ví của khách trong chat — hướng họ tự xem tại /wallet.
             - Tài khoản: đăng ký, đăng nhập, Google OAuth, OTP email, quên/đổi mật khẩu, kích hoạt, khóa/mở khóa.
             - Hội viên: Member (0) · Friend (≥5.000 lifetime) · VIP (≥10.000 lifetime); combo giảm 10% (Friend) / 15% (VIP).
             - Khuyến mãi: nhập mã ở bước thanh toán; voucher đổi điểm phải đổi trong Offers trước;
@@ -80,11 +85,11 @@ public class SupportAiService {
             KHÔNG hứa hoàn tiền/đổi vé thay admin.
 
             🎨 TRÌNH BÀY (bố cục gọn, dễ đọc, có link phim)
-            - Khi liệt kê phim/suất/combo/voucher: MỖI mục MỘT DÒNG, bắt đầu bằng "• " và XUỐNG DÒNG rõ ràng.
-              KHÔNG dồn tất cả vào một đoạn văn dài.
-            - Bố cục gợi ý: 1 câu mở đầu ngắn → danh sách gạch đầu dòng → 1 câu hỏi chốt.
+            - Khi gợi ý PHIM: 1 câu mở đầu ngắn + nêu tên phim ĐÚNG NGUYÊN VĂN (cách nhau dấu phẩy nếu cần).
+              KHÔNG viết danh sách gạch đầu dòng với thể loại / độ tuổi / thời lượng — giao diện sẽ hiện poster.
+            - Khi liệt kê suất chiếu / combo / voucher: MỖI mục MỘT DÒNG, bắt đầu bằng "• ".
             - Ghi ĐÚNG NGUYÊN VĂN tên phim như trong "DỮ LIỆU THỰC TẾ" (không dịch, không rút gọn, không thêm bớt)
-              để hệ thống tự gắn link cho khách bấm mở trang phim. Bạn KHÔNG tự chèn URL hay mã UUID.
+              để hệ thống tự gắn link / poster. Bạn KHÔNG tự chèn URL hay mã UUID.
 
             💬 PHONG CÁCH TRẢ LỜI
             - Tiếng Việt, ấm áp, lịch sự, đi thẳng vào vấn đề.
@@ -255,8 +260,8 @@ public class SupportAiService {
             return null;
         }
         String reply = result.reply();
-        if (reply == null || reply.isBlank() || reply.contains("](/movie/")) {
-            return result; // nothing to do, or model already produced links
+        if (reply == null || reply.isBlank()) {
+            return result;
         }
         Map<String, String> links = supportAiContextService.currentMovieLinks();
         String linked = insertMovieLinks(reply, links);
@@ -269,6 +274,40 @@ public class SupportAiService {
                 result.flowState(),
                 result.ticketAction(),
                 result.choices());
+    }
+
+    /**
+     * Drop bullet / numbered movie-catalog lines once titles are linkified.
+     * Poster cards are returned separately; keeping genre/duration lists in chat is redundant.
+     */
+    public static String stripMovieCatalogLines(String text) {
+        if (text == null || text.isBlank() || !text.contains("/movie/")) {
+            return text;
+        }
+        String[] lines = text.split("\n", -1);
+        StringBuilder out = new StringBuilder();
+        boolean removedAny = false;
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            String trimmed = line.trim();
+            boolean listItem = trimmed.startsWith("•")
+                    || trimmed.startsWith("-")
+                    || trimmed.startsWith("*")
+                    || trimmed.matches("^\\d+[.)]\\s+.+");
+            boolean movieLine = trimmed.contains("/movie/");
+            if (listItem && movieLine) {
+                removedAny = true;
+                continue;
+            }
+            if (out.length() > 0) {
+                out.append('\n');
+            }
+            out.append(line);
+        }
+        if (!removedAny) {
+            return text;
+        }
+        return out.toString().replaceAll("\\n{3,}", "\n\n").trim();
     }
 
     /** Wrap the first mention of each known movie title with a markdown link. */
@@ -346,7 +385,7 @@ public class SupportAiService {
         },
         "payment", new String[]{
             "🧾 Bạn vui lòng nhập mã đơn hàng bị lỗi thanh toán giúp mình.",
-            "💳 Bạn thanh toán qua phương thức nào? (Ví dụ: ZaloPay, MoMo, VNPay, thẻ ngân hàng, Stripe...)",
+            "💳 Bạn thanh toán qua phương thức nào? (Stripe / thẻ, Ví NASA, hoặc VietQR)",
             "⚠️ Vấn đề thanh toán bạn gặp là gì?\n• Bị trừ tiền nhưng chưa nhận vé\n• Cần hoàn tiền / refund\n• Giao dịch bị lỗi / timeout\n• Khác (mô tả thêm)",
             "📝 Bạn mô tả thêm chi tiết (số tiền, thời gian giao dịch, thông báo lỗi nếu có) để admin đối soát nhé."
         },
@@ -580,11 +619,9 @@ public class SupportAiService {
     /** Payment-method quick replies (payment flow, field "paymentMethod"). */
     private List<ChoiceButton> paymentMethodChoices() {
         return List.of(
-            new ChoiceButton("🟦 ZaloPay", "ZaloPay"),
-            new ChoiceButton("🟪 MoMo", "MoMo"),
-            new ChoiceButton("🏦 VNPay", "VNPay"),
-            new ChoiceButton("💳 Thẻ ngân hàng", "Thẻ ngân hàng"),
-            new ChoiceButton("🌐 Stripe / thẻ quốc tế", "Stripe"),
+            new ChoiceButton("💳 Stripe / thẻ", "Stripe"),
+            new ChoiceButton("🪙 Ví NASA", "Ví NASA"),
+            new ChoiceButton("📱 VietQR", "VietQR"),
             new ChoiceButton("📝 Khác", "Khác")
         );
     }
@@ -907,14 +944,21 @@ public class SupportAiService {
      * machine still has an out-of-date personaPrompt saved in system_config.
      */
     private static final String ANSWER_FORMAT_RULES = """
-            QUY TẮC TRÌNH BÀY (BẮT BUỘC khi gợi ý / liệt kê phim, suất chiếu, combo, voucher):
-            - Mở đầu bằng 1 câu ngắn giới thiệu.
-            - MỖI phim/mục nằm trên MỘT DÒNG riêng, bắt đầu bằng "• " và có XUỐNG DÒNG thật.
-              KHÔNG dồn tất cả vào một đoạn văn dài.
-            - Mỗi dòng phim gồm: tên phim + 1 thông tin ngắn (thể loại / giờ chiếu / giá) nếu có trong dữ liệu.
-            - Ghi ĐÚNG NGUYÊN VĂN tên phim như trong DỮ LIỆU THỰC TẾ (không dịch, không rút gọn, không thêm bớt)
-              để hệ thống tự gắn link cho khách bấm mở trang phim. TUYỆT ĐỐI không tự chèn URL hay mã UUID.
-            - Kết thúc bằng 1 câu hỏi gợi mở (ví dụ: "Bạn muốn đặt vé phim nào ạ?").
+            QUY TẮC TRÌNH BÀY (BẮT BUỘC):
+            - Thanh toán website NASAFilm khi đặt vé: Stripe (thẻ), Ví NASA (số dư), VietQR (CK trực tiếp đơn).
+              Không nhắc MoMo / VNPay / ZaloPay / thanh toán tại quầy trừ khi khách hỏi quầy counter.
+            - Ví NASA: hướng dẫn mở /wallet; nạp bằng VietQR hoặc Stripe; dùng số dư ở bước thanh toán đặt vé;
+              thiếu số dư → nạp rồi quay lại. CẤM nêu số dư / số tiền trong ví của khách — bảo xem tại /wallet.
+            - GIÁ TIỀN: KHÔNG nêu số tiền / giá vé / giá VOD / giá combo trong câu trả lời thường.
+              Chỉ nói giá khi khách HỎI RÕ về giá, bao nhiêu tiền, chi phí (ví dụ: "giá bao nhiêu?", "bao nhiêu một phim?").
+              Khi hướng dẫn xem online / đặt vé: chỉ nêu cách thanh toán (Stripe, Ví NASA, VietQR), không ghi "xx.xxxđ/phim".
+            - Khi gợi ý / liệt kê PHIM:
+              · 1 câu mở đầu ngắn.
+              · Nêu tên phim ĐÚNG NGUYÊN VĂN trong câu (có thể cách nhau dấu phẩy). KHÔNG viết list "• " kèm thể loại/độ tuổi/thời lượng.
+              · Giao diện sẽ hiện poster — bạn chỉ cần tên phim chính xác để hệ thống gắn link.
+              · Kết thúc 1 câu hỏi gợi mở (ví dụ: "Bạn thích thể loại nào ạ?").
+            - Khi liệt kê suất chiếu / combo / voucher (không phải poster phim): mỗi mục một dòng "• ".
+            - TUYỆT ĐỐI không tự chèn URL hay mã UUID.
             """;
 
     private List<SupportAiMessage> buildMessages(

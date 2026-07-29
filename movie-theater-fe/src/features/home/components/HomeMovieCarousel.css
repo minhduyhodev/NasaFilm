@@ -1,25 +1,98 @@
 .home-movie-carousel {
   position: relative;
+  width: 100%;
+  padding-top: 0.5rem;
+  overflow: visible;
+  scroll-margin-top: 7.5rem;
+}
+
+.home-movie-carousel__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #e50914;
+}
+
+.home-movie-carousel__subtitle {
+  margin: 0.45rem 0 0;
+  max-width: 36rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.home-movie-carousel__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
   overflow: visible;
 }
 
-.home-movie-carousel__view-all {
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+.home-movie-carousel__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow: visible;
+  padding-top: 0.2rem;
+}
+
+.home-movie-carousel__title {
+  margin: 0;
+  padding-top: 0.15em;
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -0.03em;
   text-transform: uppercase;
+  color: #fff;
+  line-height: 1.25;
+  overflow: visible;
+}
+
+.home-movie-carousel__underline {
+  width: 5rem;
+  height: 0.25rem;
+  background: #e60000;
+}
+
+.home-movie-carousel__view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   text-decoration: none;
-  color: #ef4444;
-  transition: color 0.2s ease;
+  color: #e60000;
+  transition: opacity 0.2s ease;
 }
 
 .home-movie-carousel__view-all:hover {
-  color: #f87171;
+  opacity: 0.85;
+  text-decoration: underline;
+  color: #e60000;
+}
+
+.home-movie-carousel__view-all-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.home-movie-carousel__stage {
+  position: relative;
+  overflow: visible;
 }
 
 .home-movie-carousel__nav {
+  display: none;
   position: absolute;
-  top: 50%;
+  top: 42%;
   transform: translateY(-50%);
   align-items: center;
   justify-content: center;
@@ -30,38 +103,99 @@
   cursor: pointer;
   z-index: 20;
   outline: none;
-  box-shadow: none;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, opacity 0.2s ease;
 }
 
-.home-movie-carousel__nav:hover {
+.home-movie-carousel__nav:hover:not(:disabled) {
   color: #fff;
-  background: transparent;
 }
 
-.home-movie-carousel__nav:focus {
-  outline: none;
-  box-shadow: none;
+.home-movie-carousel__nav:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.home-movie-carousel__nav--prev {
+  left: -2.75rem;
+}
+
+.home-movie-carousel__nav--next {
+  right: -2.75rem;
+}
+
+@media (min-width: 768px) {
+  .home-movie-carousel__nav {
+    display: inline-flex;
+  }
 }
 
 .home-movie-carousel__track {
-  padding-top: 0.35rem;
-  padding-bottom: 0.75rem;
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 0.35rem 0.15rem 0.85rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.home-movie-carousel__track::-webkit-scrollbar {
+  display: none;
 }
 
 .home-movie-carousel__item {
-  overflow: visible;
   flex: 0 0 calc((100% - 4.5rem) / 4);
   min-width: 190px;
   max-width: 300px;
+  scroll-snap-align: center;
+}
+
+.home-movie-carousel__item.is-page-start {
+  scroll-snap-align: start;
+}
+
+@media (max-width: 1023px) {
+  .home-movie-carousel__item {
+    flex: 0 0 calc((100% - 3rem) / 3);
+  }
+}
+
+@media (max-width: 767px) {
+  .home-movie-carousel__item {
+    flex: 0 0 min(68vw, 240px);
+    max-width: none;
+  }
+
+  .home-movie-carousel__item.is-page-start {
+    scroll-snap-align: center;
+  }
+}
+
+.home-movie-carousel__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
 }
 
 .home-movie-carousel__dot {
+  width: 0.5rem;
+  height: 0.5rem;
   border: none;
   padding: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.3);
   cursor: pointer;
+  transition: width 0.25s ease, background 0.25s ease;
 }
 
-.home-movie-carousel__dot.is-active:hover {
+.home-movie-carousel__dot:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.home-movie-carousel__dot.is-active {
+  width: 1.25rem;
   background: #fff;
 }

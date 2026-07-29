@@ -116,7 +116,7 @@ const ConcessionsPage = () => {
   );
 
   const hydrateCombosFromRoom = useCallback(async (comboList) => {
-    if (!isOrbitBooking || !orbitRoomUuid || !user) return;
+    if (!isOrbitBooking || !orbitRoomUuid || !user) return false;
     try {
       const room = await orbitService.getRoom(orbitRoomUuid);
       setOrbitRoomStatus(room?.status || null);
@@ -127,14 +127,14 @@ const ConcessionsPage = () => {
         (m) => sameUuid(m.userUuid, user.id || user.uuid),
       );
       setMemberCompleted(Boolean(member?.completed));
-      if (!member?.combosJson) return;
+      if (!member?.combosJson) return false;
       let saved = [];
       try {
         saved = JSON.parse(member.combosJson);
       } catch {
         saved = [];
       }
-      if (!Array.isArray(saved) || saved.length === 0) return;
+      if (!Array.isArray(saved) || saved.length === 0) return false;
       const initial = {};
       comboList.forEach((item) => {
         initial[item.uuid] = 0;
@@ -146,10 +146,28 @@ const ConcessionsPage = () => {
         }
       });
       setQuantities(initial);
+      return true;
     } catch (err) {
       logger.error('Failed to hydrate orbit combos:', err);
+      return false;
     }
   }, [isOrbitBooking, orbitRoomUuid, user]);
+
+  const hydrateCombosFromSession = useCallback((comboList) => {
+    const saved = bookingState.selectedCombos;
+    if (!Array.isArray(saved) || saved.length === 0) return;
+    const initial = {};
+    comboList.forEach((item) => {
+      initial[item.uuid] = 0;
+    });
+    saved.forEach((entry) => {
+      const key = entry.comboUuid;
+      if (key && initial[key] !== undefined) {
+        initial[key] = entry.quantity || 0;
+      }
+    });
+    setQuantities(initial);
+  }, [bookingState.selectedCombos]);
 
   const scrollContainerRef = React.useRef(null);
 
@@ -252,13 +270,17 @@ const ConcessionsPage = () => {
       try {
         const data = await comboService.getActiveCombos();
         setCombos(data || []);
-        
+
         const initialQuantities = {};
-        data.forEach(item => {
+        data.forEach((item) => {
           initialQuantities[item.uuid] = 0;
         });
         setQuantities(initialQuantities);
-        await hydrateCombosFromRoom(data || []);
+
+        const hydratedFromOrbit = await hydrateCombosFromRoom(data || []);
+        if (!hydratedFromOrbit) {
+          hydrateCombosFromSession(data || []);
+        }
       } catch (err) {
         logger.error("Failed to load combos:", err);
         notificationService.error("Không thể tải danh sách bắp nước.");
@@ -267,7 +289,7 @@ const ConcessionsPage = () => {
       }
     };
     fetchCombos();
-  }, [hydrateCombosFromRoom]);
+  }, [hydrateCombosFromRoom, hydrateCombosFromSession]);
 
   // Xử lý tăng số lượng combo
   const handleIncrease = (comboUuid) => {

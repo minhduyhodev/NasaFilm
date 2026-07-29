@@ -41,23 +41,35 @@ public class HandleStripeWebhookUseCase {
                 if ("payment_intent.succeeded".equals(result.getType())) {
                     if (WalletService.PURPOSE_WALLET_TOP_UP.equals(tx.getPurpose())) {
                         walletService.creditSuccessfulStripeTopUp(result.getPaymentIntentId());
-                    } else {
+                    } else if (!isTerminalPaymentStatus(tx.getStatus())) {
+                        // Do not resurrect REFUNDED/CANCELED after abandon/compensate.
                         tx.setStatus("SUCCESS");
                         tx.setUpdatedAt(OffsetDateTime.now());
                         paymentTransactionRepository.save(tx);
                     }
                 } else if ("payment_intent.payment_failed".equals(result.getType())) {
-                    tx.setStatus("FAILED");
-                    tx.setUpdatedAt(OffsetDateTime.now());
-                    paymentTransactionRepository.save(tx);
+                    if (!isTerminalPaymentStatus(tx.getStatus()) && !"SUCCESS".equalsIgnoreCase(tx.getStatus())) {
+                        tx.setStatus("FAILED");
+                        tx.setUpdatedAt(OffsetDateTime.now());
+                        paymentTransactionRepository.save(tx);
+                    }
                 } else if ("payment_intent.canceled".equals(result.getType())) {
-                    tx.setStatus("CANCELED");
-                    tx.setUpdatedAt(OffsetDateTime.now());
-                    paymentTransactionRepository.save(tx);
+                    if (!isTerminalPaymentStatus(tx.getStatus()) && !"SUCCESS".equalsIgnoreCase(tx.getStatus())) {
+                        tx.setStatus("CANCELED");
+                        tx.setUpdatedAt(OffsetDateTime.now());
+                        paymentTransactionRepository.save(tx);
+                    }
                 }
             }
         }
 
         return result;
+    }
+
+    private static boolean isTerminalPaymentStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return false;
+        }
+        return "REFUNDED".equalsIgnoreCase(status) || "CANCELED".equalsIgnoreCase(status);
     }
 }

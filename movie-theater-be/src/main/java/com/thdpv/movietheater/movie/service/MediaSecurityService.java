@@ -40,8 +40,10 @@ public class MediaSecurityService {
         Optional<Booking> bookingOpt = bookingRepository
                 .findFirstByStreamTokenAndExpiresAtAfter(StreamTokenUtils.hash(rawToken), now);
         if (bookingOpt.isEmpty()) {
-            // Transitional support for sessions created before token hashing was deployed.
-            bookingOpt = bookingRepository.findFirstByStreamTokenAndExpiresAtAfter(rawToken, now);
+            // Legacy bookings may still store the raw token (pre-hash). Only accept when the
+            // stored value is not already a SHA-256 hex digest.
+            bookingOpt = bookingRepository.findFirstByStreamTokenAndExpiresAtAfter(rawToken, now)
+                    .filter(b -> !StreamTokenUtils.looksLikeHash(b.getStreamToken()));
         }
         if (bookingOpt.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Token phát không hợp lệ hoặc đã hết hạn");

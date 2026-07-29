@@ -36,6 +36,10 @@ public class UserSession {
     @Column(name = "refresh_token_hash", unique = true, length = 64)
     private String refreshTokenHash;
 
+    /** Previous refresh hash after rotation — used to detect stolen-token reuse. */
+    @Column(name = "previous_refresh_token_hash", length = 64)
+    private String previousRefreshTokenHash;
+
     @Column(name = "device_info", length = 255)
     private String deviceInfo;
 
@@ -108,6 +112,14 @@ public class UserSession {
 
     public void setRefreshTokenHash(String refreshTokenHash) {
         this.refreshTokenHash = refreshTokenHash;
+    }
+
+    public String getPreviousRefreshTokenHash() {
+        return previousRefreshTokenHash;
+    }
+
+    public void setPreviousRefreshTokenHash(String previousRefreshTokenHash) {
+        this.previousRefreshTokenHash = previousRefreshTokenHash;
     }
 
     public String getDeviceInfo() {

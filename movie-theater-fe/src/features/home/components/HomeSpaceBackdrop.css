@@ -1,52 +1,114 @@
-.home-space-zone {
+/* ===== Homepage shared NASAFilm universe background ===== */
+
+.home-page {
   position: relative;
   isolation: isolate;
-  margin-top: -2.5rem;
-  padding-top: 2.5rem;
-  background: linear-gradient(
-    145deg,
-    rgb(17, 18, 28) 0%,
-    rgb(10, 12, 22) 55%,
-    rgb(26, 12, 18) 100%
-  );
-  content-visibility: auto;
-  contain-intrinsic-size: auto 2400px;
+  min-height: 100vh;
+  /* Cùng tone lạnh với cosmos phía trên — tránh dải ấm/tím ở dưới */
+  background: #080c12;
+  color: #fff;
+  /* Prevent child overflow from collapsing document scroll unexpectedly */
+  overflow-x: clip;
+}
+
+.home-page__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  /* Cover full viewport including over footer while on homepage */
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.home-page__main {
+  position: relative;
+  z-index: 1;
+}
+
+.home-space-zone {
+  position: relative;
+  /* Không overlap âm vào hero — tránh đường cắt ở biên */
+  margin-top: 0;
+  padding-top: 3.5rem;
+  overflow: visible;
+  background: transparent;
 }
 
 .home-section {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 320px;
+  overflow: visible;
 }
 
 @media (min-width: 768px) {
   .home-space-zone {
-    margin-top: -3.5rem;
-    padding-top: 3.5rem;
+    margin-top: 0;
+    padding-top: 5rem;
   }
 }
 
 .home-space-zone__content {
   position: relative;
   z-index: 1;
+  overflow: visible;
 }
 
+/* Shared backdrop layers (used inside fixed wrapper) */
 .home-space-backdrop {
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  background: #080c12;
+  --parallax-image: 0px;
+  --parallax-nebula: 0px;
+  --parallax-glow: 0px;
+}
+
+.home-space-backdrop__layer--image {
+  transform: translate3d(0, calc(var(--parallax-image) * -1), 0);
+  will-change: transform;
+}
+
+.home-space-backdrop__layer--nebula {
+  transform: translate3d(0, calc(var(--parallax-nebula) * -1), 0);
+  will-change: transform;
+}
+
+.home-space-backdrop__layer--glow {
+  transform: translate3d(0, calc(var(--parallax-glow) * -1), 0);
+  will-change: transform;
 }
 
 .home-space-backdrop__base {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    145deg,
-    rgb(17, 18, 28) 0%,
-    rgb(10, 12, 22) 55%,
-    rgb(26, 12, 18) 100%
-  );
+  background: #080c12;
+}
+
+.home-space-backdrop__image {
+  position: absolute;
+  /* Extra bleed so parallax shift never reveals hard edges */
+  inset: -18%;
+  width: 136%;
+  height: 136%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.32;
+  /* Làm đều tone — giảm “horizon” trong ảnh cosmos */
+  filter: saturate(0.85) contrast(0.95) brightness(0.5) blur(0.5px);
+}
+
+.home-space-backdrop__nebula {
+  position: absolute;
+  inset: 0;
+  /* Chỉ glow mềm, không tạo dải ngang */
+  background:
+    radial-gradient(ellipse 70% 50% at 75% 18%, rgba(229, 9, 20, 0.18) 0%, transparent 58%),
+    radial-gradient(ellipse 90% 40% at 50% 0%, rgba(229, 9, 20, 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse 45% 70% at 92% 40%, rgba(229, 9, 20, 0.08) 0%, transparent 62%);
 }
 
 .home-space-backdrop__ambient {
@@ -57,57 +119,63 @@
 .home-space-backdrop__glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(22px);
+  filter: blur(28px);
   pointer-events: none;
-  will-change: auto;
 }
 
 .home-space-backdrop__glow--top-right {
-  top: 4%;
+  top: 2%;
   right: -4%;
-  width: min(520px, 70vw);
-  height: min(520px, 55vh);
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 70%);
+  width: min(560px, 72vw);
+  height: min(560px, 55vh);
+  background: radial-gradient(circle, rgba(229, 9, 20, 0.16) 0%, transparent 70%);
 }
 
 .home-space-backdrop__glow--mid-left {
-  top: 38%;
-  left: -6%;
-  width: min(420px, 58vw);
-  height: min(420px, 45vh);
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.11) 0%, transparent 72%);
+  top: 36%;
+  left: -8%;
+  width: min(460px, 60vw);
+  height: min(460px, 48vh);
+  background: radial-gradient(circle, rgba(30, 50, 70, 0.2) 0%, transparent 72%);
 }
 
 .home-space-backdrop__glow--bottom-right {
-  bottom: 2%;
-  right: 8%;
-  width: min(480px, 65vw);
-  height: min(480px, 50vh);
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.12) 0%, transparent 70%);
+  bottom: 4%;
+  right: 6%;
+  width: min(500px, 66vw);
+  height: min(500px, 52vh);
+  background: radial-gradient(circle, rgba(20, 36, 52, 0.28) 0%, transparent 70%);
 }
 
 .home-space-backdrop__cosmos {
   position: absolute;
   inset: 0;
-  opacity: 0.55;
-  background:
-    radial-gradient(ellipse 80% 45% at 50% 8%, rgba(124, 58, 237, 0.12), transparent 58%),
-    radial-gradient(circle at 82% 72%, rgba(220, 38, 38, 0.08), transparent 48%),
-    radial-gradient(circle at 18% 55%, rgba(251, 191, 36, 0.05), transparent 42%);
+  opacity: 0.65;
+  background: radial-gradient(ellipse 80% 50% at 50% 20%, rgba(40, 70, 95, 0.1), transparent 60%);
 }
 
 .home-space-backdrop__cosmos::after {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.85) 1px, transparent 1px);
-  background-size: 38px 38px;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+  background-size: 36px 36px;
   opacity: 0.07;
+}
+
+/* Veil đều toàn viewport — xóa cảm giác horizon/dải ngang từ ảnh */
+.home-space-backdrop__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(8, 12, 18, 0.28);
 }
 
 .home-space-backdrop__stars {
   position: absolute;
   inset: 0;
+  z-index: 2;
 }
 
 .home-space-backdrop__star {
@@ -121,7 +189,7 @@
 
 @keyframes home-space-star-twinkle {
   0%, 100% {
-    opacity: 0.1;
+    opacity: 0.12;
     transform: scale(0.85);
   }
   45% {
@@ -129,29 +197,34 @@
     transform: scale(1.15);
   }
   70% {
-    opacity: 0.32;
+    opacity: 0.35;
     transform: scale(1);
   }
-}
-
-.home-space-backdrop__top-blend {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 96px;
-  background: linear-gradient(
-    to bottom,
-    rgba(10, 12, 22, 0) 0%,
-    rgba(17, 18, 28, 0.55) 55%,
-    transparent 100%
-  );
-  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home-space-backdrop__star {
     animation: none;
     opacity: 0.4;
+  }
+
+  .home-space-backdrop__layer--image,
+  .home-space-backdrop__layer--nebula,
+  .home-space-backdrop__layer--glow {
+    transform: none;
+    will-change: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .home-space-backdrop__stars {
+    display: none;
+  }
+
+  .home-space-backdrop__layer--image,
+  .home-space-backdrop__layer--nebula,
+  .home-space-backdrop__layer--glow {
+    transform: none;
+    will-change: auto;
   }
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Bot, ChevronRight, Clock, CreditCard, Crown, Gift, Headset, HelpCircle, ImagePlus, Minus, Send, ShieldCheck, Sparkles, Star, Ticket, User, X } from 'lucide-react';
+import { ArrowLeft, Bot, Check, ChevronDown, ChevronRight, Clock, CreditCard, Crown, Gift, Headset, HelpCircle, ImagePlus, Minus, Send, ShieldCheck, Sparkles, Star, Ticket, User, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
@@ -18,6 +18,8 @@ import { AI_SESSION_STORAGE_KEY, AI_UI_STATE_KEY, clearNasaBotStorage } from '..
 import { parseSupportStickerMessage } from '../constants/supportStickers';
 import SupportStickerBubble from './SupportStickerBubble';
 import SupportMessageImages from './SupportMessageImages';
+import NasaBotMovieCards from './NasaBotMovieCards';
+import { playNasaBotTing } from '../utils/nasaBotTing';
 import './NasaAiAssistantWidget.css';
 import './NasaAiAssistantWidget.theme.css';
 
@@ -45,6 +47,14 @@ const MIN_SEND_GAP_MS = 1200;
 const MAX_SUPPORT_IMAGES = 3;
 const MAX_SUPPORT_IMAGE_BYTES = 5 * 1024 * 1024;
 const SUPPORT_IMAGE_ACCEPT = 'image/jpeg,image/jpg,image/png,image/webp,image/gif';
+
+const AI_SUGGESTED_PROMPTS = [
+  'Gợi ý phim đang chiếu hay',
+  'Suất chiếu tối nay còn ghế không?',
+  'Cách nạp Ví NASA',
+  'Ưu đãi hội viên hiện có',
+  'Xem phim online như thế nào?',
+];
 
 const CATEGORY_GUIDED_KEYS = new Set(['ticket', 'payment', 'account', 'promo', 'membership']);
 
@@ -452,6 +462,27 @@ const renderRichText = (text, onLinkClick) => {
   ));
 };
 
+/**
+ * When poster cards are shown, hide redundant bullet/numbered movie catalog lines
+ * (title · genre · rating · duration) that duplicate the cards.
+ */
+const stripMovieCatalogLines = (text) => {
+  if (!text || !/\/movie\/[0-9a-fA-F-]{36}/.test(text)) return text;
+  const cleaned = String(text)
+    .split('\n')
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return true;
+      const listItem = /^([•\-*]|\d+[.)])\s+/.test(trimmed);
+      const movieLine = /\/movie\/[0-9a-fA-F-]{36}/.test(trimmed);
+      return !(listItem && movieLine);
+    })
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return cleaned || text;
+};
+
 const NasaAiAssistantWidget = () => {
   const confirm = useConfirm();
   const location = useLocation();
@@ -466,6 +497,8 @@ const NasaAiAssistantWidget = () => {
   const [bootBotState] = useState(() => buildInitialBotState(readStoredUiState()));
 
   const [open, setOpen] = useState(false);
+  const [fabHeadWiggle, setFabHeadWiggle] = useState(false);
+  const [fabAttentionPing, setFabAttentionPing] = useState(false);
   const [chatView, setChatView] = useState(CHAT_VIEW.BOT);
   const [botIntent, setBotIntent] = useState(bootBotState.intent);
   const [messages, setMessages] = useState(bootBotState.messages);
@@ -491,6 +524,7 @@ const NasaAiAssistantWidget = () => {
   const [unreadStaffTicketCodes, setUnreadStaffTicketCodes] = useState([]);
   const [pendingImages, setPendingImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
 
   // Bot reply movie links → navigate in-app and tuck the widget away so the
   // customer lands on the movie page.
@@ -502,11 +536,14 @@ const NasaAiAssistantWidget = () => {
 
   const lastSendAtRef = useRef(0);
   const openRef = useRef(false);
+  const fabAttentionBusyRef = useRef(false);
+  const fabWiggleTimerRef = useRef(null);
   const activeTicketCodeRef = useRef('');
   const chatViewRef = useRef(CHAT_VIEW.BOT);
   const botRestoredRef = useRef(false);
   const prevUserKeyRef = useRef(undefined);
   const imageInputRef = useRef(null);
+  const categoryPickerRef = useRef(null);
 
   const currentUser = user || tokenService.getUser();
   const ownerLabel = useMemo(() => getOwnerLabel(currentUser), [currentUser]);
@@ -516,6 +553,106 @@ const NasaAiAssistantWidget = () => {
   useEffect(() => {
     openRef.current = open;
   }, [open]);
+
+  // Unlock Web Audio after first gesture so the "ting" can play.
+  useEffect(() => {
+    let unlocked = false;
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        ctx.resume?.().finally(() => {
+          ctx.close().catch(() => { });
+        });
+      } catch {
+        // ignore
+      }
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
+  // FAB attention mỗi 5s (khi widget đóng): xoay đầu → ting → báo đỏ.
+  useEffect(() => {
+    if (open) {
+      setFabHeadWiggle(false);
+      setFabAttentionPing(false);
+      fabAttentionBusyRef.current = false;
+      if (fabWiggleTimerRef.current) {
+        window.clearTimeout(fabWiggleTimerRef.current);
+        fabWiggleTimerRef.current = null;
+      }
+      return undefined;
+    }
+
+    const reducedMotion = typeof window !== 'undefined'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const runAttention = () => {
+      if (openRef.current || fabAttentionBusyRef.current) return;
+      fabAttentionBusyRef.current = true;
+
+      if (reducedMotion) {
+        playNasaBotTing();
+        setFabAttentionPing(true);
+        fabWiggleTimerRef.current = window.setTimeout(() => {
+          setFabAttentionPing(false);
+          fabAttentionBusyRef.current = false;
+        }, 900);
+        return;
+      }
+
+      setFabHeadWiggle(true);
+    };
+
+    const firstId = window.setTimeout(runAttention, 1800);
+    const intervalId = window.setInterval(runAttention, 5000);
+
+    return () => {
+      window.clearTimeout(firstId);
+      window.clearInterval(intervalId);
+      if (fabWiggleTimerRef.current) {
+        window.clearTimeout(fabWiggleTimerRef.current);
+        fabWiggleTimerRef.current = null;
+      }
+    };
+  }, [open]);
+
+  const handleFabHeadAnimationEnd = (event) => {
+    if (event.animationName !== 'nasaFabHeadWiggle') return;
+    setFabHeadWiggle(false);
+    if (openRef.current) {
+      fabAttentionBusyRef.current = false;
+      return;
+    }
+    playNasaBotTing();
+    setFabAttentionPing(true);
+    if (fabWiggleTimerRef.current) window.clearTimeout(fabWiggleTimerRef.current);
+    fabWiggleTimerRef.current = window.setTimeout(() => {
+      setFabAttentionPing(false);
+      fabAttentionBusyRef.current = false;
+      fabWiggleTimerRef.current = null;
+    }, 1000);
+  };
+  useEffect(() => {
+    if (!categoryMenuOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (categoryPickerRef.current && !categoryPickerRef.current.contains(event.target)) {
+        setCategoryMenuOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [categoryMenuOpen]);
 
   // Keep the active AI session id in localStorage so the chat survives a reload.
   useEffect(() => {
@@ -680,6 +817,7 @@ const NasaAiAssistantWidget = () => {
 
   const isStaffView = chatView === CHAT_VIEW.STAFF;
   const isBotView = chatView === CHAT_VIEW.BOT;
+  const isSupportIntent = botIntent === BOT_INTENT.SUPPORT;
   const isAnswerIntent = botIntent === BOT_INTENT.ANSWER;
   const isBotPickIntent = isBotView && botIntent === BOT_INTENT.PICK;
 
@@ -1161,6 +1299,7 @@ const NasaAiAssistantWidget = () => {
     setWizardDescription('');
     setSelectedCategory(null);
     setShowTicketDrawer(false);
+    setCategoryMenuOpen(false);
   };
 
   const backToBotIntentPick = () => {
@@ -1175,6 +1314,7 @@ const NasaAiAssistantWidget = () => {
     setWizardDescription('');
     setSelectedCategory(null);
     setTyping(false);
+    setCategoryMenuOpen(false);
   };
 
   // When the signed-in account changes (logout, or switching users) reset the whole
@@ -1693,7 +1833,10 @@ const NasaAiAssistantWidget = () => {
       }
 
       if (ai?.reply) {
-        pushBot(ai.reply, { choices: answerMode ? null : normalizeAiChoices(ai.choices) });
+        pushBot(ai.reply, {
+          choices: answerMode ? null : normalizeAiChoices(ai.choices),
+          movies: answerMode && Array.isArray(ai.movies) ? ai.movies : null,
+        });
         hasAiReply = true;
         if (!answerMode && ai?.choices?.length) {
           setGuidedChatActive(true);
@@ -1794,6 +1937,127 @@ const NasaAiAssistantWidget = () => {
     }
 
     await submitBotMessage(value);
+  };
+
+  const selectSupportCategoryFromForm = (category) => {
+    setWizardCategory(category || null);
+    setSelectedCategory(category || null);
+    setCategoryMenuOpen(false);
+  };
+
+  const handleSupportFormSubmit = async () => {
+    if (typing) return;
+    await finalizeSupportRequest();
+  };
+
+  const renderSupportCategoryPicker = () => (
+    <div ref={categoryPickerRef} className={`nasa-cat-picker${categoryMenuOpen ? ' is-open' : ''}`}>
+      <span className="nasa-support-form__label">Danh mục</span>
+      <button
+        type="button"
+        className="nasa-cat-picker__trigger"
+        aria-haspopup="listbox"
+        aria-expanded={categoryMenuOpen}
+        disabled={typing}
+        onClick={() => setCategoryMenuOpen((open) => !open)}
+      >
+        <span className={wizardCategory ? 'nasa-cat-picker__value' : 'nasa-cat-picker__placeholder'}>
+          {wizardCategory?.label || 'Chọn danh mục hỗ trợ'}
+        </span>
+        <ChevronDown className="nasa-cat-picker__chevron h-4 w-4" />
+      </button>
+      {categoryMenuOpen ? (
+        <div className="nasa-cat-picker__menu" role="listbox" aria-label="Danh mục hỗ trợ">
+          {CATEGORIES.map((item) => {
+            const selected = wizardCategory?.key === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className={`nasa-cat-picker__option${selected ? ' is-selected' : ''}`}
+                onClick={() => selectSupportCategoryFromForm(item)}
+              >
+                <span className="nasa-cat-picker__option-copy">
+                  <strong>{item.label}</strong>
+                  <small>{item.hint}</small>
+                </span>
+                {selected ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const renderAiSuggestedPrompts = () => {
+    if (!isAnswerIntent || typing) return null;
+    const hasUserMessage = messages.some((item) => item.role === 'user');
+    if (hasUserMessage) return null;
+
+    return (
+      <div className="nasa-ai-suggestions" aria-label="Câu hỏi gợi ý">
+        <span className="nasa-ai-suggestions__label">Gợi ý hỏi nhanh</span>
+        <div className="nasa-ai-suggestions__list">
+          {AI_SUGGESTED_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              className="nasa-ai-suggestions__chip"
+              onClick={() => { void submitBotMessage(prompt); }}
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSupportForm = () => {
+    const descriptionLength = wizardDescription.trim().length;
+    const canSubmit = Boolean(wizardCategory?.key) && descriptionLength >= MIN_DESCRIPTION_LENGTH && !typing;
+
+    return (
+      <div className="nasa-wizard nasa-support-form">
+        <div className="nasa-wizard__body">
+          <p className="nasa-wizard__lead">
+            <strong>Gửi yêu cầu hỗ trợ</strong>
+            Chọn danh mục, mô tả vấn đề rồi gửi. Nhân viên online sẽ được ưu tiên chat trước.
+          </p>
+          <span className={`nasa-wizard__badge ${liveAvailability?.anyOnline ? 'nasa-wizard__badge--online' : 'nasa-wizard__badge--offline'}`}>
+            {liveAvailability?.anyOnline ? 'Staff online — ưu tiên chat' : 'Chưa có staff — tạo ticket ngay'}
+          </span>
+          {renderSupportCategoryPicker()}
+          <label className="nasa-support-form__field">
+            <span className="nasa-support-form__label">Mô tả vấn đề</span>
+            <textarea
+              className="nasa-wizard__textarea"
+              value={wizardDescription}
+              onChange={(event) => setWizardDescription(event.target.value)}
+              placeholder={wizardCategory?.question || 'Mô tả chi tiết vấn đề của bạn...'}
+              rows={5}
+              disabled={typing}
+            />
+          </label>
+          <div className="nasa-wizard__meta">
+            Tối thiểu {MIN_DESCRIPTION_LENGTH} ký tự · {descriptionLength}/{MIN_DESCRIPTION_LENGTH}
+          </div>
+          <div className="nasa-wizard__foot">
+            <button
+              type="button"
+              className="nasa-wizard-btn nasa-wizard-btn--primary nasa-wizard-btn--block"
+              disabled={!canSubmit}
+              onClick={() => { void handleSupportFormSubmit(); }}
+            >
+              {typing ? 'Đang gửi...' : 'Gửi yêu cầu'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderBotIntentPicker = () => (
@@ -2011,7 +2275,26 @@ const NasaAiAssistantWidget = () => {
             </div>
             <div className="nasa-assistant-msg__content">
               <div className="nasa-assistant-bubble nasa-assistant-bubble--bot">
-                {renderRichText(message.text, handleBotLinkClick)}
+                {(() => {
+                  const showMovieCards = Boolean(
+                    message.movies?.length || /\/movie\/[0-9a-fA-F-]{36}/.test(message.text || ''),
+                  );
+                  const bubbleText = showMovieCards
+                    ? stripMovieCatalogLines(message.text)
+                    : message.text;
+                  return (
+                    <>
+                      {renderRichText(bubbleText, handleBotLinkClick)}
+                      {showMovieCards ? (
+                        <NasaBotMovieCards
+                          movies={message.movies}
+                          text={message.text}
+                          onSelect={handleBotLinkClick}
+                        />
+                      ) : null}
+                    </>
+                  );
+                })()}
                 {message.actions?.length > 0 && (
                   <div className="nasa-assistant-card__actions nasa-assistant-card__actions--inline">
                     {message.actions.map((action) => (
@@ -2212,7 +2495,11 @@ const NasaAiAssistantWidget = () => {
       <div className={`nasa-assistant-fab-shell ${open ? 'nasa-assistant-fab-shell--hidden' : ''}`}>
         <button
           type="button"
-          className={`nasa-assistant-fab ${unreadStaffTicketCodes.length > 0 ? 'nasa-assistant-fab--unread' : ''}`}
+          className={[
+            'nasa-assistant-fab',
+            unreadStaffTicketCodes.length > 0 ? 'nasa-assistant-fab--unread' : '',
+            fabAttentionPing ? 'nasa-assistant-fab--attention' : '',
+          ].filter(Boolean).join(' ')}
           aria-label={unreadStaffTicketCodes.length > 0
             ? `Mở NASA BOT, ${unreadStaffTicketCodes.length} tin nhắn mới`
             : 'Mở NASA BOT'}
@@ -2226,11 +2513,18 @@ const NasaAiAssistantWidget = () => {
           }}
         >
           <span className="nasa-assistant-fab-glow" />
-          <img src={nasaAssistantFabAvatar} alt="NASA BOT" className="nasa-assistant-fab-avatar" />
+          <img
+            src={nasaAssistantFabAvatar}
+            alt="NASA BOT"
+            className={`nasa-assistant-fab-avatar${fabHeadWiggle ? ' is-wiggling' : ''}`}
+            onAnimationEnd={handleFabHeadAnimationEnd}
+          />
           {unreadStaffTicketCodes.length > 0 ? (
             <span className="nasa-assistant-fab-badge" aria-hidden="true">
               {unreadStaffTicketCodes.length > 9 ? '9+' : unreadStaffTicketCodes.length}
             </span>
+          ) : fabAttentionPing ? (
+            <span className="nasa-assistant-fab-ping" aria-hidden="true" />
           ) : null}
         </button>
         <span className="nasa-assistant-fab-label">NASA Bot</span>
@@ -2301,23 +2595,28 @@ const NasaAiAssistantWidget = () => {
                 {isBotView ? (
                   <div className="nasa-assistant-thread nasa-assistant-thread--bot" ref={botScrollRef}>
                     {isBotPickIntent ? renderBotIntentPicker() : (
-                      <>
-                        {messages.map(renderTimelineMessage)}
-                        {typing && (
-                          <div className="nasa-assistant-msg nasa-assistant-msg--bot">
-                            <div className="nasa-assistant-msg__row">
-                              <div className="nasa-assistant-avatar nasa-assistant-avatar--bot">
-                                <img src={nasaLogo} alt="bot" />
-                              </div>
-                              <div className="nasa-assistant-bubble nasa-assistant-bubble--bot nasa-assistant-bubble--typing">
-                                <span />
-                                <span />
-                                <span />
+                      isSupportIntent ? renderSupportForm() : (
+                        <>
+                          {messages.map(renderTimelineMessage)}
+                          {renderAiSuggestedPrompts()}
+                          {typing && (
+                            <div className="nasa-assistant-msg nasa-assistant-msg--bot">
+                              <div className="nasa-assistant-msg__row">
+                                <div className="nasa-assistant-avatar nasa-assistant-avatar--bot">
+                                  <img src={nasaLogo} alt="bot" />
+                                </div>
+                                <div className="nasa-assistant-msg__content">
+                                  <div className="nasa-assistant-bubble nasa-assistant-bubble--bot nasa-assistant-bubble--typing">
+                                    <span />
+                                    <span />
+                                    <span />
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </>
+                          )}
+                        </>
+                      )
                     )}
                   </div>
                 ) : (

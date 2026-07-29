@@ -170,6 +170,18 @@ public class MovieService {
     @Transactional(readOnly = true)
     @Cacheable(value = CacheNames.MOVIES, key = "#filter.toCacheKey() + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
     public Page<MovieListResponse> getMovieList(MovieFilterRequest filter, Pageable pageable) {
+        return findMovieList(filter, pageable, false);
+    }
+
+    /**
+     * Admin catalog: includes DRAFT / INACTIVE / ENDED (excludes DELETED unless status filter asks for it).
+     */
+    @Transactional(readOnly = true)
+    public Page<MovieListResponse> getAdminMovieList(MovieFilterRequest filter, Pageable pageable) {
+        return findMovieList(filter, pageable, true);
+    }
+
+    private Page<MovieListResponse> findMovieList(MovieFilterRequest filter, Pageable pageable, boolean adminCatalog) {
         Sort resolvedSort = Sort.unsorted();
         if (pageable.getSort().isSorted()) {
             List<Sort.Order> safeOrders = new ArrayList<>();
@@ -191,7 +203,16 @@ public class MovieService {
             query.distinct(true);
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
-            predicates.add(cb.not(root.get("status").in("DELETED", "INACTIVE", "ENDED", "DRAFT")));
+            String statusFilter = filter.getStatus();
+            boolean filteringDeleted = statusFilter != null
+                    && "DELETED".equalsIgnoreCase(statusFilter.trim());
+            if (adminCatalog) {
+                if (!filteringDeleted) {
+                    predicates.add(cb.notEqual(root.get("status"), "DELETED"));
+                }
+            } else {
+                predicates.add(cb.not(root.get("status").in("DELETED", "INACTIVE", "ENDED", "DRAFT")));
+            }
 
             String keyword = filter.getKeyword();
             if (keyword != null && !keyword.isBlank()) {
@@ -209,7 +230,7 @@ public class MovieService {
                 // Đang chiếu thực tế = có suất còn đặt được (không phụ thuộc movie.status)
                 if (bookableShowtimeFilter && "NOW_SHOWING".equals(normalizedStatus)) {
                     // skip equality on status
-                } else if ("COMING_SOON".equals(normalizedStatus)) {
+                } else if (!adminCatalog && "COMING_SOON".equals(normalizedStatus)) {
                     // Sắp chiếu = chưa có suất OPEN_FOR_BOOKING/SOLD_OUT sắp tới
                     comingSoonWithoutShowtimes = true;
                     predicates.add(root.get("status").in("COMING_SOON", "NOW_SHOWING"));

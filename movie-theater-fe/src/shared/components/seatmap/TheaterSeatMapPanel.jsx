@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import SeatMapZoomViewport from './SeatMapZoomViewport';
 import {
   buildRowPlacedItems,
   getCoupleLabel,
@@ -228,33 +229,23 @@ const TheaterSeatMapPanel = ({
 
   return (
     <div className={`flex flex-col items-center w-full ${className}`}>
-      {/* Viewport container sử dụng Container Query để tự động co giãn ghế */}
-      <div
-        className="w-full border border-white/5 bg-[#0b0f19]/40 rounded-2xl p-4 md:p-6 relative select-none custom-scrollbar"
-        style={{ containerType: 'inline-size' }}
+      <SeatMapZoomViewport
+        cols={maxSeatNumber}
+        rowCount={bookingRowNames.length}
+        variant="booking"
+        className="w-full"
       >
-        <div 
-          className="flex flex-col gap-2 w-full"
-          style={{
-            '--seat-slot-gap': '0.7cqw',
-            '--seat-slot-w': 'calc((100cqw - 4rem - (var(--seat-map-cols) - 1) * var(--seat-slot-gap)) / var(--seat-map-cols))',
-            '--seat-slot-h': 'calc(var(--seat-slot-w) * 0.7)',
-            '--seat-font-size': 'calc(var(--seat-slot-w) * 0.3)',
-            '--seat-couple-font-size': 'calc(var(--seat-slot-w) * 0.28)',
-          }}
-        >
-          {/* Màn hình curved */}
-          <div className="w-full mb-6 text-center shrink-0">
-            <div className={`screen-curve relative mx-auto w-[65%] h-1 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
-            <p className="text-[9px] font-bold text-gray-500 mt-2 tracking-widest uppercase">{screenLabel}</p>
-          </div>
+        <div className="mx-auto mb-4 md:mb-6 text-center shrink-0 w-max max-w-full" data-no-pan>
+          <div className={`screen-curve relative mx-auto w-[65%] h-1 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
+          <p className="text-[9px] font-bold text-gray-500 mt-2 tracking-widest uppercase">{screenLabel}</p>
+        </div>
         {bookingRowNames.map((row) => {
           const seatsList = bookingSeatsByRow[row] || [];
           const isFullHorizontalAisle = completeHorizontalRows.includes(row);
 
           return (
             <div key={row} className="flex items-center gap-2 mb-1 justify-center w-full">
-              <div 
+              <div
                 className="text-center font-bold text-gray-500 shrink-0 w-6 text-[10px] md:text-xs"
               >
                 {row}
@@ -415,7 +406,7 @@ const TheaterSeatMapPanel = ({
                 </div>
               )}
 
-              <div 
+              <div
                 className="text-center font-bold text-gray-500 shrink-0 w-6 text-[10px] md:text-xs"
               >
                 {row}
@@ -423,8 +414,7 @@ const TheaterSeatMapPanel = ({
             </div>
           );
         })}
-        </div>
-      </div>
+      </SeatMapZoomViewport>
 
       {hasGapViolation && (
         <div className="w-full mt-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 text-xs font-black text-center flex items-center justify-center gap-2 animate-fade-in">

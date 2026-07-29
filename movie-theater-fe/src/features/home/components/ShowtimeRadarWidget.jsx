@@ -1,5 +1,4 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Loader2, LogIn, Radar, RefreshCw, Settings2 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useShowtimeRadarWidget } from '../hooks/useShowtimeRadarQuery';
@@ -8,7 +7,7 @@ import './ShowtimeRadarWidget.css';
 
 const RADAR_TITLE = 'Radar Suất Chiếu';
 
-const ShowtimeRadarWidget = ({ layout = 'bar' }) => {
+const ShowtimeRadarWidget = ({ layout = 'bar', embedded = false }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthContext();
 
@@ -23,24 +22,22 @@ const ShowtimeRadarWidget = ({ layout = 'bar' }) => {
 
   if (!isAuthenticated) {
     return (
-      <motion.aside
-        initial={{ opacity: 0, y: 16 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.2 }}
-        transition={{ duration: 0.55 }}
+      <aside
         className={`showtime-radar-widget showtime-radar-widget--guest showtime-radar-widget--${layout}`}
       >
         <div className="showtime-radar-widget__glow" aria-hidden />
         <div className="showtime-radar-widget__bar-head">
-          <div className="showtime-radar-widget__header">
-            <div className="showtime-radar-widget__title-row">
-              <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
-              <span className="showtime-radar-widget__kicker">{RADAR_TITLE}</span>
+          {!embedded ? (
+            <div className="showtime-radar-widget__header">
+              <div className="showtime-radar-widget__title-row">
+                <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
+                <span className="showtime-radar-widget__kicker">{RADAR_TITLE}</span>
+              </div>
+              <p className="showtime-radar-widget__subtitle">
+                Gợi ý suất chiếu trong 48 giờ tới theo sở thích của bạn.
+              </p>
             </div>
-            <p className="showtime-radar-widget__subtitle">
-              Gợi ý suất chiếu trong 48 giờ tới theo sở thích của bạn.
-            </p>
-          </div>
+          ) : null}
         </div>
         <button
           type="button"
@@ -50,32 +47,34 @@ const ShowtimeRadarWidget = ({ layout = 'bar' }) => {
           <LogIn className="h-4 w-4" />
           Đăng nhập để xem Radar
         </button>
-      </motion.aside>
+      </aside>
     );
   }
 
   const hasSuggestions = suggestions.length > 0;
 
   return (
-    <motion.aside
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.55 }}
+    <aside
       className={`showtime-radar-widget showtime-radar-widget--${layout}`}
     >
       <div className="showtime-radar-widget__glow" aria-hidden />
 
-      <div className="showtime-radar-widget__bar-head">
-        <div className="showtime-radar-widget__header">
-          <div className="showtime-radar-widget__title-row">
-            <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
-            <span className="showtime-radar-widget__kicker">{RADAR_TITLE}</span>
+      <div className={`showtime-radar-widget__bar-head${embedded ? ' showtime-radar-widget__bar-head--embedded' : ''}`}>
+        {!embedded ? (
+          <div className="showtime-radar-widget__header">
+            <div className="showtime-radar-widget__title-row">
+              <Radar className="h-5 w-5 showtime-radar-widget__icon-accent" />
+              <span className="showtime-radar-widget__kicker">{RADAR_TITLE}</span>
+            </div>
+            <p className="showtime-radar-widget__subtitle">
+              Quét 48h · {enabled ? 'đang bật' : 'chưa bật'}
+            </p>
           </div>
-          <p className="showtime-radar-widget__subtitle">
+        ) : (
+          <p className="showtime-radar-widget__embedded-status">
             Quét 48h · {enabled ? 'đang bật' : 'chưa bật'}
           </p>
-        </div>
+        )}
 
         <div className="showtime-radar-widget__toolbar">
           <Link
@@ -113,11 +112,11 @@ const ShowtimeRadarWidget = ({ layout = 'bar' }) => {
           suggestions={suggestions}
           loading={loading}
           variant="strip"
-          maxItems={6}
+          maxItems={embedded ? 3 : 6}
           emptyMessage={emptyMessage}
         />
       )}
-    </motion.aside>
+    </aside>
   );
 };
 

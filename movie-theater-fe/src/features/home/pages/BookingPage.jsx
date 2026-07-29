@@ -65,6 +65,8 @@ const BookingPage = () => {
     timeLeft,
     isMapLoading,
     fetchSeatMap,
+    selectionIntentRef,
+    setSelectionIntent,
   } = useSeatMapState(showtimeUuid, {
     enabled: hasValidShowtime,
     onLockTimeout: handleLockTimeout,
@@ -108,14 +110,13 @@ const BookingPage = () => {
   }, [showtimeUuid, hasValidShowtime]);
 
   const handleCoupleClick = async (seats) => {
-    const pairUuids = seats.map((s) => s.seatUuid);
-    const bothSelected = pairUuids.every((uuid) =>
-      selectedSeats.some((s) => s.seatUuid === uuid),
-    );
+    const previousUuids = selectionIntentRef.current;
+    const pairUuids = seats.map((seat) => seat.seatUuid);
+    const bothSelected = pairUuids.every((uuid) => previousUuids.includes(uuid));
 
     if (!bothSelected) {
       const seatsAfterAdd = new Set([
-        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
+        ...previousUuids.filter((uuid) => !pairUuids.includes(uuid)),
         ...pairUuids,
       ]);
       if (seatsAfterAdd.size > maxSeatsPerBooking) {
@@ -125,36 +126,40 @@ const BookingPage = () => {
     }
 
     const nextSelectedUuids = bothSelected
-      ? selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid)
-      : [
-        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
-        ...pairUuids,
-      ];
+      ? previousUuids.filter((uuid) => !pairUuids.includes(uuid))
+      : [...previousUuids.filter((uuid) => !pairUuids.includes(uuid)), ...pairUuids];
 
+    setSelectionIntent(nextSelectedUuids);
     try {
       await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
-      await fetchSeatMap(nextSelectedUuids);
+      await fetchSeatMap(nextSelectedUuids, { commitIntent: false });
     } catch (err) {
+      setSelectionIntent(previousUuids);
+      fetchSeatMap(previousUuids, { silent: true, commitIntent: false }).catch(() => {});
       logger.error('Failed to sync couple seat locks:', err);
       notificationService.error(err.message || 'Không thể giữ ghế này. Vui lòng chọn ghế khác.');
     }
   };
 
   const handleSeatClick = async (seat) => {
-    const isAlreadySelected = selectedSeats.some((s) => s.seatUuid === seat.seatUuid);
-    if (!isAlreadySelected && selectedSeats.length >= maxSeatsPerBooking) {
+    const previousUuids = selectionIntentRef.current;
+    const isAlreadySelected = previousUuids.includes(seat.seatUuid);
+    if (!isAlreadySelected && previousUuids.length >= maxSeatsPerBooking) {
       notificationService.error(`Bạn chỉ được chọn tối đa ${maxSeatsPerBooking} ghế trong một lần đặt.`);
       return;
     }
 
     const nextSelectedUuids = isAlreadySelected
-      ? selectedSeats.filter((s) => s.seatUuid !== seat.seatUuid).map((s) => s.seatUuid)
-      : [...selectedSeats.map((s) => s.seatUuid), seat.seatUuid];
+      ? previousUuids.filter((uuid) => uuid !== seat.seatUuid)
+      : [...previousUuids, seat.seatUuid];
 
+    setSelectionIntent(nextSelectedUuids);
     try {
       await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
-      await fetchSeatMap(nextSelectedUuids);
+      await fetchSeatMap(nextSelectedUuids, { commitIntent: false });
     } catch (err) {
+      setSelectionIntent(previousUuids);
+      fetchSeatMap(previousUuids, { silent: true, commitIntent: false }).catch(() => {});
       logger.error('Failed to sync seat locks:', err);
       notificationService.error(err.message || 'Không thể giữ ghế này. Vui lòng chọn ghế khác.');
     }

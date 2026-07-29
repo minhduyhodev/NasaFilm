@@ -58,6 +58,9 @@ public class AuthService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
+    /** Multi-tab refresh within this window after rotation is treated as race, not token theft. */
+    private static final long REFRESH_REUSE_GRACE_SECONDS = 60;
+
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final UserSessionRepository userSessionRepository;
@@ -178,9 +181,23 @@ public class AuthService {
     public JwtResponse refreshToken(TokenRefreshRequest request, HttpServletRequest httpServletRequest) {
         String token = request.getRefreshToken();
         String tokenHash = RefreshTokenHasher.hash(token);
-        UserSession session = userSessionRepository.findByRefreshTokenHash(tokenHash)
-                .orElseThrow(() -> new AppException(ErrorCode.TOKEN_INVALID));
 
+        Optional<UserSession> sessionOpt = userSessionRepository.findByRefreshTokenHash(tokenHash);
+        if (sessionOpt.isEmpty()) {
+            // Already-rotated refresh: either multi-tab race (recent) or stolen-token reuse (stale).
+            userSessionRepository.findByPreviousRefreshTokenHash(tokenHash).ifPresent(compromised -> {
+                LocalDateTime rotatedAt = compromised.getLastActivityAt();
+                boolean recentRace = rotatedAt != null
+                        && rotatedAt.isAfter(LocalDateTime.now().minusSeconds(REFRESH_REUSE_GRACE_SECONDS));
+                if (!recentRace) {
+                    userSessionRepository.revokeAllActiveSessions(compromised.getUserId(), LocalDateTime.now());
+                }
+            });
+            throw new AppException(ErrorCode.TOKEN_INVALID,
+                    "Phiên đăng nhập không hợp lệ hoặc đã bị thu hồi. Vui lòng đăng nhập lại.");
+        }
+
+        UserSession session = sessionOpt.get();
         if (!"ACTIVE".equals(session.getStatus()) || session.getRevokedAt() != null) {
             throw new AppException(ErrorCode.TOKEN_INVALID);
         }
@@ -195,15 +212,26 @@ public class AuthService {
         ensureNotSystemAccount(user);
 
         String newRefreshToken = generateRefreshToken();
+        LocalDateTime now = LocalDateTime.now();
         LocalDateTime newExpiryDate = calculateRefreshExpiry();
+        String ipAddress = resolveIpAddress(httpServletRequest);
+        String userAgent = resolveUserAgent(httpServletRequest);
 
-        session.setRefreshTokenHash(RefreshTokenHasher.hash(newRefreshToken));
-        session.setExpiredAt(newExpiryDate);
-        session.setLastActivityAt(LocalDateTime.now());
-        session.setIpAddress(resolveIpAddress(httpServletRequest));
-        session.setUserAgent(resolveUserAgent(httpServletRequest));
-        session.setDeviceInfo(resolveUserAgent(httpServletRequest));
-        userSessionRepository.save(session);
+        int rotated = userSessionRepository.rotateRefreshToken(
+                session.getId(),
+                tokenHash,
+                RefreshTokenHasher.hash(newRefreshToken),
+                newExpiryDate,
+                now,
+                ipAddress,
+                userAgent);
+        if (rotated == 0) {
+            // Lost a concurrent refresh race (another tab already rotated this token).
+            // Do NOT revoke the whole family — that would log the user out of every device.
+            // True stolen-token reuse is handled above via previous_refresh_token_hash.
+            throw new AppException(ErrorCode.TOKEN_INVALID,
+                    "Phiên làm mới đã được dùng ở thiết bị khác. Vui lòng thử lại hoặc đăng nhập lại.");
+        }
 
         String newAccessToken = jwtUtils.generateToken(user.getEmail());
         List<String> authorities = getRoleAuthorities(user);

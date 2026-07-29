@@ -8,6 +8,9 @@ export const AWS_S3_BUCKET_HOST = 'java-06.s3.ap-southeast-1.amazonaws.com';
 export const FALLBACK_POSTER =
   'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=400';
 
+/** URLs đã 404 — tránh spam request khi DomeGallery lặp lại cùng poster */
+const failedPosterUrls = new Set();
+
 let initPromise = null;
 
 export const isTmdbUrl = (url) =>
@@ -196,21 +199,38 @@ export const resolvePlayableMediaUrl = async (url) => {
   return resolveMediaUrl(trimmed) || trimmed;
 };
 
+export const markPosterUrlFailed = (url) => {
+  const key = unwrapMediaUrl(url || '');
+  if (key) failedPosterUrls.add(key);
+};
+
+export const isFailedPosterUrl = (url) => {
+  const key = unwrapMediaUrl(url || '');
+  return Boolean(key && failedPosterUrls.has(key));
+};
+
 export const handlePosterError = (event) => {
   const img = event?.target;
   if (!img) {
     return;
   }
 
-  const originalUrl = unwrapMediaUrl(img.dataset.originalUrl || '');
+  const originalUrl = unwrapMediaUrl(img.dataset.originalUrl || img.currentSrc || img.src || '');
   const attempt = parseInt(img.dataset.loadAttempt || '0', 10);
-  const _width = parseInt(img.dataset.width || '400', 10);
+  const width = parseInt(img.dataset.width || '400', 10);
 
   if (!originalUrl) {
     img.onerror = null;
     if (img.src !== FALLBACK_POSTER) {
       img.src = FALLBACK_POSTER;
     }
+    return;
+  }
+
+  // Cloudinary optimized transform 404 → thử URL gốc 1 lần (chưa mark failed)
+  if (isCloudinaryUrl(originalUrl) && attempt < 1) {
+    img.dataset.loadAttempt = '1';
+    img.src = originalUrl;
     return;
   }
 
@@ -229,8 +249,55 @@ export const handlePosterError = (event) => {
     }
   }
 
+  // Border/S3: thử lại raw width 1 lần rồi fallback
+  if ((isBorderMediaUrl(originalUrl) || isAwsS3Key(originalUrl)) && attempt < 1) {
+    img.dataset.loadAttempt = '1';
+    img.src = resolveMediaUrl(originalUrl, width) || FALLBACK_POSTER;
+    return;
+  }
+
+  markPosterUrlFailed(originalUrl);
   img.onerror = null;
   if (img.src !== FALLBACK_POSTER) {
     img.src = FALLBACK_POSTER;
   }
 };
+
+/** Resolve poster an toàn — URL hỏng / trống → fallback cinema */
+export const resolveSafePosterUrl = (url, width = 400) => {
+  if (!url?.trim()) return FALLBACK_POSTER;
+  const raw = unwrapMediaUrl(url.trim());
+  if (!raw || isFailedPosterUrl(raw)) return FALLBACK_POSTER;
+  return resolveMediaUrl(raw, width) || FALLBACK_POSTER;
+};
+
+/**
+ * Probe một URL ảnh (một lần). Resolve true nếu load được.
+ * Dùng để lọc poster 404 trước khi nhồi vào DomeGallery.
+ */
+export const probeImageUrl = (url, timeoutMs = 4500) =>
+  new Promise((resolve) => {
+    if (!url?.trim()) {
+      resolve(false);
+      return;
+    }
+    if (isFailedPosterUrl(url)) {
+      resolve(false);
+      return;
+    }
+    const img = new Image();
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      if (!ok) markPosterUrlFailed(url);
+      resolve(ok);
+    };
+    const timer = window.setTimeout(() => finish(false), timeoutMs);
+    img.onload = () => finish(true);
+    img.onerror = () => finish(false);
+    img.decoding = 'async';
+    img.src = url;
+  });
+

@@ -14,7 +14,7 @@ export async function fetchNowShowingMovies() {
     status: 'NOW_SHOWING',
     requireBookableShowtime: true,
     page: 0,
-    size: 50,
+    size: 24,
   });
 }
 
@@ -22,15 +22,15 @@ export function useNowShowingMovies() {
   return useQuery({
     queryKey: homeQueryKeys.nowShowing,
     queryFn: fetchNowShowingMovies,
-    staleTime: 60_000,
+    staleTime: 3 * 60_000,
   });
 }
 
 export function useUpcomingMovies() {
   return useQuery({
     queryKey: homeQueryKeys.upcoming,
-    queryFn: () => movieService.getUpcomingMovies({ page: 0, size: 20 }),
-    staleTime: 60_000,
+    queryFn: () => movieService.getUpcomingMovies({ page: 0, size: 16 }),
+    staleTime: 3 * 60_000,
   });
 }
 
@@ -47,6 +47,6 @@ export function usePublicShowtimes({ enabled = true } = {}) {
     queryKey: homeQueryKeys.publicShowtimes,
     queryFn: () => showtimeService.getPublicShowtimes(),
     enabled,
-    staleTime: 60_000,
+    staleTime: 2 * 60_000,
   });
 }

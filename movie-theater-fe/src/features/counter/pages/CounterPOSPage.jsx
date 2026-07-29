@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
 import {
@@ -110,6 +110,8 @@ export default function CounterPOSPage() {
     hasGapViolation,
     isMapLoading,
     fetchSeatMap,
+    selectionIntentRef,
+    setSelectionIntent,
   } = useSeatMapState(showtimeUuid, {
     enabled: Boolean(showtimeUuid),
     lockTimerEnabled: false,
@@ -125,10 +127,7 @@ export default function CounterPOSPage() {
   }, [showtimeUuid]);
 
   // Ref to hold the latest selected seat UUIDs for the keep-alive interval
-  const selectedSeatUuidsRef = useRef([]);
-  useEffect(() => {
-    selectedSeatUuidsRef.current = selectedSeats.map(s => s.seatUuid);
-  }, [selectedSeats]);
+  const selectedSeatUuidsRef = selectionIntentRef;
 
   // Keep seat locks alive periodically for POS staff so it doesn't expire after 5 mins
   useEffect(() => {
@@ -268,14 +267,13 @@ export default function CounterPOSPage() {
   const handleCoupleClick = useCallback(async (seats) => {
     if (!showtimeUuid) return;
 
-    const pairUuids = seats.map((s) => s.seatUuid);
-    const bothSelected = pairUuids.every((uuid) =>
-      selectedSeats.some((s) => s.seatUuid === uuid),
-    );
+    const previousUuids = selectionIntentRef.current;
+    const pairUuids = seats.map((seat) => seat.seatUuid);
+    const bothSelected = pairUuids.every((uuid) => previousUuids.includes(uuid));
 
     if (!bothSelected) {
       const seatsAfterAdd = new Set([
-        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
+        ...previousUuids.filter((uuid) => !pairUuids.includes(uuid)),
         ...pairUuids,
       ]);
       if (seatsAfterAdd.size > maxSeatsPerBooking) {
@@ -285,40 +283,44 @@ export default function CounterPOSPage() {
     }
 
     const nextSelectedUuids = bothSelected
-      ? selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid)
-      : [
-        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
-        ...pairUuids,
-      ];
+      ? previousUuids.filter((uuid) => !pairUuids.includes(uuid))
+      : [...previousUuids.filter((uuid) => !pairUuids.includes(uuid)), ...pairUuids];
 
+    setSelectionIntent(nextSelectedUuids);
     try {
       await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
-      await fetchSeatMap(nextSelectedUuids);
+      await fetchSeatMap(nextSelectedUuids, { commitIntent: false });
     } catch (err) {
+      setSelectionIntent(previousUuids);
+      fetchSeatMap(previousUuids, { silent: true, commitIntent: false }).catch(() => {});
       notificationService.error(err.message || 'Không thể giữ ghế này');
     }
-  }, [showtimeUuid, selectedSeats, maxSeatsPerBooking, fetchSeatMap]);
+  }, [showtimeUuid, maxSeatsPerBooking, fetchSeatMap, selectionIntentRef, setSelectionIntent]);
 
   const handleSeatClick = useCallback(async (seat) => {
     if (!showtimeUuid) return;
 
-    const isAlreadySelected = selectedSeats.some((s) => s.seatUuid === seat.seatUuid);
-    if (!isAlreadySelected && selectedSeats.length >= maxSeatsPerBooking) {
+    const previousUuids = selectionIntentRef.current;
+    const isAlreadySelected = previousUuids.includes(seat.seatUuid);
+    if (!isAlreadySelected && previousUuids.length >= maxSeatsPerBooking) {
       notificationService.error(`Bạn chỉ được chọn tối đa ${maxSeatsPerBooking} ghế trong một lần đặt.`);
       return;
     }
 
     const nextSelectedUuids = isAlreadySelected
-      ? selectedSeats.filter((s) => s.seatUuid !== seat.seatUuid).map((s) => s.seatUuid)
-      : [...selectedSeats.map((s) => s.seatUuid), seat.seatUuid];
+      ? previousUuids.filter((uuid) => uuid !== seat.seatUuid)
+      : [...previousUuids, seat.seatUuid];
 
+    setSelectionIntent(nextSelectedUuids);
     try {
       await bookingService.syncSeatLocks(showtimeUuid, nextSelectedUuids);
-      await fetchSeatMap(nextSelectedUuids);
+      await fetchSeatMap(nextSelectedUuids, { commitIntent: false });
     } catch (err) {
+      setSelectionIntent(previousUuids);
+      fetchSeatMap(previousUuids, { silent: true, commitIntent: false }).catch(() => {});
       notificationService.error(err.message || 'Không thể giữ ghế này');
     }
-  }, [showtimeUuid, selectedSeats, maxSeatsPerBooking, fetchSeatMap]);
+  }, [showtimeUuid, maxSeatsPerBooking, fetchSeatMap, selectionIntentRef, setSelectionIntent]);
 
   // Handle combo quantity adjustment
   const handleComboQuantity = (comboUuid, delta) => {
@@ -447,7 +449,8 @@ export default function CounterPOSPage() {
       setSelectedCombos({});
       setPromoCode('');
 
-      await fetchSeatMap([]);
+      setSelectionIntent([]);
+      await fetchSeatMap([], { commitIntent: false });
       notificationService.success('Đã xuất vé và thanh toán thành công!');
     } catch (err) {
       notificationService.error(err.message || 'Lỗi xác nhận thanh toán');

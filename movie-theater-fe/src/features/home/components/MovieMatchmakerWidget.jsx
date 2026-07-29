@@ -144,7 +144,7 @@ const formatDuration = (mins) => {
   return `${m}p`;
 };
 
-const MovieMatchmakerWidget = () => {
+const MovieMatchmakerWidget = ({ layout = 'banner' }) => {
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading } = useAuthContext();
   const sectionRef = useRef(null);
@@ -739,7 +739,12 @@ const MovieMatchmakerWidget = () => {
               <article key={movie.uuid} className="nsf-quiz__manifest-card">
                 <div className="nsf-quiz__manifest-rank">#{index + 1}</div>
                 <div className="nsf-quiz__manifest-poster">
-                  <PosterImage src={poster} alt={movie.title} width={500} loading="eager" />
+                  <PosterImage
+                    src={poster}
+                    alt={movie.title}
+                    width={layout === 'panel' ? 180 : 400}
+                    loading="eager"
+                  />
                   <FavoriteIconButton movieUuid={movie.uuid} className="nsf-quiz__manifest-favorite" />
                 </div>
                 <div className="nsf-quiz__manifest-body">
@@ -778,15 +783,52 @@ const MovieMatchmakerWidget = () => {
     );
   };
 
+  const isPanel = layout === 'panel';
+
   if (!authLoading && !isAuthenticated) {
-    return null;
+    if (!isPanel) return null;
+
+    return (
+      <section className="nsf-matchmaker-cta nsf-matchmaker-cta--panel" aria-label="Phim dành cho bạn">
+        <div className="nsf-matchmaker-cta__content">
+          <div className="nsf-matchmaker-cta__inner">
+            <div className="nsf-matchmaker-cta__copy">
+              <p className="nsf-matchmaker-cta__panel-hint">
+                Đăng nhập để nhận gợi ý phim theo tâm trạng của bạn
+              </p>
+              <button
+                type="button"
+                className="nsf-matchmaker-cta__btn"
+                onClick={() => navigate('/login', { state: { from: '/#home-matchmaker' } })}
+              >
+                Đăng nhập để tìm phim
+              </button>
+            </div>
+            <div className="nsf-matchmaker-cta__orbit-wrap" aria-hidden>
+              <div className="nsf-matchmaker-cta__orbit">
+                <div className="nsf-matchmaker-cta__orbit-ring nsf-matchmaker-cta__orbit-ring--outer" />
+                <div className="nsf-matchmaker-cta__orbit-ring nsf-matchmaker-cta__orbit-ring--mid" />
+                <div className="nsf-matchmaker-cta__orbit-ring nsf-matchmaker-cta__orbit-ring--inner" />
+                <div className="nsf-matchmaker-cta__orbit-core">
+                  <span className="nsf-matchmaker-cta__orbit-core-halo nsf-matchmaker-cta__orbit-core-halo--1" />
+                  <span className="nsf-matchmaker-cta__orbit-core-halo nsf-matchmaker-cta__orbit-core-halo--2" />
+                  <div className="nsf-matchmaker-cta__orbit-core-nucleus">
+                    <Satellite className="h-4 w-4" strokeWidth={1.75} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
     <motion.section
       ref={sectionRef}
-      layout
-      className={`nsf-matchmaker-cta ${expanded ? 'nsf-matchmaker-cta--expanded' : ''}`}
+      layout={!isPanel}
+      className={`nsf-matchmaker-cta${expanded ? ' nsf-matchmaker-cta--expanded' : ''}${isPanel ? ' nsf-matchmaker-cta--panel' : ''}`}
       aria-label="Phim dành cho bạn"
       transition={{ layout: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
     >
@@ -802,19 +844,35 @@ const MovieMatchmakerWidget = () => {
             transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
           >
             <div className="nsf-matchmaker-cta__copy">
-              <h2 className="nsf-matchmaker-cta__title">
-                {configLoading || questionCount == null || maxMatches == null ? (
-                  <>Trả lời vài câu hỏi để tìm ra bộ phim phù hợp với bạn</>
-                ) : (
-                  <>
-                    Trả lời{' '}
-                    <span className="nsf-matchmaker-cta__accent">{questionCount}</span>
-                    {' '}câu hỏi để tìm ra{' '}
-                    <span className="nsf-matchmaker-cta__accent">{maxMatches}</span>
-                    {' '}bộ phim phù hợp với bạn
-                  </>
-                )}
-              </h2>
+              {!isPanel ? (
+                <h2 className="nsf-matchmaker-cta__title">
+                  {configLoading || questionCount == null || maxMatches == null ? (
+                    <>Trả lời vài câu hỏi để tìm ra bộ phim phù hợp với bạn</>
+                  ) : (
+                    <>
+                      Trả lời{' '}
+                      <span className="nsf-matchmaker-cta__accent">{questionCount}</span>
+                      {' '}câu hỏi để tìm ra{' '}
+                      <span className="nsf-matchmaker-cta__accent">{maxMatches}</span>
+                      {' '}bộ phim phù hợp với bạn
+                    </>
+                  )}
+                </h2>
+              ) : (
+                <p className="nsf-matchmaker-cta__panel-hint">
+                  {configLoading || questionCount == null || maxMatches == null ? (
+                    <>Trả lời vài câu hỏi để tìm phim phù hợp</>
+                  ) : (
+                    <>
+                      Trả lời{' '}
+                      <span className="nsf-matchmaker-cta__accent">{questionCount}</span>
+                      {' '}câu hỏi · nhận{' '}
+                      <span className="nsf-matchmaker-cta__accent">{maxMatches}</span>
+                      {' '}phim
+                    </>
+                  )}
+                </p>
+              )}
               <button
                 type="button"
                 className="nsf-matchmaker-cta__btn"

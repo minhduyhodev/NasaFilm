@@ -32,6 +32,22 @@ class WebSocketHandshakeAuthInterceptorTest {
     }
 
     @Test
+    void shouldPreferBearerHeaderOverQueryParam() {
+        MockHttpServletRequest servletRequest = new MockHttpServletRequest();
+        servletRequest.setParameter("access_token", "query-jwt");
+        servletRequest.addHeader("Authorization", "Bearer header-jwt");
+        when(jwtUtils.validateToken("header-jwt")).thenReturn(true);
+
+        Map<String, Object> attributes = new HashMap<>();
+        assertTrue(interceptor.beforeHandshake(
+                new ServletServerHttpRequest(servletRequest),
+                null,
+                null,
+                attributes));
+        assertEquals("header-jwt", attributes.get(WebSocketHandshakeAuthInterceptor.SESSION_JWT_KEY));
+    }
+
+    @Test
     void shouldStoreValidAccessTokenQueryParam() {
         MockHttpServletRequest servletRequest = new MockHttpServletRequest();
         servletRequest.setParameter("access_token", "valid-jwt");

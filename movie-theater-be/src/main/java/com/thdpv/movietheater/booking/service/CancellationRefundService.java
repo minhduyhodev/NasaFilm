@@ -46,6 +46,7 @@ import com.thdpv.movietheater.config.service.SystemConfigService;
 import com.thdpv.movietheater.payment.service.PaymentGatewayService;
 import com.thdpv.movietheater.payment.service.PaymentService;
 import com.thdpv.movietheater.payment.service.WalletService;
+import com.thdpv.movietheater.payment.stripe.application.port.StripeGateway;
 import com.thdpv.movietheater.user.entity.User;
 import com.thdpv.movietheater.user.repository.UserRepository;
 import com.thdpv.movietheater.movie.entity.Movie;
@@ -82,6 +83,7 @@ public class CancellationRefundService {
     private final PromotionRepository promotionRepository;
     private final VoucherRedemptionService voucherRedemptionService;
     private final WalletService walletService;
+    private final StripeGateway stripeGateway;
     private final MovieRepository movieRepository;
     private final MissionService missionService;
     private final OrbitRoomRepository orbitRoomRepository;
@@ -552,6 +554,7 @@ public class CancellationRefundService {
                     booking.getUserUuid(),
                     payment.getUuid(),
                     payment.getMethod(),
+                    payment.getGatewayTransactionId(),
                     refund.getAmount(),
                     refund.getIdempotencyKey());
         });
@@ -559,7 +562,26 @@ public class CancellationRefundService {
             throw new AppException(ErrorCode.INTERNAL_ERROR, "Không thể chuẩn bị hoàn tiền");
         }
 
-        if ("WALLET".equalsIgnoreCase(context.paymentMethod())) {
+        String method = context.paymentMethod() != null ? context.paymentMethod().trim().toUpperCase() : "";
+
+        if ("WALLET".equals(method) || "VIETQR".equals(method)) {
+            return transaction.execute(status -> completeWalletRefund(context, actorUuid, actorRole));
+        }
+
+        if ("CARD".equals(method)) {
+            String piId = context.gatewayTransactionId();
+            if (piId != null && piId.startsWith("pi_")) {
+                try {
+                    long amountVnd = context.amount().setScale(0, RoundingMode.HALF_UP).longValueExact();
+                    String stripeRefundId = stripeGateway.refundPaymentIntent(
+                            piId, amountVnd, context.idempotencyKey());
+                    return transaction.execute(status ->
+                            completeApprovedRefund(context, stripeRefundId, actorUuid, actorRole));
+                } catch (RuntimeException ex) {
+                    // Stripe refund unavailable — credit NASA wallet so the customer still gets money back.
+                    return transaction.execute(status -> completeWalletRefund(context, actorUuid, actorRole));
+                }
+            }
             return transaction.execute(status -> completeWalletRefund(context, actorUuid, actorRole));
         }
 
@@ -588,12 +610,20 @@ public class CancellationRefundService {
     }
 
     private Refund completeWalletRefund(RefundExecutionContext context, UUID actorUuid, String actorRole) {
+        String description = "VIETQR".equalsIgnoreCase(context.paymentMethod())
+                ? "Hoàn tiền VietQR về ví NASA"
+                : "CARD".equalsIgnoreCase(context.paymentMethod())
+                        ? "Hoàn tiền thẻ về ví NASA"
+                        : "Hoàn tiền hủy vé";
         walletService.creditRefund(
                 context.userUuid(),
                 context.amount(),
                 context.refundUuid(),
-                "Hoàn tiền hủy vé");
-        return completeApprovedRefund(context, "WALLET-CREDIT", actorUuid, actorRole);
+                description);
+        String gatewayRefundId = "WALLET".equalsIgnoreCase(context.paymentMethod())
+                ? "WALLET-CREDIT"
+                : "WALLET-CREDIT-" + (context.paymentMethod() != null ? context.paymentMethod().toUpperCase() : "EXT");
+        return completeApprovedRefund(context, gatewayRefundId, actorUuid, actorRole);
     }
 
     private Refund completeApprovedRefund(
@@ -790,6 +820,7 @@ public class CancellationRefundService {
             UUID userUuid,
             UUID paymentUuid,
             String paymentMethod,
+            String gatewayTransactionId,
             BigDecimal amount,
             String idempotencyKey) {
     }

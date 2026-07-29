@@ -15,6 +15,7 @@ import com.thdpv.movietheater.booking.repository.BookingRepository;
 import com.thdpv.movietheater.booking.repository.PaymentRepository;
 import com.thdpv.movietheater.common.exception.AppException;
 import com.thdpv.movietheater.common.exception.ErrorCode;
+import com.thdpv.movietheater.payment.repository.PaymentTransactionRepository;
 
 @Service
 public class PaymentService {
@@ -23,6 +24,7 @@ public class PaymentService {
     private final PaymentGatewayService paymentGatewayService;
     private final BookingRepository bookingRepository;
     private final WalletService walletService;
+    private final PaymentTransactionRepository paymentTransactionRepository;
 
     @Value("${app.payment.provider:mock}")
     private String paymentProvider;
@@ -31,11 +33,13 @@ public class PaymentService {
             PaymentRepository paymentRepository,
             PaymentGatewayService paymentGatewayService,
             BookingRepository bookingRepository,
-            WalletService walletService) {
+            WalletService walletService,
+            PaymentTransactionRepository paymentTransactionRepository) {
         this.paymentRepository = paymentRepository;
         this.paymentGatewayService = paymentGatewayService;
         this.bookingRepository = bookingRepository;
         this.walletService = walletService;
+        this.paymentTransactionRepository = paymentTransactionRepository;
     }
 
     public String getProviderName() {
@@ -173,6 +177,21 @@ public class PaymentService {
             payment.setStatus(PaymentStatus.COMPLETED.name());
             payment.setGatewayProvider("VIETQR");
             payment.setGatewayTransactionId("VIETQR-" + payment.getUuid().toString().substring(0, 8).toUpperCase());
+            payment.setPaidAt(now);
+            payment.setUpdatedAt(now);
+            return paymentRepository.save(payment);
+        }
+
+        // CARD is settled via Stripe PaymentIntent (reconciled in BookingService) — never call the
+        // fail-closed UnsupportedPaymentGatewayService after the customer has already been charged.
+        if ("CARD".equals(normalizedMethod)) {
+            payment.setStatus(PaymentStatus.COMPLETED.name());
+            payment.setGatewayProvider(isMockProvider() ? "MOCK" : "STRIPE");
+            String stripePi = paymentTransactionRepository.findByBookingUuid(payment.getBookingUuid())
+                    .map(tx -> tx.getGatewayTransactionId())
+                    .filter(id -> id != null && !id.isBlank())
+                    .orElse("STRIPE-" + payment.getUuid().toString().substring(0, 8).toUpperCase());
+            payment.setGatewayTransactionId(stripePi);
             payment.setPaidAt(now);
             payment.setUpdatedAt(now);
             return paymentRepository.save(payment);
