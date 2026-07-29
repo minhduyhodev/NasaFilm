@@ -13,11 +13,14 @@ const NowShowing = () => {
 
   return (
     <HomeMovieCarousel
-      title="PHIM ĐANG CHIẾU"
+      sectionId="home-now-showing"
+      title="Phim đang chiếu"
+      subtitle="Suất chiếu hôm nay — chọn phim và đặt vé chỉ vài chạm"
       viewAllTo="/movies?tab=now-showing"
       moviesList={moviesList}
       isLoading={isLoading}
       actionLabel="Mua vé"
+      showEarliestShowtime
     />
   );
 };

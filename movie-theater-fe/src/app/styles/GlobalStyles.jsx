@@ -18,18 +18,18 @@ export const GlobalStyles = () => {
         overflow-x: hidden;
       }
 
-      /* Scrollbar styling */
+      /* Scrollbar styling — transparent track (no dark right gutter) */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
       }
 
       ::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.05);
+        background: transparent;
       }
 
       ::-webkit-scrollbar-thumb {
-        background: rgba(220, 38, 38, 0.5);
+        background: rgba(220, 38, 38, 0.45);
         border-radius: 4px;
       }
 

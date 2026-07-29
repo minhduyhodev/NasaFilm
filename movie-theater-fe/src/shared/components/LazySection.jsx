@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 const LazySection = ({
   children,
   fallback = null,
-  rootMargin = '240px 0px',
+  rootMargin = '100px 0px',
   minHeight,
   className = '',
   as: Tag = 'div',

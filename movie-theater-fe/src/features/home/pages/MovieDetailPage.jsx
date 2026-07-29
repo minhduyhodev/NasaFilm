@@ -34,6 +34,7 @@ import PosterImage from "../../../shared/components/PosterImage";
 import MovieReviewsSection from "../components/MovieReviewsSection";
 import FavoriteButton from "../components/FavoriteButton";
 import ShareButton from "../../../shared/components/ShareButton";
+import MovieReminderButton from "../components/MovieReminderButton";
 import PageMeta from "../../../shared/components/PageMeta";
 import { resolveMediaUrl } from "../../../shared/utils/mediaUrlUtils";
 
@@ -134,13 +135,15 @@ const MovieDetailPage = () => {
     }
   }, [id]);
 
-  // Scroll to top on load (unless opening reviews via hash)
+  // Scroll to top on load (unless opening reviews / showtimes via hash)
   useEffect(() => {
-    const openFromHash = window.location.hash === '#movie-reviews';
+    const hash = window.location.hash;
+    const openFromHash =
+      hash === '#movie-reviews' || hash === '#select-showtimes';
     if (!openFromHash) {
       window.scrollTo(0, 0);
       setReviewsExpanded(false);
-    } else {
+    } else if (hash === '#movie-reviews') {
       setReviewsExpanded(true);
     }
   }, [id]);
@@ -154,6 +157,19 @@ const MovieDetailPage = () => {
         block: 'start',
       });
     }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [id, dbMovie]);
+
+  useEffect(() => {
+    if (window.location.hash !== '#select-showtimes' || !dbMovie) return;
+
+    const timer = window.setTimeout(() => {
+      document.getElementById('select-showtimes')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 400);
 
     return () => window.clearTimeout(timer);
   }, [id, dbMovie]);
@@ -692,9 +708,7 @@ const MovieDetailPage = () => {
                   </button>
                 )}
                 {isComingSoon && !isFromOnline && (
-                  <span className="px-6 py-3.5 bg-amber-500/10 text-amber-300 rounded-xl font-bold text-sm uppercase tracking-wider border border-amber-400/30">
-                    Sắp chiếu
-                  </span>
+                  <MovieReminderButton movie={dbMovie} />
                 )}
 
                 {/* 2. Vé xem Online VOD */}

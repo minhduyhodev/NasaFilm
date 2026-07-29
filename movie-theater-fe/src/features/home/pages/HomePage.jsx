@@ -1,15 +1,17 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import Hero from "../components/Hero";
-import TicketFilters from "../components/TicketFilters";
-import OrbitActiveRoomsPanel from "../components/OrbitActiveRoomsPanel";
-import NowShowing from "../components/NowShowing";
+import HomeSectionShell from "../components/HomeSectionShell";
+import HomeShowtimeRadarBar from "../components/HomeShowtimeRadarBar";
 import LazySection from "../../../shared/components/LazySection";
 import HomeArrivalFade from "../components/HomeArrivalFade";
+import HomeSpaceBackdrop from "../components/HomeSpaceBackdrop";
 import "../components/HomeSpaceBackdrop.css";
+import "./HomePage.css";
 
-const HomeSpaceBackdrop = lazy(() => import("../components/HomeSpaceBackdrop"));
+const OrbitActiveRoomsPanel = lazy(() => import("../components/OrbitActiveRoomsPanel"));
+const NowShowing = lazy(() => import("../components/NowShowing"));
+const HomeSpotlightBanner = lazy(() => import("../components/HomeSpotlightBanner"));
 const ComingSoon = lazy(() => import("../components/ComingSoon"));
-const Upcoming = lazy(() => import("../components/Upcoming"));
 const MovieMatchmakerWidget = lazy(
   () => import("../components/MovieMatchmakerWidget"),
 );
@@ -19,51 +21,74 @@ const SectionPlaceholder = ({ minHeight = "12rem" }) => (
 );
 
 const HomePage = () => {
+  useEffect(() => {
+    document.body.classList.remove("dg-scroll-lock");
+    return () => {
+      document.body.classList.remove("dg-scroll-lock");
+    };
+  }, []);
+
   return (
-    <div className="text-white min-h-screen">
+    <div className="home-page">
       <HomeArrivalFade />
-      <main className="pt-0">
+
+      <div className="home-page__backdrop" aria-hidden>
+        <HomeSpaceBackdrop />
+      </div>
+
+      <main className="home-page__main pt-0">
         <Hero />
 
-        <section
-          id="quick-booking"
-          className="-mt-16 md:-mt-24 relative z-20 px-4 md:px-8 lg:px-20"
-        >
-          <div className="max-w-6xl mx-auto">
-            <TicketFilters />
-          </div>
-        </section>
-
         <div className="home-space-zone">
-          <LazySection fallback={null}>
-            <Suspense fallback={null}>
-              <HomeSpaceBackdrop />
-            </Suspense>
-          </LazySection>
+          <div className="home-space-zone__fade" aria-hidden />
 
-          <div className="home-space-zone__content">
-            <section className="px-4 pt-8 md:px-8 md:pt-10 lg:px-20">
-              <div className="mx-auto max-w-6xl">
-                <OrbitActiveRoomsPanel title="Phòng Orbit của bạn" />
-              </div>
-            </section>
-
+          <div className="home-space-zone__content home-page__sections px-4 md:px-8 lg:px-20">
             <LazySection
-              as="section"
-              className="mt-10 px-4 md:px-8 lg:px-20 home-section"
-              fallback={<SectionPlaceholder minHeight="16rem" />}
+              as="div"
+              className="home-section pt-0"
+              rootMargin="100px 0px"
+              fallback={<SectionPlaceholder minHeight="4rem" />}
             >
-              <div className="max-w-7xl mx-auto">
-                <NowShowing />
+              <div className="home-page__orbit-wrap">
+                <Suspense fallback={<SectionPlaceholder minHeight="4rem" />}>
+                  <OrbitActiveRoomsPanel title="Phòng Orbit của bạn" />
+                </Suspense>
               </div>
             </LazySection>
 
             <LazySection
-              as="section"
-              className="mt-16 px-4 md:px-8 lg:px-20 home-section"
+              as="div"
+              className="home-section"
+              rootMargin="120px 0px"
+              fallback={<SectionPlaceholder minHeight="14rem" />}
+            >
+              <div className="home-page__spotlight-wrap">
+                <Suspense fallback={<SectionPlaceholder minHeight="14rem" />}>
+                  <HomeSpotlightBanner />
+                </Suspense>
+              </div>
+            </LazySection>
+
+            <LazySection
+              as="div"
+              className="home-section home-page__section--movies"
+              rootMargin="120px 0px"
+              fallback={<SectionPlaceholder minHeight="16rem" />}
+            >
+              <div className="home-page__grid-wrap">
+                <Suspense fallback={<SectionPlaceholder minHeight="16rem" />}>
+                  <NowShowing />
+                </Suspense>
+              </div>
+            </LazySection>
+
+            <LazySection
+              as="div"
+              className="home-section home-page__section--movies"
+              rootMargin="120px 0px"
               fallback={<SectionPlaceholder minHeight="18rem" />}
             >
-              <div className="max-w-7xl mx-auto">
+              <div className="home-page__grid-wrap">
                 <Suspense fallback={<SectionPlaceholder minHeight="18rem" />}>
                   <ComingSoon />
                 </Suspense>
@@ -71,28 +96,35 @@ const HomePage = () => {
             </LazySection>
 
             <LazySection
-              as="section"
-              className="mt-16 px-4 md:px-8 lg:px-20 home-section"
-              fallback={<SectionPlaceholder minHeight="22rem" />}
+              as="div"
+              className="home-section home-page__section--personalize pb-16"
+              fallback={<SectionPlaceholder minHeight="16rem" />}
+              rootMargin="140px 0px"
             >
-              <div className="max-w-6xl mx-auto">
-                <Suspense fallback={<SectionPlaceholder minHeight="22rem" />}>
-                  <Upcoming />
-                </Suspense>
-              </div>
-            </LazySection>
+              <div className="home-personalize-duo">
+                <HomeSectionShell
+                  id="home-radar"
+                  spacing="tight"
+                  className="home-personalize-duo__panel"
+                  title="Radar sở thích"
+                  subtitle="Gợi ý suất chiếu trong 48 giờ tới theo thói quen xem phim của bạn"
+                >
+                  <HomeShowtimeRadarBar />
+                </HomeSectionShell>
 
-            <LazySection
-              as="section"
-              id="movie-matchmaker"
-              className="mt-16 px-4 md:px-8 lg:px-20 pb-16 overflow-visible home-section"
-              fallback={<SectionPlaceholder minHeight="10rem" />}
-              rootMargin="320px 0px"
-            >
-              <div className="max-w-6xl mx-auto overflow-visible py-1">
-                <Suspense fallback={<SectionPlaceholder minHeight="10rem" />}>
-                  <MovieMatchmakerWidget />
-                </Suspense>
+                <div className="home-personalize-duo__divider" aria-hidden />
+
+                <HomeSectionShell
+                  id="home-matchmaker"
+                  spacing="tight"
+                  className="home-personalize-duo__panel"
+                  title="Gợi ý cho bạn"
+                  subtitle="Trả lời vài câu hỏi — nhận danh sách phim phù hợp tâm trạng"
+                >
+                  <Suspense fallback={<SectionPlaceholder minHeight="10rem" />}>
+                    <MovieMatchmakerWidget layout="panel" />
+                  </Suspense>
+                </HomeSectionShell>
               </div>
             </LazySection>
           </div>

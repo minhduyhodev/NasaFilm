@@ -1,0 +1,157 @@
+.home-page__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+@media (min-width: 768px) {
+  .home-page__sections {
+    gap: 4rem;
+  }
+}
+
+.home-page__section--movies + .home-page__section--movies {
+  margin-top: 1.25rem;
+}
+
+.home-page__section--personalize {
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .home-page__section--movies + .home-page__section--movies {
+    margin-top: 2rem;
+  }
+
+  .home-page__section--personalize {
+    margin-top: 2.75rem;
+  }
+}
+
+/* Soft blend Hero → sections without painting a solid dark band */
+.home-space-zone__fade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4.5rem;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(5, 5, 8, 0.28) 0%,
+    rgba(5, 5, 8, 0.08) 55%,
+    transparent 100%
+  );
+  z-index: 0;
+}
+
+.home-page__orbit-wrap {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.home-page__spotlight-wrap {
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+.home-page__grid-wrap {
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+.home-page__matchmaker-wrap {
+  max-width: 72rem;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+/* Radar + Matchmaker — equal twin panels */
+.home-personalize-duo {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+.home-personalize-duo__panel {
+  margin-bottom: 0 !important;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.home-personalize-duo__panel .home-section-shell__inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: none;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.home-personalize-duo__panel .home-section-shell__header {
+  margin-bottom: 1.15rem;
+}
+
+.home-personalize-duo__panel .home-section-shell__subtitle {
+  max-width: none;
+}
+
+.home-personalize-duo__divider {
+  display: none;
+}
+
+/* Radar: stack status + toolbar — no floating to far right */
+.home-personalize-duo .showtime-radar-widget__bar-head,
+.home-personalize-duo .showtime-radar-widget__bar-head--embedded {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.home-personalize-duo .showtime-radar-widget__toolbar {
+  width: 100%;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.home-personalize-duo .showtime-radar-widget--bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 900px) {
+  .home-personalize-duo {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0 1.75rem;
+    align-items: stretch;
+  }
+
+  .home-personalize-duo__divider {
+    display: block;
+    width: 1px;
+    align-self: stretch;
+    margin: 0.35rem 0;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(255, 255, 255, 0.18) 18%,
+      rgba(229, 9, 20, 0.35) 50%,
+      rgba(255, 255, 255, 0.18) 82%,
+      transparent
+    );
+  }
+}
+
+@media (min-width: 768px) {
+  .home-space-zone__fade {
+    height: 5.5rem;
+  }
+}

@@ -1,5 +1,8 @@
 .footer-wrapper {
-  @apply relative border-t border-white/[0.07] bg-[#070a11] pb-7 pt-20 text-slate-400;
+  @apply relative border-t border-white/[0.07] pb-7 pt-20 text-slate-400;
+  /* Match homepage cosmos base so scroll-to-bottom stays visually continuous */
+  background: rgba(5, 5, 8, 0.72);
+  backdrop-filter: blur(10px);
 }
 
 .footer-glow {

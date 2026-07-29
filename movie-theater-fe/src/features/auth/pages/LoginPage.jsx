@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
@@ -9,6 +9,10 @@ import { AuthLayout } from '../components/AuthLayout';
 import { AuthCard } from '../components/AuthCard';
 import { AuthInput } from '../components/AuthInput';
 import { SocialLoginButtons } from '../components/SocialLoginButtons';
+import {
+  playCosmosHomeTransition,
+  COSMOS_HOME_TRANSITION_KEY,
+} from '../components/CosmosHomeTransition.jsx';
 import { loginSchema } from '../utils/validation';
 import { useAuthContext } from '../hooks/useAuthContext';
 import { notificationService } from '../../../shared/services/notificationService';
@@ -23,6 +27,7 @@ export const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const transitionCleanupRef = useRef(null);
 
   useEffect(() => {
     const isExpired = sessionStorage.getItem('auth_expired');
@@ -33,6 +38,14 @@ export const LoginPage = () => {
       sessionStorage.removeItem('auth_expired');
     }
   }, []);
+
+  useEffect(
+    () => () => {
+      transitionCleanupRef.current?.();
+      transitionCleanupRef.current = null;
+    },
+    [],
+  );
 
   const {
     register,
@@ -48,7 +61,7 @@ export const LoginPage = () => {
     },
   });
 
-  const redirectAfterLogin = () => {
+  const resolvePostLoginPath = useCallback(() => {
     const from = location.state?.from?.pathname;
     const storedUser = tokenService.getUser();
 
@@ -60,13 +73,42 @@ export const LoginPage = () => {
       if (!targetPath || (!targetPath.startsWith('/admin') && targetPath !== '/unauthorized')) {
         targetPath = getDefaultAdminPath(storedUser);
       }
-      navigate(targetPath, { replace: true });
-      return;
+      return targetPath;
     }
 
-    const targetPath = (from && !from.startsWith('/admin') && !from.startsWith('/counter') && from !== '/unauthorized') ? from : '/';
-    navigate(targetPath, { replace: true });
-  };
+    return (from && !from.startsWith('/admin') && !from.startsWith('/counter') && from !== '/unauthorized')
+      ? from
+      : '/';
+  }, [location.state?.from?.pathname]);
+
+  const redirectAfterLogin = useCallback(() => {
+    const targetPath = resolvePostLoginPath();
+    const goesHome = targetPath === '/';
+
+    transitionCleanupRef.current?.();
+    transitionCleanupRef.current = playCosmosHomeTransition({
+      durationMs: 550,
+      onDone: () => {
+        transitionCleanupRef.current = null;
+        if (!goesHome) {
+          try {
+            sessionStorage.removeItem(COSMOS_HOME_TRANSITION_KEY);
+          } catch {
+            /* ignore */
+          }
+        }
+        navigate(targetPath, { replace: true });
+      },
+    });
+
+    if (!goesHome) {
+      try {
+        sessionStorage.removeItem(COSMOS_HOME_TRANSITION_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [navigate, resolvePostLoginPath]);
 
   useEffect(() => {
     if (!googleClientId) {
@@ -136,7 +178,7 @@ export const LoginPage = () => {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [googleClientId, loginWithGoogle]);
+  }, [googleClientId, loginWithGoogle, redirectAfterLogin]);
 
   const _handleQuickLogin = (email, password) => {
     setValue('email', email);

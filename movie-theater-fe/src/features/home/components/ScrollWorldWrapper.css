@@ -1,0 +1,174 @@
+/* NASAFilm scroll-world — Pearl & Co style layout */
+
+.sw-nasa-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.sw-root {
+  --sw-bg: #000000;
+  --sw-ink: #ffffff;
+  --sw-ink-soft: #a8a8b3;
+  --sw-accent: #e50914;
+  --sw-font-display: "Inter", "SF Pro Display", system-ui, sans-serif;
+  --sw-font-body: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* Copy bên trái giống mẫu */
+.sw-root .sw-copy {
+  width: min(42vw, 480px);
+  z-index: 25;
+}
+
+.sw-root .sw-copylayer::before {
+  width: min(62vw, 900px);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.92) 0%,
+    rgba(0, 0, 0, 0.72) 38%,
+    rgba(0, 0, 0, 0.28) 68%,
+    transparent 100%
+  );
+}
+
+.sw-root .sw-copy__portal {
+  display: none;
+}
+
+/* Panel nội dung bên phải — scenes 1..4 */
+.sw-scene-panel {
+  position: fixed;
+  top: 5.5rem;
+  right: clamp(1rem, 3vw, 2.5rem);
+  bottom: 3.5rem;
+  width: min(52vw, 720px);
+  z-index: 22;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px);
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+  overflow: hidden;
+}
+
+.sw-scene-panel.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* Scene 0: DomeGallery full-screen phía sau copy */
+.sw-scene-panel--hero {
+  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 12;
+  overflow: hidden;
+}
+
+.sw-scene-panel--hero.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Ẩn tiêu đề carousel khi đã có copy scroll-world bên trái */
+.sw-scene-panel:not(.sw-scene-panel--hero) .home-movie-carousel__head {
+  display: none;
+}
+
+.sw-scene-panel:not(.sw-scene-panel--hero) .home-movie-carousel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sw-scene-panel:not(.sw-scene-panel--hero) .home-upcoming-root {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.sw-scene-panel:not(.sw-scene-panel--hero) .home-upcoming-section {
+  width: 100%;
+}
+
+/* Route dots */
+.sw-root .sw-route__label {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.75);
+  border-color: rgba(229, 9, 20, 0.2);
+}
+
+.sw-root .sw-copy__tags li {
+  color: #e50914;
+  background: rgba(229, 9, 20, 0.1);
+  border-color: rgba(229, 9, 20, 0.25);
+}
+
+.sw-root .sw-hint {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sw-root .sw-hint i {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sw-root .sw-scrollbar {
+  background: rgba(229, 9, 20, 0.08);
+}
+
+.sw-root .sw-btn--ghost {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.sw-root .sw-scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(0, 0, 0, 0.45) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Hero scene: làm mờ nền still để DomeGallery nổi bật */
+.sw-root:has(.sw-scene-panel--hero.is-active) .sw-stage > .sw-scene:first-child {
+  opacity: 0.12 !important;
+}
+
+@media (max-width: 860px) {
+  .sw-root .sw-copylayer::before {
+    width: 100%;
+    height: 55%;
+    top: auto;
+    bottom: 0;
+    background: linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.94) 6%,
+      rgba(0, 0, 0, 0.65) 42%,
+      transparent 100%
+    );
+  }
+
+  .sw-root .sw-copy {
+    width: auto;
+  }
+
+  .sw-scene-panel:not(.sw-scene-panel--hero) {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: calc(clamp(56px, 12dvh, 110px) + env(safe-area-inset-bottom));
+    width: 100%;
+    height: 38vh;
+    padding: 0 1rem;
+  }
+
+  .sw-scene-panel--hero {
+    bottom: 42vh;
+  }
+}

@@ -1,6 +1,13 @@
 import { Clock, Globe, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getMovieDetailPath, getOnlineMoviePath, pickPosterMediaUrl, formatAgeRestrictionBadge, resolveAgeRestrictionClass } from '../utils/movieUtils';
+import {
+  getMovieDetailPath,
+  getOnlineMoviePath,
+  pickPosterMediaUrl,
+  formatAgeRestrictionBadge,
+  resolveAgeRestrictionClass,
+} from '../utils/movieUtils';
+import { formatEarliestShowtimeLabel } from '../utils/homeQuickBookUtils';
 import PosterImage from '../../../shared/components/PosterImage';
 import FavoriteIconButton from './FavoriteIconButton';
 import './MovieCard.css';
@@ -48,13 +55,18 @@ const MovieCard = ({
   reviewAverageRating,
   reviewCount,
   releaseDate,
+  earliestShowtimeStart,
   bestOnBigScreen = false,
   countries,
   hoverDetails,
   posterLoading = 'lazy',
+  /** showcase = layout mẫu homepage (hover CTA trên poster) */
+  layout = 'default',
 }) => {
-  const pathId = slugProp || uuid
-    || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  const pathId =
+    slugProp ||
+    uuid ||
+    title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
   const resolveOnlinePath = (movieRef) => {
     if (getOnlinePath) return getOnlinePath(movieRef);
     return getOnlineMoviePath(movieRef, vodStatus);
@@ -64,9 +76,7 @@ const MovieCard = ({
       ? resolveOnlinePath(pathId)
       : getMovieDetailPath(pathId, { online: false });
 
-  const displayGenres = genres?.length
-    ? genres.join(', ')
-    : genre;
+  const displayGenres = genres?.length ? genres.join(', ') : genre;
   const displayDuration = durationMinutes
     ? formatDurationShort(durationMinutes)
     : duration;
@@ -75,6 +85,78 @@ const MovieCard = ({
     : hoverDetails?.country;
   const hasReviewScore = reviewAverageRating > 0 && reviewCount > 0;
   const statusBadge = resolveStatusBadge({ releaseDate, reviewAverageRating, reviewCount });
+  const metaLine = [displayDuration, displayGenres].filter(Boolean).join(' • ');
+  const showtimeLine = formatEarliestShowtimeLabel(earliestShowtimeStart);
+  const isShowcase = layout === 'showcase';
+  const ctaText =
+    actionLabel?.toUpperCase?.() === 'MUA VÉ'
+      ? 'MUA VÉ NGAY'
+      : (actionLabel || 'CHI TIẾT').toUpperCase();
+
+  if (isShowcase) {
+    return (
+      <article className="movie-card movie-card--showcase group">
+        <div className="movie-card__poster-wrap">
+          <Link to={linkTarget} className="movie-card__poster-link" aria-label={title}>
+            <PosterImage
+              src={pickPosterMediaUrl({ uuid, primaryMediaUrl, poster })}
+              alt={title}
+              width={400}
+              className="movie-card__poster"
+              loading={posterLoading}
+            />
+          </Link>
+
+          {ageRestriction && (
+            <span
+              className={resolveAgeRestrictionClass(ageRestriction)}
+              title={ageRestriction}
+            >
+              {formatAgeRestrictionBadge(ageRestriction)}
+            </span>
+          )}
+
+          {uuid && (
+            <div className="movie-card__favorite">
+              <FavoriteIconButton movieUuid={uuid} />
+            </div>
+          )}
+
+          {hasReviewScore && (
+            <span className="movie-card__showcase-rating">
+              <Star className="movie-card__rating-icon" aria-hidden="true" />
+              {Number(reviewAverageRating).toFixed(1)}
+            </span>
+          )}
+
+          {statusBadge && (
+            <span className={`movie-card__showcase-status movie-card__status--${statusBadge.type}`}>
+              {statusBadge.label}
+            </span>
+          )}
+
+          <div className="movie-card__hover-overlay">
+            <Link to={linkTarget} className="movie-card__hover-cta">
+              {ctaText}
+            </Link>
+          </div>
+        </div>
+
+        <div className="movie-card__body">
+          <Link to={linkTarget}>
+            <h3 className="movie-card__title">{title}</h3>
+          </Link>
+          {metaLine ? <p className="movie-card__meta-line">{metaLine}</p> : null}
+          {showtimeLine ? (
+            <p className="movie-card__showtime-line">
+              <Clock className="movie-card__showtime-icon" aria-hidden="true" />
+              {showtimeLine}
+            </p>
+          ) : null}
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article className="movie-card group">
@@ -129,9 +211,7 @@ const MovieCard = ({
           <h3 className="movie-card__title">{title}</h3>
         </Link>
 
-        {displayGenres && (
-          <p className="movie-card__genres">{displayGenres}</p>
-        )}
+        {displayGenres && <p className="movie-card__genres">{displayGenres}</p>}
 
         {(displayDuration || displayCountry) && (
           <div className="movie-card__meta">

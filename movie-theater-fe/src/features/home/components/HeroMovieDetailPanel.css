@@ -1,0 +1,217 @@
+.hero-movie-detail {
+  --hero-poster-w: 340px;
+  --hero-poster-h: 486px;
+  --hero-info-w: 34rem;
+  --hero-detail-gap: clamp(1.25rem, 2.2vw, 1.75rem);
+  --hero-detail-inline: clamp(1.25rem, 5vw, 3.5rem);
+
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5.5rem var(--hero-detail-inline) 2rem;
+  pointer-events: none;
+}
+
+.hero-movie-detail__group {
+  display: flex;
+  align-items: center;
+  gap: var(--hero-detail-gap);
+  width: min(
+    100%,
+    calc(var(--hero-poster-w) + var(--hero-detail-gap) + var(--hero-info-w))
+  );
+  margin: 0 auto;
+}
+
+/* Chừa chỗ đúng size poster để DomeGallery đặt ảnh sát cạnh info */
+.hero-movie-detail__poster-slot {
+  width: var(--hero-poster-w);
+  height: var(--hero-poster-h);
+  flex-shrink: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.hero-movie-detail__info {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: var(--hero-info-w);
+  pointer-events: auto;
+  text-align: left;
+  color: #fff;
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
+    rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 18px 52px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(229, 9, 20, 0.08);
+}
+
+.hero-movie-detail__eyebrow {
+  margin: 0;
+  color: #e50914;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.hero-movie-detail__title {
+  margin: 0.65rem 0 0;
+  font-size: clamp(1.75rem, 3.8vw, 2.85rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1.05;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
+}
+
+.hero-movie-detail__meta {
+  margin: 0.85rem 0 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hero-movie-detail__rating {
+  margin-top: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 900;
+}
+
+.hero-movie-detail__rating-value {
+  font-size: 1rem;
+}
+
+.hero-movie-detail__rating-count {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hero-movie-detail__release {
+  margin: 0.8rem 0 0;
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.68);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.hero-movie-detail__desc {
+  margin: 1.1rem 0 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 1rem;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hero-movie-detail__actions {
+  margin-top: 1.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.hero-movie-detail__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  padding: 0.7rem 1.15rem;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.hero-movie-detail__btn:hover {
+  transform: translateY(-1px);
+}
+
+.hero-movie-detail__btn--primary {
+  background: #e50914;
+  color: #fff;
+  border: 1px solid transparent;
+  box-shadow: 0 10px 28px rgba(229, 9, 20, 0.35);
+}
+
+.hero-movie-detail__btn--primary:hover {
+  background: #c0000c;
+  color: #fff;
+}
+
+.hero-movie-detail__btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.hero-movie-detail__btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.42);
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .hero-movie-detail {
+    --hero-poster-w: min(240px, 48vw);
+    --hero-poster-h: min(343px, 68vw);
+    --hero-info-w: 100%;
+    --hero-detail-inline: 1rem;
+
+    align-items: flex-end;
+    padding: 5.5rem var(--hero-detail-inline) 1.5rem;
+  }
+
+  .hero-movie-detail__group {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .hero-movie-detail__info {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .hero-movie-detail__title {
+    font-size: clamp(1.2rem, 5vw, 1.7rem);
+  }
+
+  .hero-movie-detail__desc {
+    -webkit-line-clamp: 3;
+  }
+
+  .hero-movie-detail__actions {
+    margin-top: 1rem;
+  }
+
+  .hero-movie-detail__btn {
+    flex: 1 1 auto;
+    min-width: calc(50% - 0.4rem);
+  }
+}
