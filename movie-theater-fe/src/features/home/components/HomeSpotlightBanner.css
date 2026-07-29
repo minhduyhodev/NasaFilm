@@ -2,8 +2,9 @@
 .home-spotlight {
   --sp-red: #e50914;
   position: relative;
+  z-index: 2;
   width: 100%;
-  padding-top: 0.5rem;
+  padding-top: 1.25rem;
   overflow: visible;
   scroll-margin-top: 7.5rem;
   background: transparent;
@@ -17,7 +18,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 2.75rem;
 }
 
 .home-spotlight__title-block {
