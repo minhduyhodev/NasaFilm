@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import PosterImage from './PosterImage';
 import { movieService } from '../services/movieService';
 import { getMovieDetailPath } from '../../features/home/utils/movieUtils';
@@ -37,39 +37,59 @@ const normalizeMovieCards = (movies = []) => {
     .filter(Boolean);
 };
 
-const MovieCardButton = ({ movie, onSelect, interactive = true, onPauseChange }) => (
-  <button
-    type="button"
-    role="listitem"
-    className="nasa-bot-movie-card"
-    title={movie.title}
-    tabIndex={interactive ? 0 : -1}
-    aria-hidden={interactive ? undefined : true}
-    onMouseEnter={() => interactive && onPauseChange?.(true)}
-    onMouseLeave={() => interactive && onPauseChange?.(false)}
-    onFocus={() => interactive && onPauseChange?.(true)}
-    onBlur={() => interactive && onPauseChange?.(false)}
-    onClick={() => {
-      if (!interactive) return;
-      onSelect?.(movie.path || getMovieDetailPath(movie.uuid));
-    }}
-  >
-    <span className="nasa-bot-movie-card__poster">
-      {movie.posterUrl ? (
-        <PosterImage
-          src={movie.posterUrl}
-          alt={interactive ? movie.title : ''}
-          width={160}
-          className="nasa-bot-movie-card__img"
-        />
-      ) : (
-        <span className="nasa-bot-movie-card__fallback" aria-hidden />
-      )}
-    </span>
-    <span className="nasa-bot-movie-card__title">{movie.title}</span>
-    <span className="nasa-bot-movie-card__cta">Xem chi tiết</span>
-  </button>
-);
+const MovieCardButton = ({ movie, onSelect, interactive = true, onPauseChange, onPosterSettled }) => {
+  const settledRef = useRef(false);
+
+  const markSettled = useCallback(() => {
+    if (settledRef.current) return;
+    settledRef.current = true;
+    onPosterSettled?.(movie.uuid);
+  }, [movie.uuid, onPosterSettled]);
+
+  useEffect(() => {
+    settledRef.current = false;
+    if (!movie.posterUrl) {
+      markSettled();
+    }
+  }, [movie.posterUrl, movie.uuid, markSettled]);
+
+  return (
+    <button
+      type="button"
+      role="listitem"
+      className="nasa-bot-movie-card"
+      title={movie.title}
+      tabIndex={interactive ? 0 : -1}
+      aria-hidden={interactive ? undefined : true}
+      onMouseEnter={() => interactive && onPauseChange?.(true)}
+      onMouseLeave={() => interactive && onPauseChange?.(false)}
+      onFocus={() => interactive && onPauseChange?.(true)}
+      onBlur={() => interactive && onPauseChange?.(false)}
+      onClick={() => {
+        if (!interactive) return;
+        onSelect?.(movie.path || getMovieDetailPath(movie.uuid));
+      }}
+    >
+      <span className="nasa-bot-movie-card__poster">
+        {movie.posterUrl ? (
+          <PosterImage
+            src={movie.posterUrl}
+            alt={interactive ? movie.title : ''}
+            width={160}
+            className="nasa-bot-movie-card__img"
+            loading="eager"
+            onLoad={markSettled}
+            onError={markSettled}
+          />
+        ) : (
+          <span className="nasa-bot-movie-card__fallback" aria-hidden />
+        )}
+      </span>
+      <span className="nasa-bot-movie-card__title">{movie.title}</span>
+      <span className="nasa-bot-movie-card__cta">Xem chi tiết</span>
+    </button>
+  );
+};
 
 /**
  * Compact clickable movie posters under NASA BOT Giải đáp replies.
@@ -78,20 +98,30 @@ const MovieCardButton = ({ movie, onSelect, interactive = true, onPauseChange })
 const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
   const seeded = useMemo(() => normalizeMovieCards(movies), [movies]);
   const uuidsFromText = useMemo(() => extractMovieUuidsFromText(text), [text]);
+  const needsFetch = seeded.length === 0 && uuidsFromText.length > 0;
+
   const [cards, setCards] = useState(seeded);
+  const [fetching, setFetching] = useState(needsFetch);
+  const [readyIds, setReadyIds] = useState(() => new Set());
   const viewportRef = useRef(null);
   const trackRef = useRef(null);
   const pausedRef = useRef(false);
 
   useEffect(() => {
     setCards(seeded);
-  }, [seeded]);
+    setReadyIds(new Set());
+    setFetching(seeded.length === 0 && uuidsFromText.length > 0);
+  }, [seeded, uuidsFromText.length]);
 
   useEffect(() => {
     if (seeded.length > 0) return undefined;
-    if (uuidsFromText.length === 0) return undefined;
+    if (uuidsFromText.length === 0) {
+      setFetching(false);
+      return undefined;
+    }
 
     let cancelled = false;
+    setFetching(true);
     (async () => {
       try {
         const summaries = await movieService.getMovieSummaries(uuidsFromText);
@@ -113,8 +143,11 @@ const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
             })
             .filter(Boolean),
         );
+        setReadyIds(new Set());
       } catch {
         if (!cancelled) setCards([]);
+      } finally {
+        if (!cancelled) setFetching(false);
       }
     })();
 
@@ -123,10 +156,24 @@ const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
     };
   }, [seeded.length, uuidsFromText]);
 
+  const handlePosterSettled = useCallback((uuid) => {
+    setReadyIds((prev) => {
+      if (prev.has(uuid)) return prev;
+      const next = new Set(prev);
+      next.add(uuid);
+      return next;
+    });
+  }, []);
+
+  const postersReady = cards.length > 0
+    && cards.every((movie) => !movie.posterUrl || readyIds.has(movie.uuid));
+
+  const showLoading = fetching || (cards.length > 0 && !postersReady);
+
   useEffect(() => {
     const viewport = viewportRef.current;
     const track = trackRef.current;
-    if (!viewport || !track || cards.length < 2) return undefined;
+    if (!viewport || !track || cards.length < 2 || showLoading) return undefined;
 
     let offset = 0;
     let direction = -1;
@@ -136,7 +183,6 @@ const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
     let edgeWait = 0;
 
     const measure = () => {
-      // Half track = one copy of the cards (we render the list twice).
       maxTravel = Math.max(track.scrollWidth / 2, 160);
     };
 
@@ -181,26 +227,40 @@ const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
       ro?.disconnect();
       window.cancelAnimationFrame(rafId);
     };
-  }, [cards]);
+  }, [cards, showLoading]);
 
-  if (!cards.length) return null;
+  if (!fetching && !cards.length) return null;
 
   const marquee = cards.length >= 2;
 
   return (
     <div
       ref={viewportRef}
-      className={`nasa-bot-movies${marquee ? ' nasa-bot-movies--marquee' : ''}`}
-      aria-label="Phim đề xuất"
+      className={`nasa-bot-movies${marquee && !showLoading ? ' nasa-bot-movies--marquee' : ''}${showLoading ? ' nasa-bot-movies--loading' : ''}`}
+      aria-label={showLoading ? 'Đang tải phim' : 'Phim đề xuất'}
+      aria-busy={showLoading || undefined}
     >
-      <div ref={trackRef} className="nasa-bot-movies__track" role="list">
+      {showLoading ? (
+        <div className="nasa-bot-movies__loading" role="status">
+          <span className="nasa-bot-movies__loading-pulse" aria-hidden />
+          <span>Đang tải phim…</span>
+        </div>
+      ) : null}
+
+      <div
+        ref={trackRef}
+        className={`nasa-bot-movies__track${showLoading ? ' nasa-bot-movies__track--pending' : ''}`}
+        role="list"
+        aria-hidden={showLoading || undefined}
+      >
         {cards.map((movie) => (
           <MovieCardButton
             key={movie.uuid}
             movie={movie}
             onSelect={onSelect}
-            interactive
+            interactive={!showLoading}
             onPauseChange={(paused) => { pausedRef.current = paused; }}
+            onPosterSettled={handlePosterSettled}
           />
         ))}
         {marquee
@@ -210,6 +270,7 @@ const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
               movie={movie}
               onSelect={onSelect}
               interactive={false}
+              onPosterSettled={undefined}
             />
           ))
           : null}
