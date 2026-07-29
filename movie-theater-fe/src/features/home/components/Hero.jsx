@@ -12,9 +12,6 @@ import "./Hero.css";
 
 const DomeGallery = lazy(() => import("./DomeGallery"));
 
-const AUTO_HIGHLIGHT_DELAY_MS = 9000;
-const AUTO_HIGHLIGHT_INITIAL_MS = 7500;
-
 const FALLBACK_POSTERS = [
   {
     src: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=480&auto=format&fit=crop",
@@ -72,16 +69,10 @@ const toDomeItems = (payload) => {
 
 const Hero = () => {
   const [selectedItem, setSelectedItem] = useState(null);
-  const [autoOpenSignal, setAutoOpenSignal] = useState(0);
-  const [autoOpenIndex, setAutoOpenIndex] = useState(0);
   const [heroInView, setHeroInView] = useState(true);
   const [domeItems, setDomeItems] = useState(FALLBACK_POSTERS);
   const [postersReady, setPostersReady] = useState(false);
   const sectionRef = useRef(null);
-  const userInteractedRef = useRef(false);
-  const selectedRef = useRef(false);
-  const autoHighlightingRef = useRef(false);
-  const highlightCursorRef = useRef(0);
   const { data: nowShowingData } = useNowShowingMovies();
   const { data: upcomingData } = useUpcomingMovies();
 
@@ -126,44 +117,12 @@ const Hero = () => {
     };
   }, [candidateItems]);
 
-  const highlightIndices = useMemo(
-    () =>
-      domeItems
-        .map((item, index) => (item.movie ? index : null))
-        .filter((index) => index !== null)
-        .slice(0, 10),
-    [domeItems],
-  );
-
-  const triggerAutoHighlight = useCallback(() => {
-    if (userInteractedRef.current || highlightIndices.length === 0) return;
-    if (!heroInView || document.hidden || !postersReady) return;
-    const cursor = highlightCursorRef.current % highlightIndices.length;
-    const index = highlightIndices[cursor];
-    highlightCursorRef.current = cursor + 1;
-    autoHighlightingRef.current = true;
-    setAutoOpenIndex(index);
-    setAutoOpenSignal((n) => n + 1);
-  }, [highlightIndices, heroInView, postersReady]);
-
   const handleImageSelect = useCallback((item) => {
-    if (!autoHighlightingRef.current) {
-      userInteractedRef.current = true;
-    }
-    autoHighlightingRef.current = false;
     setSelectedItem(item);
   }, []);
 
   const handleDetailClose = useCallback(() => {
     setSelectedItem(null);
-  }, []);
-
-  useEffect(() => {
-    selectedRef.current = Boolean(selectedItem);
-  }, [selectedItem]);
-
-  const handleGalleryInteract = useCallback(() => {
-    userInteractedRef.current = true;
   }, []);
 
   useEffect(() => {
@@ -180,37 +139,13 @@ const Hero = () => {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!postersReady || highlightIndices.length === 0) return undefined;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return undefined;
-
-    let intervalId = null;
-    const initialTimer = window.setTimeout(() => {
-      if (!userInteractedRef.current && !selectedRef.current) {
-        triggerAutoHighlight();
-      }
-      intervalId = window.setInterval(() => {
-        if (!userInteractedRef.current && !selectedRef.current) {
-          triggerAutoHighlight();
-        }
-      }, AUTO_HIGHLIGHT_DELAY_MS);
-    }, AUTO_HIGHLIGHT_INITIAL_MS);
-
-    return () => {
-      window.clearTimeout(initialTimer);
-      if (intervalId) window.clearInterval(intervalId);
-    };
-  }, [highlightIndices.length, triggerAutoHighlight, postersReady]);
-
   const galleryPaused = Boolean(selectedItem) || !heroInView;
 
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[90vh] w-full overflow-hidden bg-transparent pt-24 pb-4 md:min-h-screen md:pb-6"
+      className="relative min-h-[90vh] w-full overflow-x-clip overflow-y-visible bg-transparent pt-24 pb-4 md:min-h-screen md:pb-6"
       aria-label="Hero gallery"
-      onPointerDown={handleGalleryInteract}
     >
       <div className="absolute inset-0 z-[1]">
         <Suspense fallback={null}>
@@ -236,8 +171,6 @@ const Hero = () => {
             detailLayout
             enlargeTransitionMs={320}
             paused={galleryPaused}
-            autoOpenIndex={autoOpenIndex}
-            autoOpenSignal={autoOpenSignal}
             onImageSelect={handleImageSelect}
             onDetailClose={handleDetailClose}
           />

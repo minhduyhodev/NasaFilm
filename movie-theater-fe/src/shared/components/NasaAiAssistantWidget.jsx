@@ -19,6 +19,7 @@ import { parseSupportStickerMessage } from '../constants/supportStickers';
 import SupportStickerBubble from './SupportStickerBubble';
 import SupportMessageImages from './SupportMessageImages';
 import NasaBotMovieCards from './NasaBotMovieCards';
+import { playNasaBotTing } from '../utils/nasaBotTing';
 import './NasaAiAssistantWidget.css';
 import './NasaAiAssistantWidget.theme.css';
 
@@ -470,6 +471,8 @@ const NasaAiAssistantWidget = () => {
   const [bootBotState] = useState(() => buildInitialBotState(readStoredUiState()));
 
   const [open, setOpen] = useState(false);
+  const [fabHeadWiggle, setFabHeadWiggle] = useState(false);
+  const [fabAttentionPing, setFabAttentionPing] = useState(false);
   const [chatView, setChatView] = useState(CHAT_VIEW.BOT);
   const [botIntent, setBotIntent] = useState(bootBotState.intent);
   const [messages, setMessages] = useState(bootBotState.messages);
@@ -507,6 +510,8 @@ const NasaAiAssistantWidget = () => {
 
   const lastSendAtRef = useRef(0);
   const openRef = useRef(false);
+  const fabAttentionBusyRef = useRef(false);
+  const fabWiggleTimerRef = useRef(null);
   const activeTicketCodeRef = useRef('');
   const chatViewRef = useRef(CHAT_VIEW.BOT);
   const botRestoredRef = useRef(false);
@@ -524,6 +529,95 @@ const NasaAiAssistantWidget = () => {
     openRef.current = open;
   }, [open]);
 
+  // Unlock Web Audio after first gesture so the "ting" can play.
+  useEffect(() => {
+    let unlocked = false;
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        ctx.resume?.().finally(() => {
+          ctx.close().catch(() => {});
+        });
+      } catch {
+        // ignore
+      }
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
+  // FAB attention mỗi 5s (khi widget đóng): xoay đầu → ting → báo đỏ.
+  useEffect(() => {
+    if (open) {
+      setFabHeadWiggle(false);
+      setFabAttentionPing(false);
+      fabAttentionBusyRef.current = false;
+      if (fabWiggleTimerRef.current) {
+        window.clearTimeout(fabWiggleTimerRef.current);
+        fabWiggleTimerRef.current = null;
+      }
+      return undefined;
+    }
+
+    const reducedMotion = typeof window !== 'undefined'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const runAttention = () => {
+      if (openRef.current || fabAttentionBusyRef.current) return;
+      fabAttentionBusyRef.current = true;
+
+      if (reducedMotion) {
+        playNasaBotTing();
+        setFabAttentionPing(true);
+        fabWiggleTimerRef.current = window.setTimeout(() => {
+          setFabAttentionPing(false);
+          fabAttentionBusyRef.current = false;
+        }, 900);
+        return;
+      }
+
+      setFabHeadWiggle(true);
+    };
+
+    const firstId = window.setTimeout(runAttention, 1800);
+    const intervalId = window.setInterval(runAttention, 5000);
+
+    return () => {
+      window.clearTimeout(firstId);
+      window.clearInterval(intervalId);
+      if (fabWiggleTimerRef.current) {
+        window.clearTimeout(fabWiggleTimerRef.current);
+        fabWiggleTimerRef.current = null;
+      }
+    };
+  }, [open]);
+
+  const handleFabHeadAnimationEnd = (event) => {
+    if (event.animationName !== 'nasaFabHeadWiggle') return;
+    setFabHeadWiggle(false);
+    if (openRef.current) {
+      fabAttentionBusyRef.current = false;
+      return;
+    }
+    playNasaBotTing();
+    setFabAttentionPing(true);
+    if (fabWiggleTimerRef.current) window.clearTimeout(fabWiggleTimerRef.current);
+    fabWiggleTimerRef.current = window.setTimeout(() => {
+      setFabAttentionPing(false);
+      fabAttentionBusyRef.current = false;
+      fabWiggleTimerRef.current = null;
+    }, 1000);
+  };
   useEffect(() => {
     if (!categoryMenuOpen) return undefined;
     const onPointerDown = (event) => {
@@ -2303,7 +2397,11 @@ const NasaAiAssistantWidget = () => {
       <div className={`nasa-assistant-fab-shell ${open ? 'nasa-assistant-fab-shell--hidden' : ''}`}>
         <button
           type="button"
-          className={`nasa-assistant-fab ${unreadStaffTicketCodes.length > 0 ? 'nasa-assistant-fab--unread' : ''}`}
+          className={[
+            'nasa-assistant-fab',
+            unreadStaffTicketCodes.length > 0 ? 'nasa-assistant-fab--unread' : '',
+            fabAttentionPing ? 'nasa-assistant-fab--attention' : '',
+          ].filter(Boolean).join(' ')}
           aria-label={unreadStaffTicketCodes.length > 0
             ? `Mở NASA BOT, ${unreadStaffTicketCodes.length} tin nhắn mới`
             : 'Mở NASA BOT'}
@@ -2322,11 +2420,18 @@ const NasaAiAssistantWidget = () => {
           }}
         >
           <span className="nasa-assistant-fab-glow" />
-          <img src={nasaAssistantFabAvatar} alt="NASA BOT" className="nasa-assistant-fab-avatar" />
+          <img
+            src={nasaAssistantFabAvatar}
+            alt="NASA BOT"
+            className={`nasa-assistant-fab-avatar${fabHeadWiggle ? ' is-wiggling' : ''}`}
+            onAnimationEnd={handleFabHeadAnimationEnd}
+          />
           {unreadStaffTicketCodes.length > 0 ? (
             <span className="nasa-assistant-fab-badge" aria-hidden="true">
               {unreadStaffTicketCodes.length > 9 ? '9+' : unreadStaffTicketCodes.length}
             </span>
+          ) : fabAttentionPing ? (
+            <span className="nasa-assistant-fab-ping" aria-hidden="true" />
           ) : null}
         </button>
         <span className="nasa-assistant-fab-label">NASA Bot</span>

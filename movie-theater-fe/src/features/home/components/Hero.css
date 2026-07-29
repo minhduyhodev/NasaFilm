@@ -1,36 +1,31 @@
-/* Hero sits on shared homepage universe backdrop — no solid dark seam */
+/* Hero sits on shared homepage universe backdrop */
 
 .hero-universe {
   display: none;
 }
 
+/*
+ * Nguyên nhân dải màu cắt ngang: overflow:hidden + contain:paint
+ * cắt đáy quả cầu 3D → poster bị “cắt đôi”, phía dưới tối hơn.
+ */
+section[aria-label="Hero gallery"] .sphere-main {
+  overflow: visible;
+}
+
+section[aria-label="Hero gallery"] .stage {
+  /* bỏ paint containment — không clip poster 3D */
+  contain: layout;
+  overflow: visible;
+}
+
+/* Soft blend đáy hero — TẮT (gây dải cắt ngang với space-zone) */
 .hero-bottom-fade {
   display: none;
 }
 
-/* Cheap film grain (no live SVG filter) — keeps cinematic look without lag */
+/* Film grain chuyển sang backdrop cố định — không cắt ở đáy hero */
 .hero-film-grain {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  opacity: 0.1;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 128px 128px;
-  background-repeat: repeat;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-film-grain {
-    opacity: 0.06;
-  }
-}
-
-@media (max-width: 767px) {
-  .hero-film-grain {
-    display: none;
-  }
+  display: none;
 }
 
 /* Kill DomeGallery edge vignette — it painted a dark vertical strip on the right */
