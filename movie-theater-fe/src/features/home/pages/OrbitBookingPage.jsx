@@ -80,8 +80,8 @@ const OrbitBookingPage = () => {
 
   const syncQueueRef = useRef(Promise.resolve());
   const seatMapActionsRef = useRef({
+    clearSelection: () => {},
     fetchSeatMap: async () => {},
-    setSelectedSeats: () => {},
   });
   const currentUserUuidRef = useRef(null);
   const orbitBootPromiseRef = useRef(null);
@@ -103,7 +103,10 @@ const OrbitBookingPage = () => {
     seatRows,
     aisleLayout,
     selectedSeats,
-    setSelectedSeats,
+    selectionIntentRef,
+    setSelectionIntent,
+    seedSelectionIntent,
+    clearSelection,
     hasGapViolation,
     timeLeft,
     isMapLoading,
@@ -115,30 +118,35 @@ const OrbitBookingPage = () => {
     lockTimerEnabled: canEditSeats,
     onLockTimeout: async () => {
       if (!canEditSeats) return;
+      seatMapActionsRef.current.clearSelection();
       try {
         await orbitService.updateMemberSeats(roomUuid, []);
       } catch (err) {
         logger.error('Failed to release seats on lock timeout:', err);
       }
-      seatMapActionsRef.current.setSelectedSeats([]);
-      await seatMapActionsRef.current.fetchSeatMap([], { silent: true });
+      await seatMapActionsRef.current.fetchSeatMap([], { silent: true, commitIntent: false });
       notificationService.error('Hết thời gian giữ ghế. Vui lòng chọn lại ghế.');
     },
     onFetchError: () => notificationService.error('Không thể tải sơ đồ ghế'),
   });
 
   useEffect(() => {
-    seatMapActionsRef.current = { fetchSeatMap, setSelectedSeats };
-  }, [fetchSeatMap, setSelectedSeats]);
+    seatMapActionsRef.current = { clearSelection, fetchSeatMap };
+  }, [clearSelection, fetchSeatMap]);
 
-  const refreshSeatMapForRoom = useCallback((members, preferredUserUuid) => {
-    const myMember = members?.find(
-      (member) => sameUuid(member.userUuid, preferredUserUuid),
-    );
-    const mySeatUuids = myMember?.seatUuids || [];
-    // Only pass current user's seats — passing the whole group's uuids marks them as "selected" locally.
-    return fetchSeatMapRef.current(mySeatUuids, { silent: true }).catch(() => {});
-  }, [fetchSeatMapRef]);
+  const refreshSeatMapForRoom = useCallback(() => (
+    fetchSeatMapRef.current(undefined, { silent: true }).catch(() => {})
+  ), [fetchSeatMapRef]);
+
+  useEffect(() => {
+    const mySeatUuids = room?.members
+      ?.find((member) => sameUuid(member.userUuid, currentUserUuid))
+      ?.seatUuids;
+    const seededUuids = mySeatUuids && seedSelectionIntent(mySeatUuids);
+    if (seededUuids) {
+      fetchSeatMap(seededUuids, { silent: true, commitIntent: false }).catch(() => {});
+    }
+  }, [room?.members, currentUserUuid, seedSelectionIntent, fetchSeatMap]);
 
   const displayMovie = orbitMeta.movie || room?.movieTitle || 'Phòng đặt vé nhóm';
   const displayTheater = orbitMeta.theater || room?.theater || '';
@@ -289,7 +297,7 @@ const OrbitBookingPage = () => {
       if (payload?.uuid && payload?.status) {
         applyRoomPayload(payload);
         markRoomSynced();
-        refreshSeatMapForRoom(payload.members, currentUserUuidRef.current);
+        refreshSeatMapForRoom();
         return;
       }
       refreshRoom().catch(() => {});
@@ -303,7 +311,7 @@ const OrbitBookingPage = () => {
       refreshRoom()
         .then((data) => {
           if (data?.members) {
-            refreshSeatMapForRoom(data.members, currentUserUuidRef.current);
+            refreshSeatMapForRoom();
           }
         })
         .catch(() => {});
@@ -312,33 +320,36 @@ const OrbitBookingPage = () => {
   );
 
   const syncMemberSeats = useCallback(async (nextUuids) => {
+    const previousUuids = selectionIntentRef.current;
+    setSelectionIntent(nextUuids);
     const task = syncQueueRef.current.then(async () => {
       setIsSyncing(true);
       try {
         const updatedRoom = await orbitService.updateMemberSeats(roomUuid, nextUuids);
         setRoom(updatedRoom);
         markRoomSynced();
-        await fetchSeatMap(nextUuids, { silent: true });
+        await fetchSeatMap(nextUuids, { silent: true, commitIntent: false });
         return updatedRoom;
+      } catch (error) {
+        setSelectionIntent(previousUuids);
+        fetchSeatMap(previousUuids, { silent: true, commitIntent: false }).catch(() => {});
+        throw error;
       } finally {
         setIsSyncing(false);
       }
     });
     syncQueueRef.current = task.catch(() => {});
     return task;
-  }, [roomUuid, fetchSeatMap, markRoomSynced]);
+  }, [roomUuid, fetchSeatMap, markRoomSynced, selectionIntentRef, setSelectionIntent]);
 
   const handleCoupleClick = async (seats) => {
     if (!canEditSeats || isSyncing) return;
-    const pairUuids = seats.map((s) => s.seatUuid);
-    const bothSelected = pairUuids.every((uuid) =>
-      selectedSeats.some((s) => s.seatUuid === uuid),
-    );
+    const currentUuids = selectionIntentRef.current;
+    const pairUuids = seats.map((seat) => seat.seatUuid);
+    const bothSelected = pairUuids.every((uuid) => currentUuids.includes(uuid));
     if (!bothSelected) {
       const mySeatCount = countMyOrbitMemberSeats(room?.members, currentUserUuid, selectedSeats);
-      const newInPair = pairUuids.filter(
-        (uuid) => !selectedSeats.some((s) => s.seatUuid === uuid),
-      ).length;
+      const newInPair = pairUuids.filter((uuid) => !currentUuids.includes(uuid)).length;
       const nextMyCount = mySeatCount + newInPair;
       if (wouldExceedOrbitRoomSeatLimit(
         room?.members,
@@ -351,11 +362,8 @@ const OrbitBookingPage = () => {
       }
     }
     const nextUuids = bothSelected
-      ? selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid)
-      : [
-        ...selectedSeats.filter((s) => !pairUuids.includes(s.seatUuid)).map((s) => s.seatUuid),
-        ...pairUuids,
-      ];
+      ? currentUuids.filter((uuid) => !pairUuids.includes(uuid))
+      : [...currentUuids.filter((uuid) => !pairUuids.includes(uuid)), ...pairUuids];
     try {
       await syncMemberSeats(nextUuids);
     } catch (err) {
@@ -365,7 +373,8 @@ const OrbitBookingPage = () => {
 
   const handleSeatClick = async (seat) => {
     if (!canEditSeats || isSyncing) return;
-    const isSelected = selectedSeats.some((s) => s.seatUuid === seat.seatUuid);
+    const currentUuids = selectionIntentRef.current;
+    const isSelected = currentUuids.includes(seat.seatUuid);
     const mySeatCount = countMyOrbitMemberSeats(room?.members, currentUserUuid, selectedSeats);
     const nextMyCount = isSelected ? Math.max(0, mySeatCount - 1) : mySeatCount + 1;
     if (!isSelected && wouldExceedOrbitRoomSeatLimit(
@@ -378,8 +387,8 @@ const OrbitBookingPage = () => {
       return;
     }
     const nextUuids = isSelected
-      ? selectedSeats.filter((s) => s.seatUuid !== seat.seatUuid).map((s) => s.seatUuid)
-      : [...selectedSeats.map((s) => s.seatUuid), seat.seatUuid];
+      ? currentUuids.filter((uuid) => uuid !== seat.seatUuid)
+      : [...currentUuids, seat.seatUuid];
     try {
       await syncMemberSeats(nextUuids);
     } catch (err) {

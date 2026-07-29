@@ -5,8 +5,17 @@ import { useRealtimeTopic } from './useRealtimeTopic';
 import { REALTIME_TOPICS } from '../constants/realtimeTopics';
 import { parseLayoutConfig } from '../utils/aisleLayoutUtils';
 import { parseSeatMapSelection } from '../utils/orbitUtils';
+import { deriveSeatGapState } from '../utils/seatGapUtils';
 import { notificationService } from '../services/notificationService';
 import { logger } from '../utils/logger';
+
+function normalizeSeatUuids(uuids = []) {
+  return [...new Set((uuids || []).filter(Boolean))];
+}
+
+function getSeatQueryKey(uuids) {
+  return normalizeSeatUuids(uuids).sort().join(',');
+}
 
 /**
  * Shared seat-map fetch, parse, realtime refresh, lock countdown.
@@ -31,7 +40,13 @@ export function useSeatMapState(showtimeUuid, options = {}) {
   const [timeLeft, setTimeLeft] = useState(null);
   const [isMapLoading, setIsMapLoading] = useState(true);
 
-  const selectedSeatsRef = useRef([]);
+  const seatRowsRef = useRef([]);
+  const selectionIntentRef = useRef([]);
+  const selectionIntentInitializedRef = useRef(false);
+  const hasLocalSelectionMutationRef = useRef(false);
+  const selectionRevisionRef = useRef(0);
+  const requestSequenceRef = useRef(0);
+  const latestRequestIdRef = useRef(0);
   const inFlightRef = useRef(null);
   const onLockTimeoutRef = useRef(onLockTimeout);
   const lockTimerEnabledRef = useRef(lockTimerEnabled);
@@ -42,10 +57,6 @@ export function useSeatMapState(showtimeUuid, options = {}) {
   }, [showtimeUuid, lockTimerEnabled]);
 
   useEffect(() => {
-    selectedSeatsRef.current = selectedSeats;
-  }, [selectedSeats]);
-
-  useEffect(() => {
     onLockTimeoutRef.current = onLockTimeout;
   }, [onLockTimeout]);
 
@@ -53,37 +64,108 @@ export function useSeatMapState(showtimeUuid, options = {}) {
     lockTimerEnabledRef.current = lockTimerEnabled;
   }, [lockTimerEnabled]);
 
-  const applySeatMapData = useCallback((data) => {
+  const setSelectionIntent = useCallback((uuids) => {
+    hasLocalSelectionMutationRef.current = true;
+    const nextUuids = normalizeSeatUuids(uuids);
+    const previousUuids = selectionIntentRef.current;
+    const previousKey = getSeatQueryKey(previousUuids);
+    const nextKey = getSeatQueryKey(nextUuids);
+
+    selectionIntentInitializedRef.current = true;
+    if (previousKey !== nextKey) {
+      selectionIntentRef.current = nextUuids;
+      selectionRevisionRef.current += 1;
+      latestRequestIdRef.current = ++requestSequenceRef.current;
+      const { seatRows: nextRows, hasGapViolation: nextHasGapViolation } = deriveSeatGapState(
+        seatRowsRef.current,
+        nextUuids,
+        previousUuids,
+      );
+      const parsedLocalRows = parseSeatMapSelection({ rows: nextRows });
+      seatRowsRef.current = nextRows;
+      setSeatRows(nextRows);
+      setSelectedSeats(parsedLocalRows.selectedSeats.filter((seat) => nextUuids.includes(seat.seatUuid)));
+      setHasGapViolation(nextHasGapViolation);
+      if (nextUuids.length === 0) {
+        setTimeLeft(null);
+      }
+    }
+
+    return nextUuids;
+  }, []);
+
+  const seedSelectionIntent = useCallback((uuids) => {
+    if (selectionIntentInitializedRef.current || hasLocalSelectionMutationRef.current) {
+      return null;
+    }
+
+    const nextUuids = normalizeSeatUuids(uuids);
+    selectionIntentInitializedRef.current = true;
+    selectionIntentRef.current = nextUuids;
+    selectionRevisionRef.current += 1;
+    latestRequestIdRef.current = ++requestSequenceRef.current;
+    return nextUuids;
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectionIntent([]), [setSelectionIntent]);
+
+  const applySeatMapData = useCallback((data, selectedUuids) => {
     if (!data?.rows) {
       return;
     }
     const parsed = parseSeatMapSelection(data);
+    const selectedSet = new Set(selectedUuids);
+    seatRowsRef.current = parsed.seatRows;
     setSeatRows(parsed.seatRows);
     if (parsed.aisleLayoutConfig) {
       setAisleLayout(parseLayoutConfig(parsed.aisleLayoutConfig));
     }
-    setSelectedSeats(parsed.selectedSeats);
+    setSelectedSeats(parsed.selectedSeats.filter((seat) => selectedSet.has(seat.seatUuid)));
     setHasGapViolation(parsed.hasGapViolation);
-    setTimeLeft(parsed.timeLeft);
+    setTimeLeft(selectedUuids.length > 0 ? parsed.timeLeft : null);
   }, []);
 
   const fetchSeatMap = useCallback(async (overrideUuids, fetchOptions = {}) => {
-    const { silent = false } = fetchOptions;
+    const {
+      silent = false,
+      commitIntent = overrideUuids !== undefined,
+    } = fetchOptions;
     if (!showtimeUuid || !enabled) {
       return undefined;
     }
 
-    if (dedupeInFlight && inFlightRef.current) {
-      return inFlightRef.current;
+    const requestedUuids = normalizeSeatUuids(
+      overrideUuids !== undefined ? overrideUuids : selectionIntentRef.current,
+    );
+    if (commitIntent) {
+      setSelectionIntent(requestedUuids);
     }
 
+    const requestRevision = selectionRevisionRef.current;
+    const requestQueryKey = getSeatQueryKey(requestedUuids);
+    const inFlightKey = `${showtimeUuid}:${requestRevision}:${requestQueryKey}`;
+    if (dedupeInFlight && inFlightRef.current?.key === inFlightKey) {
+      return inFlightRef.current.request;
+    }
+
+    const requestId = ++requestSequenceRef.current;
+    latestRequestIdRef.current = requestId;
     const request = (async () => {
       try {
-        const uuids = overrideUuids !== undefined
-          ? overrideUuids
-          : selectedSeatsRef.current.map((seat) => seat.seatUuid);
-        const data = await bookingService.getSeatMap(showtimeUuid, uuids);
-        applySeatMapData(data);
+        const data = await bookingService.getSeatMap(showtimeUuid, requestedUuids);
+        const isCurrentRequest = requestId === latestRequestIdRef.current
+          && requestRevision === selectionRevisionRef.current
+          && requestQueryKey === getSeatQueryKey(selectionIntentRef.current);
+        if (isCurrentRequest) {
+          if (!selectionIntentInitializedRef.current && !hasLocalSelectionMutationRef.current) {
+            const initialUuids = normalizeSeatUuids(
+              parseSeatMapSelection(data).selectedSeats.map((seat) => seat.seatUuid),
+            );
+            selectionIntentInitializedRef.current = true;
+            selectionIntentRef.current = initialUuids;
+          }
+          applySeatMapData(data, selectionIntentRef.current);
+        }
       } catch (error) {
         logger.error('Failed to fetch seat map:', error);
         if (!silent) {
@@ -94,19 +176,37 @@ export function useSeatMapState(showtimeUuid, options = {}) {
           }
         }
       } finally {
-        setIsMapLoading(false);
-        inFlightRef.current = null;
+        if (requestId === latestRequestIdRef.current) {
+          setIsMapLoading(false);
+        }
+        if (inFlightRef.current?.request === request) {
+          inFlightRef.current = null;
+        }
       }
     })();
 
     if (dedupeInFlight) {
-      inFlightRef.current = request;
+      inFlightRef.current = { key: inFlightKey, request };
     }
     return request;
-  }, [showtimeUuid, enabled, dedupeInFlight, applySeatMapData, onFetchError]);
+  }, [showtimeUuid, enabled, dedupeInFlight, applySeatMapData, onFetchError, setSelectionIntent]);
 
   const fetchSeatMapRef = useRef(fetchSeatMap);
   fetchSeatMapRef.current = fetchSeatMap;
+
+  useEffect(() => {
+    selectionIntentRef.current = [];
+    selectionIntentInitializedRef.current = false;
+    hasLocalSelectionMutationRef.current = false;
+    selectionRevisionRef.current += 1;
+    latestRequestIdRef.current = ++requestSequenceRef.current;
+    inFlightRef.current = null;
+    seatRowsRef.current = [];
+    setSeatRows([]);
+    setSelectedSeats([]);
+    setHasGapViolation(false);
+    setTimeLeft(null);
+  }, [showtimeUuid]);
 
   useEffect(() => {
     if (!lockTimerEnabledRef.current || timeLeft === null) {
@@ -117,16 +217,17 @@ export function useSeatMapState(showtimeUuid, options = {}) {
         return undefined;
       }
       lockTimeoutHandledRef.current = true;
+      clearSelection();
       const handler = onLockTimeoutRef.current;
-      if (handler) {
-        Promise.resolve(handler()).catch((err) => logger.error('Failed to handle seat map event:', err));
-      }
+      Promise.resolve(handler?.())
+        .catch((err) => logger.error('Failed to handle seat map event:', err))
+        .finally(() => fetchSeatMapRef.current([], { silent: true, commitIntent: false }));
       setTimeLeft(null);
       return undefined;
     }
     const timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearTimeout(timer);
-  }, [timeLeft, lockTimerEnabled]);
+  }, [timeLeft, lockTimerEnabled, clearSelection]);
 
   useEffect(() => {
     if (!showtimeUuid || !enabled) {
@@ -174,13 +275,16 @@ export function useSeatMapState(showtimeUuid, options = {}) {
     aisleLayout,
     selectedSeats,
     setSelectedSeats,
+    selectionIntentRef,
+    setSelectionIntent,
+    seedSelectionIntent,
+    clearSelection,
     hasGapViolation,
     timeLeft,
     setTimeLeft,
     isMapLoading,
     fetchSeatMap,
     fetchSeatMapRef,
-    selectedSeatsRef,
     applySeatMapData,
   };
 }
