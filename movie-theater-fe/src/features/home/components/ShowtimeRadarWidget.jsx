@@ -112,7 +112,7 @@ const ShowtimeRadarWidget = ({ layout = 'bar', embedded = false }) => {
           suggestions={suggestions}
           loading={loading}
           variant="strip"
-          maxItems={6}
+          maxItems={embedded ? 3 : 6}
           emptyMessage={emptyMessage}
         />
       )}
