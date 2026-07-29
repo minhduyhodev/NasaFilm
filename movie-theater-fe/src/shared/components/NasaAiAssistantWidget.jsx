@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Bot, ChevronRight, Clock, CreditCard, Crown, Gift, Headset, HelpCircle, ImagePlus, Minus, Send, ShieldCheck, Sparkles, Star, Ticket, User, X } from 'lucide-react';
+import { ArrowLeft, Bot, Check, ChevronDown, ChevronRight, Clock, CreditCard, Crown, Gift, Headset, HelpCircle, ImagePlus, Minus, Send, ShieldCheck, Sparkles, Star, Ticket, User, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../features/auth/hooks/useAuthContext';
 import tokenService from '../../features/auth/utils/tokenService';
@@ -18,6 +18,7 @@ import { AI_SESSION_STORAGE_KEY, AI_UI_STATE_KEY, clearNasaBotStorage } from '..
 import { parseSupportStickerMessage } from '../constants/supportStickers';
 import SupportStickerBubble from './SupportStickerBubble';
 import SupportMessageImages from './SupportMessageImages';
+import NasaBotMovieCards from './NasaBotMovieCards';
 import './NasaAiAssistantWidget.css';
 import './NasaAiAssistantWidget.theme.css';
 
@@ -45,6 +46,14 @@ const MIN_SEND_GAP_MS = 1200;
 const MAX_SUPPORT_IMAGES = 3;
 const MAX_SUPPORT_IMAGE_BYTES = 5 * 1024 * 1024;
 const SUPPORT_IMAGE_ACCEPT = 'image/jpeg,image/jpg,image/png,image/webp,image/gif';
+
+const AI_SUGGESTED_PROMPTS = [
+  'Gợi ý phim đang chiếu hay',
+  'Suất chiếu tối nay còn ghế không?',
+  'Cách nạp Ví NASA',
+  'Ưu đãi hội viên hiện có',
+  'Xem phim online như thế nào?',
+];
 
 const CATEGORY_GUIDED_KEYS = new Set(['ticket', 'payment', 'account', 'promo', 'membership']);
 
@@ -426,6 +435,27 @@ const renderRichText = (text, onLinkClick) => {
   ));
 };
 
+/**
+ * When poster cards are shown, hide redundant bullet/numbered movie catalog lines
+ * (title · genre · rating · duration) that duplicate the cards.
+ */
+const stripMovieCatalogLines = (text) => {
+  if (!text || !/\/movie\/[0-9a-fA-F-]{36}/.test(text)) return text;
+  const cleaned = String(text)
+    .split('\n')
+    .filter((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return true;
+      const listItem = /^([•\-*]|\d+[.)])\s+/.test(trimmed);
+      const movieLine = /\/movie\/[0-9a-fA-F-]{36}/.test(trimmed);
+      return !(listItem && movieLine);
+    })
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return cleaned || text;
+};
+
 const NasaAiAssistantWidget = () => {
   const confirm = useConfirm();
   const location = useLocation();
@@ -465,6 +495,7 @@ const NasaAiAssistantWidget = () => {
   const [unreadStaffTicketCodes, setUnreadStaffTicketCodes] = useState([]);
   const [pendingImages, setPendingImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
 
   // Bot reply movie links → navigate in-app and tuck the widget away so the
   // customer lands on the movie page.
@@ -481,6 +512,7 @@ const NasaAiAssistantWidget = () => {
   const botRestoredRef = useRef(false);
   const prevUserKeyRef = useRef(undefined);
   const imageInputRef = useRef(null);
+  const categoryPickerRef = useRef(null);
 
   const currentUser = user || tokenService.getUser();
   const ownerLabel = useMemo(() => getOwnerLabel(currentUser), [currentUser]);
@@ -491,6 +523,17 @@ const NasaAiAssistantWidget = () => {
   useEffect(() => {
     openRef.current = open;
   }, [open]);
+
+  useEffect(() => {
+    if (!categoryMenuOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (categoryPickerRef.current && !categoryPickerRef.current.contains(event.target)) {
+        setCategoryMenuOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [categoryMenuOpen]);
 
   // Keep the active AI session id in localStorage so the chat survives a reload.
   useEffect(() => {
@@ -1124,6 +1167,7 @@ const NasaAiAssistantWidget = () => {
     setWizardDescription('');
     setSelectedCategory(null);
     setShowTicketDrawer(false);
+    setCategoryMenuOpen(false);
   };
 
   const backToBotIntentPick = () => {
@@ -1138,6 +1182,7 @@ const NasaAiAssistantWidget = () => {
     setWizardDescription('');
     setSelectedCategory(null);
     setTyping(false);
+    setCategoryMenuOpen(false);
   };
 
   // When the signed-in account changes (logout, or switching users) reset the whole
@@ -1640,7 +1685,10 @@ const NasaAiAssistantWidget = () => {
       }
 
       if (ai?.reply) {
-        pushBot(ai.reply, { choices: answerMode ? null : normalizeAiChoices(ai.choices) });
+        pushBot(ai.reply, {
+          choices: answerMode ? null : normalizeAiChoices(ai.choices),
+          movies: answerMode && Array.isArray(ai.movies) ? ai.movies : null,
+        });
         hasAiReply = true;
         if (!answerMode && ai?.choices?.length) {
           setGuidedChatActive(true);
@@ -1735,15 +1783,81 @@ const NasaAiAssistantWidget = () => {
     await submitBotMessage(value);
   };
 
-  const handleSupportCategoryChange = (event) => {
-    const category = getCategoryByKey(event.target.value);
+  const selectSupportCategoryFromForm = (category) => {
     setWizardCategory(category || null);
     setSelectedCategory(category || null);
+    setCategoryMenuOpen(false);
   };
 
   const handleSupportFormSubmit = async () => {
     if (typing) return;
     await finalizeSupportRequest();
+  };
+
+  const renderSupportCategoryPicker = () => (
+    <div ref={categoryPickerRef} className={`nasa-cat-picker${categoryMenuOpen ? ' is-open' : ''}`}>
+      <span className="nasa-support-form__label">Danh mục</span>
+      <button
+        type="button"
+        className="nasa-cat-picker__trigger"
+        aria-haspopup="listbox"
+        aria-expanded={categoryMenuOpen}
+        disabled={typing}
+        onClick={() => setCategoryMenuOpen((open) => !open)}
+      >
+        <span className={wizardCategory ? 'nasa-cat-picker__value' : 'nasa-cat-picker__placeholder'}>
+          {wizardCategory?.label || 'Chọn danh mục hỗ trợ'}
+        </span>
+        <ChevronDown className="nasa-cat-picker__chevron h-4 w-4" />
+      </button>
+      {categoryMenuOpen ? (
+        <div className="nasa-cat-picker__menu" role="listbox" aria-label="Danh mục hỗ trợ">
+          {CATEGORIES.map((item) => {
+            const selected = wizardCategory?.key === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className={`nasa-cat-picker__option${selected ? ' is-selected' : ''}`}
+                onClick={() => selectSupportCategoryFromForm(item)}
+              >
+                <span className="nasa-cat-picker__option-copy">
+                  <strong>{item.label}</strong>
+                  <small>{item.hint}</small>
+                </span>
+                {selected ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const renderAiSuggestedPrompts = () => {
+    if (!isAnswerIntent || typing) return null;
+    const hasUserMessage = messages.some((item) => item.role === 'user');
+    if (hasUserMessage) return null;
+
+    return (
+      <div className="nasa-ai-suggestions" aria-label="Câu hỏi gợi ý">
+        <span className="nasa-ai-suggestions__label">Gợi ý hỏi nhanh</span>
+        <div className="nasa-ai-suggestions__list">
+          {AI_SUGGESTED_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              className="nasa-ai-suggestions__chip"
+              onClick={() => { void submitBotMessage(prompt); }}
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const renderSupportForm = () => {
@@ -1760,20 +1874,7 @@ const NasaAiAssistantWidget = () => {
           <span className={`nasa-wizard__badge ${liveAvailability?.anyOnline ? 'nasa-wizard__badge--online' : 'nasa-wizard__badge--offline'}`}>
             {liveAvailability?.anyOnline ? 'Staff online — ưu tiên chat' : 'Chưa có staff — tạo ticket ngay'}
           </span>
-          <label className="nasa-support-form__field">
-            <span className="nasa-support-form__label">Danh mục</span>
-            <select
-              className="nasa-wizard__select"
-              value={wizardCategory?.key || ''}
-              onChange={handleSupportCategoryChange}
-              disabled={typing}
-            >
-              <option value="">— Chọn danh mục —</option>
-              {CATEGORIES.map((item) => (
-                <option key={item.key} value={item.key}>{item.label}</option>
-              ))}
-            </select>
-          </label>
+          {renderSupportCategoryPicker()}
           <label className="nasa-support-form__field">
             <span className="nasa-support-form__label">Mô tả vấn đề</span>
             <textarea
@@ -1994,7 +2095,26 @@ const NasaAiAssistantWidget = () => {
         {message.role === 'bot' ? (
           <div className="nasa-assistant-msg__content">
             <div className="nasa-assistant-bubble nasa-assistant-bubble--bot">
-                {renderRichText(message.text, handleBotLinkClick)}
+                {(() => {
+                  const showMovieCards = Boolean(
+                    message.movies?.length || /\/movie\/[0-9a-fA-F-]{36}/.test(message.text || ''),
+                  );
+                  const bubbleText = showMovieCards
+                    ? stripMovieCatalogLines(message.text)
+                    : message.text;
+                  return (
+                    <>
+                      {renderRichText(bubbleText, handleBotLinkClick)}
+                      {showMovieCards ? (
+                        <NasaBotMovieCards
+                          movies={message.movies}
+                          text={message.text}
+                          onSelect={handleBotLinkClick}
+                        />
+                      ) : null}
+                    </>
+                  );
+                })()}
                 {message.actions?.length > 0 && (
                   <div className="nasa-assistant-card__actions nasa-assistant-card__actions--inline">
                     {message.actions.map((action) => (
@@ -2280,6 +2400,7 @@ const NasaAiAssistantWidget = () => {
                       isSupportIntent ? renderSupportForm() : (
                         <>
                           {messages.map(renderTimelineMessage)}
+                          {renderAiSuggestedPrompts()}
                           {typing && (
                             <div className="nasa-assistant-msg nasa-assistant-msg--bot">
                               <div className="nasa-assistant-msg__content">
