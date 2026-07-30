@@ -133,11 +133,6 @@ const NasaBotConfigPage = () => {
         ...(fullConfig || {}),
         nasaBot: normalizedBotConfig,
       };
-      // Never omit reviewBannedWords — empty omit would reset customs on older backends.
-      if (!Object.prototype.hasOwnProperty.call(payload, 'reviewBannedWords')
-          && Array.isArray(fullConfig?.reviewBannedWords)) {
-        payload.reviewBannedWords = fullConfig.reviewBannedWords;
-      }
       const saved = await systemConfigService.saveConfig(payload);
       setFullConfig(saved);
       setBotConfig(cloneBotConfig(saved?.nasaBot));

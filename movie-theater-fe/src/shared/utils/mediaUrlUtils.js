@@ -134,31 +134,16 @@ export const resolveMediaUrl = (url, width = 400) => {
 
   const trimmed = url.trim();
 
-  // Stream URL giữ nguyên; border trailer/movie → ép sang stream Range.
-  if (isStreamMediaUrl(trimmed)) {
-    return trimmed;
-  }
-  if (isBorderMediaUrl(trimmed)) {
-    try {
-      const parsed = trimmed.startsWith('http')
-        ? new URL(trimmed)
-        : new URL(trimmed, 'http://localhost');
-      const key = decodeURIComponent(parsed.searchParams.get('key') || '');
-      if (/^(movie|trailer)\//i.test(key)) {
-        return toStreamFromKey(key);
-      }
-    } catch {
-      // fall through — giữ border cho poster
-    }
+  // FE luôn dùng link border/stream của BE (không unwrap ra S3).
+  if (isBorderMediaUrl(trimmed) || isStreamMediaUrl(trimmed)) {
     return trimmed;
   }
 
   const unwrapped = unwrapMediaUrl(trimmed);
 
   if (isAwsS3Key(unwrapped)) {
-    // movie/ + trailer/: stream Range same-origin. Poster: border redirect.
-    const keyLower = unwrapped.toLowerCase();
-    if (keyLower.startsWith('movie/') || keyLower.startsWith('trailer/')) {
+    // File phim: stream Range same-origin. Poster/trailer: border redirect.
+    if (unwrapped.toLowerCase().startsWith('movie/')) {
       return toStreamFromKey(unwrapped);
     }
     return toBorderFromKey(unwrapped);
@@ -188,7 +173,6 @@ export const resolveMediaUrl = (url, width = 400) => {
 /**
  * URL phát cho &lt;video&gt;: ưu tiên same-origin `/api/media/stream` (hỗ trợ Range),
  * tránh 302 sang S3 khiến player xoay/kẹt.
- * Trailer: stream công khai (không token). Movie full: stream + vé VOD.
  */
 export const resolvePlayableMediaUrl = async (url) => {
   if (!url?.trim()) {
@@ -209,8 +193,7 @@ export const resolvePlayableMediaUrl = async (url) => {
     }
   }
   const key = unwrapMediaUrl(trimmed);
-  const keyLower = key.toLowerCase();
-  if (keyLower.startsWith('movie/') || keyLower.startsWith('trailer/')) {
+  if (key.toLowerCase().startsWith('movie/')) {
     return toStreamFromKey(key);
   }
   return resolveMediaUrl(trimmed) || trimmed;

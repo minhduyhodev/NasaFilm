@@ -15,6 +15,7 @@ public class MovieFilterRequest {
     private String ageRestriction;
     private UUID actorUuid;
     private UUID cinemaUuid;
+    private String screeningMode;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate showtimeDate;
@@ -135,6 +136,14 @@ public class MovieFilterRequest {
         this.requireAwsStreaming = requireAwsStreaming;
     }
 
+    public String getScreeningMode() {
+        return screeningMode;
+    }
+
+    public void setScreeningMode(String screeningMode) {
+        this.screeningMode = screeningMode;
+    }
+
     /** Stable cache key for {@code @Cacheable} on filtered movie lists. */
     public String toCacheKey() {
         String genres = genreUuids == null || genreUuids.isEmpty()
@@ -151,7 +160,8 @@ public class MovieFilterRequest {
                 showtimeDate == null ? "" : showtimeDate.toString(),
                 Boolean.TRUE.equals(requireBookableShowtime) ? "1" : "0",
                 Boolean.TRUE.equals(onlineOnly) ? "1" : "0",
-                Boolean.TRUE.equals(requireAwsStreaming) ? "1" : "0");
+                Boolean.TRUE.equals(requireAwsStreaming) ? "1" : "0",
+                nullToEmpty(screeningMode));
     }
 
     private static String nullToEmpty(String value) {

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import SeatMapZoomViewport from './SeatMapZoomViewport';
 import {
   buildRowPlacedItems,
   getCoupleLabel,
@@ -26,7 +27,6 @@ import {
 } from '../aisle/aisleMapRender';
 import '../aisle/AisleMapStyles.css';
 import './SeatMapGrid.css';
-import SeatMapZoomViewport from './SeatMapZoomViewport';
 
 const TheaterSeatMapPanel = ({
   seatRows = [],
@@ -228,30 +228,32 @@ const TheaterSeatMapPanel = ({
   };
 
   return (
-    <div className={`flex flex-col items-center w-full min-w-0 overflow-hidden ${className}`}>
+    <div className={`flex flex-col items-center w-full ${className}`}>
       <SeatMapZoomViewport
         cols={maxSeatNumber}
         rowCount={bookingRowNames.length}
         variant="booking"
         className="w-full"
       >
-          <div className="mx-auto mb-4 md:mb-6 text-center shrink-0 w-max max-w-full" data-no-pan>
-            <div className={`screen-curve relative mx-auto w-[65%] h-1 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
-            <p className="text-[9px] font-bold text-gray-500 mt-2 tracking-widest uppercase">{screenLabel}</p>
-          </div>
+        <div className="mx-auto mb-4 md:mb-6 text-center shrink-0 w-max max-w-full" data-no-pan>
+          <div className={`screen-curve relative mx-auto w-[65%] h-1 bg-gradient-to-b ${screenGradient} rounded-[50%] screen-glow`} />
+          <p className="text-[9px] font-bold text-gray-500 mt-2 tracking-widest uppercase">{screenLabel}</p>
+        </div>
         {bookingRowNames.map((row) => {
           const seatsList = bookingSeatsByRow[row] || [];
           const isFullHorizontalAisle = completeHorizontalRows.includes(row);
 
           return (
-            <div key={row} className="seat-map-row mb-1">
-              <div className="seat-map-row__label">
+            <div key={row} className="flex items-center gap-2 mb-1 justify-center w-full">
+              <div
+                className="text-center font-bold text-gray-500 shrink-0 w-6 text-[10px] md:text-xs"
+              >
                 {row}
               </div>
 
               {isFullHorizontalAisle ? (
                 <div
-                  className="seat-map-grid seat-map-grid--booking seat-map-row__grid"
+                  className="seat-map-grid seat-map-grid--booking"
                   style={getSeatMapGridStyle(maxSeatNumber)}
                 >
                   {(() => {
@@ -301,7 +303,7 @@ const TheaterSeatMapPanel = ({
                 </div>
               ) : (
                 <div
-                  className="seat-map-grid seat-map-grid--booking seat-map-row-seats seat-map-row__grid"
+                  className="seat-map-grid seat-map-grid--booking seat-map-row-seats"
                   style={getSeatMapGridStyle(maxSeatNumber)}
                 >
                   {buildRowPlacedItems(
@@ -404,7 +406,7 @@ const TheaterSeatMapPanel = ({
                 </div>
               )}
 
-              <div 
+              <div
                 className="text-center font-bold text-gray-500 shrink-0 w-6 text-[10px] md:text-xs"
               >
                 {row}

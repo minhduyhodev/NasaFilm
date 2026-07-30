@@ -6,9 +6,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
- * Fail-closed gateway for legacy CARD/external charge+refund paths that are not Wallet / VietQR / Counter /
- * Stripe PaymentIntent. Stripe booking flows reconcile the PI then mark Payment COMPLETED in PaymentService
- * without calling this bean.
+ * Fail-closed gateway for CARD/external charge+refund paths that are not Wallet / VietQR / Counter.
+ * Stripe PaymentIntent flows do not use this interface.
  */
 @Service
 public class UnsupportedPaymentGatewayService implements PaymentGatewayService {

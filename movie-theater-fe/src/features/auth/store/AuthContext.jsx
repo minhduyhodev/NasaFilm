@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useCallback, useEffect } from 'react';
 import { authService } from '../api/authService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import tokenService from '../utils/tokenService';
@@ -16,60 +16,7 @@ const clearGuestSessionStorage = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useLocalStorage('auth_user', null);
   const [loading, setLoading] = React.useState(true);
-  const [sessionVerified, setSessionVerified] = React.useState(false);
   const [error, setError] = React.useState(null);
-  const syncInFlightRef = useRef(null);
-
-  const clearSession = useCallback(() => {
-    tokenService.clear();
-    setUser(null);
-    setSessionVerified(false);
-    clearGuestSessionStorage();
-  }, [setUser]);
-
-  /**
-   * Always overwrite local roles/permissions from the server.
-   * localStorage auth_user must never be treated as an authority source.
-   */
-  const syncSession = useCallback(async () => {
-    if (syncInFlightRef.current) {
-      return syncInFlightRef.current;
-    }
-
-    const run = (async () => {
-      const token = tokenService.getToken();
-      if (!token) {
-        clearSession();
-        return null;
-      }
-
-      try {
-        if (tokenService.isTokenExpired(token)) {
-          const refresh = tokenService.getRefreshToken();
-          if (!refresh) {
-            clearSession();
-            return null;
-          }
-          await authService.refreshToken();
-        }
-
-        const serverUser = await authService.getCurrentUser();
-        setUser(serverUser);
-        setSessionVerified(true);
-        return serverUser;
-      } catch {
-        clearSession();
-        return null;
-      }
-    })();
-
-    syncInFlightRef.current = run;
-    try {
-      return await run;
-    } finally {
-      syncInFlightRef.current = null;
-    }
-  }, [clearSession, setUser]);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,31 +24,49 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       try {
         const token = tokenService.getToken();
+        const storedUser = tokenService.getUser();
+
         if (!token) {
-          if (!cancelled) {
-            setUser(null);
-            setSessionVerified(false);
-            clearGuestSessionStorage();
-          }
+          if (!cancelled) setUser(null);
+          clearGuestSessionStorage();
           return;
         }
 
-        const serverUser = await syncSession();
-        if (cancelled) {
+        if (tokenService.isTokenExpired(token)) {
+          const refresh = tokenService.getRefreshToken();
+          if (refresh) {
+            try {
+              await authService.refreshToken();
+              if (!cancelled) {
+                setUser(tokenService.getUser() ?? storedUser);
+              }
+              return;
+            } catch {
+              tokenService.clear();
+              if (!cancelled) setUser(null);
+              clearGuestSessionStorage();
+              return;
+            }
+          }
+          tokenService.clear();
+          if (!cancelled) setUser(null);
+          clearGuestSessionStorage();
           return;
         }
-        if (!serverUser) {
-          setUser(null);
-          setSessionVerified(false);
+
+        if (storedUser) {
+          if (!cancelled) setUser(storedUser);
+        } else {
+          tokenService.clear();
+          if (!cancelled) setUser(null);
+          clearGuestSessionStorage();
         }
       } catch {
-        if (!cancelled) {
-          clearSession();
-        }
+        tokenService.clear();
+        if (!cancelled) setUser(null);
+        clearGuestSessionStorage();
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -109,7 +74,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       cancelled = true;
     };
-  }, [clearSession, setUser, syncSession]);
+  }, [setUser]);
 
   useEffect(() => {
     const refreshSoon = async () => {
@@ -125,7 +90,6 @@ export const AuthProvider = ({ children }) => {
       if (msLeft > 0 && msLeft < 60_000 && tokenService.getRefreshToken()) {
         try {
           await authService.refreshToken();
-          await syncSession();
         } catch {
           // Next API call will trigger interceptor logout.
         }
@@ -137,8 +101,10 @@ export const AuthProvider = ({ children }) => {
       if (!token) {
         return;
       }
-      if (tokenService.isTokenExpired(token) && !tokenService.getRefreshToken()) {
-        clearSession();
+      if (tokenService.isTokenExpired(token)) {
+        tokenService.clear();
+        setUser(null);
+        clearGuestSessionStorage();
       }
     };
 
@@ -148,24 +114,7 @@ export const AuthProvider = ({ children }) => {
     }, 30_000);
 
     return () => window.clearInterval(intervalId);
-  }, [clearSession, syncSession]);
-
-  // If another tab tampers with auth_user, re-pull roles from the server.
-  useEffect(() => {
-    const onStorage = (event) => {
-      if (event.key !== 'auth_user' && event.key !== 'authToken') {
-        return;
-      }
-      if (!tokenService.getToken()) {
-        clearSession();
-        return;
-      }
-      syncSession();
-    };
-
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [clearSession, syncSession]);
+  }, [setUser]);
 
   const login = useCallback(async (credentials) => {
     setLoading(true);
@@ -173,7 +122,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.login(credentials);
       setUser(response.user);
-      setSessionVerified(true);
       return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
@@ -190,7 +138,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.loginWithGoogle(payload);
       setUser(response.user);
-      setSessionVerified(true);
       return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Google login failed';
@@ -221,23 +168,13 @@ export const AuthProvider = ({ children }) => {
     } finally {
       clearGuestSessionStorage();
       setUser(null);
-      setSessionVerified(false);
       setError(null);
     }
   }, [setUser]);
 
   const updateUser = useCallback((updatedUser) => {
-    // Profile updates must never elevate roles/permissions from the client.
-    setUser((prev) => {
-      const next = {
-        ...prev,
-        ...updatedUser,
-        roles: prev?.roles ?? [],
-        permissions: prev?.permissions ?? [],
-      };
-      tokenService.setUser(next);
-      return next;
-    });
+    setUser(updatedUser);
+    tokenService.setUser(updatedUser);
   }, [setUser]);
 
   const resetError = useCallback(() => {
@@ -250,14 +187,12 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
-    sessionVerified,
-    isAuthenticated: !!user && !!token && !tokenService.isTokenExpired(token) && sessionVerified,
+    isAuthenticated: !!user && !!token && !tokenService.isTokenExpired(token),
     login,
     loginWithGoogle,
     register,
     logout,
     updateUser,
-    syncSession,
     resetError,
   };
 

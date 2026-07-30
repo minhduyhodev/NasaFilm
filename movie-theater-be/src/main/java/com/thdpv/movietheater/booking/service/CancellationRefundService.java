@@ -296,8 +296,8 @@ public class CancellationRefundService {
                 response.setMessage("Hủy vé thành công. Tiền đã hoàn về Ví NASA.");
             } else {
                 response.setMessage(isOnlineBooking(booking)
-                        ? "Hủy vé online thành công. Tiền hoàn qua cổng thanh toán gốc trong 3-7 ngày làm việc."
-                        : "Hủy vé thành công. Tiền hoàn qua cổng thanh toán gốc trong 3-7 ngày làm việc.");
+                        ? "Hủy vé online thành công. Tiền hoàn sẽ được xử lý trong 3-7 ngày làm việc."
+                        : "Hủy vé thành công. Tiền hoàn sẽ được xử lý trong 3-7 ngày làm việc.");
             }
         } else {
             response.setMessage("Hủy vé thành công. Vé không được hoàn tiền theo chính sách.");

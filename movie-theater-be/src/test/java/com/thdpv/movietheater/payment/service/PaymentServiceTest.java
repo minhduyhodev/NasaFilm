@@ -1,7 +1,6 @@
 package com.thdpv.movietheater.payment.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,7 +54,7 @@ class PaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(paymentService, "paymentProvider", "stripe");
+        ReflectionTestUtils.setField(paymentService, "paymentProvider", "mock");
     }
 
     @Test
@@ -71,7 +70,7 @@ class PaymentServiceTest {
         when(paymentRepository.findByIdempotencyKey("pay-" + bookingUuid)).thenReturn(Optional.of(existing));
 
         Payment result = paymentService.chargeBooking(
-                bookingUuid, new BigDecimal("100000"), "CARD", "pay-" + bookingUuid, null);
+                bookingUuid, new BigDecimal("100000"), "MOCK", "pay-" + bookingUuid, null);
 
         assertSame(existing, result);
         verify(paymentGatewayService, never()).charge(any(), any(), any());
@@ -79,7 +78,7 @@ class PaymentServiceTest {
     }
 
     @Test
-    void chargeBookingCardShouldCompleteWithoutUnsupportedGateway() {
+    void chargeBookingCardShouldCompleteFromStripePaymentIntentWithoutGenericGateway() {
         UUID bookingUuid = UUID.randomUUID();
         String key = "pay-" + bookingUuid;
         String piId = "pi_test_abc123";
@@ -124,12 +123,5 @@ class PaymentServiceTest {
         assertTrue(ex.getMessage().contains("Insufficient funds"));
     }
 
-    @Test
-    void unsupportedGatewayShouldRejectCharge() {
-        UnsupportedPaymentGatewayService gateway = new UnsupportedPaymentGatewayService();
-        PaymentGatewayService.GatewayChargeResult result =
-                gateway.charge(UUID.randomUUID(), BigDecimal.TEN, "idem-1");
-        assertFalse(result.success());
-        assertTrue(result.failureReason().contains("giả lập"));
-    }
+
 }

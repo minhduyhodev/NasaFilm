@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowDownCircle, Loader2, RefreshCw, Wallet,
-  X, QrCode, CreditCard, CheckCircle2, CalendarDays,
+  ArrowDownCircle, ArrowUpCircle, Loader2, RefreshCw, Wallet,
+  X, QrCode, CreditCard, Zap, CheckCircle2, CalendarDays,
 } from 'lucide-react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -12,6 +12,7 @@ import {
   useWalletTransactions,
   useInvalidateWallet,
 } from '../../../shared/hooks/queries/useWalletQuery';
+import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import Pagination from '../../../shared/components/Pagination';
 import WalletVietQRModal from './WalletVietQRModal';
 import './AccountUtilityPages.css';
@@ -44,6 +45,7 @@ const TX_FILTERS = [
   { id: 'TOP_UP',   label: 'Nạp' },
   { id: 'PAYMENT',  label: 'Thanh toán' },
   { id: 'REFUND',   label: 'Hoàn' },
+  { id: 'WITHDRAW', label: 'Rút' },
 ];
 
 /* ─── Stripe form ─── */
@@ -119,18 +121,24 @@ function MethodCard({ id, icon: Icon, iconColor, title, subtitle, selected, onCl
     <button
       type="button"
       onClick={() => onClick(id)}
-      className={`wallet-method-card${selected ? ' is-selected' : ''}`}
+      className={`relative w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer ${
+        selected
+          ? 'border-red-500/60 bg-red-500/10 shadow-lg shadow-red-500/10'
+          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'
+      }`}
     >
-      <div className="wallet-method-card__row">
-        <div className={`wallet-method-card__icon ${selected ? 'is-selected' : ''}`}>
-          <Icon className={`w-5 h-5 ${selected ? 'text-red-300' : iconColor}`} />
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+          selected ? 'bg-red-500/20' : 'bg-white/5'
+        }`}>
+          <Icon className={`w-5 h-5 ${selected ? 'text-red-400' : iconColor}`} />
         </div>
-        <div className="wallet-method-card__content">
-          <p className="wallet-method-card__title">{title}</p>
-          <p className="wallet-method-card__subtitle">{subtitle}</p>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-bold ${selected ? 'text-white' : 'text-gray-300'}`}>{title}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
         </div>
         {selected && (
-          <CheckCircle2 className="wallet-method-card__check" />
+          <CheckCircle2 className="w-5 h-5 text-red-400 shrink-0" />
         )}
       </div>
     </button>
@@ -139,11 +147,12 @@ function MethodCard({ id, icon: Icon, iconColor, title, subtitle, selected, onCl
 
 /* ─── Main WalletPage ─── */
 const WalletPage = () => {
+  const confirm       = useConfirm();
   const { data: summary, isLoading, refetch } = useWalletSummary();
   const invalidateWallet = useInvalidateWallet();
 
   const [amount,        setAmount]        = useState('');
-  const [selectedMethod, setSelectedMethod] = useState(null); // 'vietqr' | 'stripe'
+  const [selectedMethod, setSelectedMethod] = useState(null); // 'mock' | 'vietqr' | 'stripe'
   const [isSubmitting,  setIsSubmitting]  = useState(false);
   const [clientSecret,  setClientSecret]  = useState('');
   const [pendingAmount, setPendingAmount] = useState(null);
@@ -175,7 +184,9 @@ const WalletPage = () => {
   const quickAmounts = summary?.quickAmounts?.length
     ? summary.quickAmounts.map(Number)
     : FALLBACK_QUICK_AMOUNTS;
+  const mockMode    = summary?.mockMode !== false;
 
+  // Set default amount on load
   useEffect(() => {
     if (amount) return;
     const defaults = summary?.quickAmounts?.length
@@ -206,7 +217,30 @@ const WalletPage = () => {
       return;
     }
 
+    if (selectedMethod === 'mock') {
+      const ok = await confirm({
+        title:        'Xác nhận nạp tiền',
+        message:      'Bạn có chắc muốn nạp tiền vào Ví NASA?',
+        highlight:    formatMoney(value),
+        confirmLabel: 'Nạp tiền',
+        variant:      'warning',
+      });
+      if (!ok) return;
+      setIsSubmitting(true);
+      try {
+        await walletService.topUp(value);
+        await invalidateWallet();
+        notificationService.success(`Nạp ${formatMoney(value)} vào ví NASA thành công`);
+      } catch (err) {
+        notificationService.error(err?.message || 'Nạp tiền thất bại');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     if (selectedMethod === 'vietqr') {
+      if (!validateAmount(value)) return;
       setShowVietQR(true);
       return;
     }
@@ -215,6 +249,11 @@ const WalletPage = () => {
       setIsSubmitting(true);
       try {
         const intent = await walletService.createTopUpIntent(value);
+        if (intent?.mockMode) {
+          await invalidateWallet();
+          notificationService.success(`Nạp ${formatMoney(value)} vào ví NASA thành công`);
+          return;
+        }
         if (!intent?.clientSecret) throw new Error('Không nhận được clientSecret từ máy chủ');
         setPendingAmount(value);
         setClientSecret(intent.clientSecret);
@@ -223,6 +262,7 @@ const WalletPage = () => {
       } finally {
         setIsSubmitting(false);
       }
+      return;
     }
   };
 
@@ -235,20 +275,45 @@ const WalletPage = () => {
     notificationService.success(`Nạp ${formatMoney(pendingAmount)} vào ví NASA thành công`);
   };
 
+  const handleWithdraw = async () => {
+    if (!mockMode) {
+      notificationService.warning('Rút tiền mô phỏng chỉ khả dụng ở chế độ mock');
+      return;
+    }
+    const value = Number(amount);
+    if (!validateAmount(value)) return;
+    setIsSubmitting(true);
+    try {
+      await walletService.withdraw(value);
+      await invalidateWallet();
+      notificationService.success(`Rút ${formatMoney(value)} từ ví NASA thành công`);
+    } catch (err) {
+      notificationService.error(err?.message || 'Rút tiền thất bại');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const transactions = txData?.content || [];
   const totalTransactions = Number(txData?.totalElements || 0);
 
+  /* Build available methods */
   const methods = [
+    ...(mockMode ? [{
+      id: 'mock', icon: Zap, iconColor: 'text-yellow-400',
+      title: 'Mock (Mô phỏng tức thì)',
+      subtitle: 'Cộng tiền ngay lập tức — chỉ dành cho môi trường dev/test',
+    }] : []),
     {
       id: 'vietqr', icon: QrCode, iconColor: 'text-blue-400',
-      title: 'VietQR · Chuyển khoản ngân hàng',
+      title: 'VietQR — Chuyển khoản ngân hàng',
       subtitle: 'Quét mã QR bằng app ngân hàng, tự động xác nhận',
     },
-    {
+    ...(!mockMode ? [{
       id: 'stripe', icon: CreditCard, iconColor: 'text-violet-400',
-      title: 'Stripe · Thẻ quốc tế',
+      title: 'Stripe — Thẻ quốc tế',
       subtitle: 'Visa / Mastercard / American Express',
-    },
+    }] : []),
   ];
 
   return (
@@ -259,7 +324,8 @@ const WalletPage = () => {
             <span className="account-page__eyebrow">Tài khoản / Ví</span>
             <h1 className="account-page__title">Ví NASA</h1>
             <p className="account-page__intro">
-              Nạp tiền vào ví để thanh toán vé xem phim nhanh hơn, hỗ trợ VietQR và thẻ quốc tế.
+              Nạp tiền vào ví để thanh toán vé xem phim nhanh hơn — hỗ trợ VietQR, thẻ quốc tế
+              {mockMode ? ' và mô phỏng tức thì cho môi trường thử nghiệm.' : '.'}
             </p>
           </div>
           <button
@@ -296,7 +362,6 @@ const WalletPage = () => {
                 </>
               ) : (
                 <>
-                  <div className="wallet-section-label">Nạp tiền vào ví</div>
                   <div className="account-chip-list" aria-label="Chọn nhanh số tiền">
                     {quickAmounts.map((value) => (
                       <button
@@ -310,28 +375,22 @@ const WalletPage = () => {
                       </button>
                     ))}
                   </div>
-                  <label className="wallet-amount-field">
-                    <span className="wallet-section-label">Số tiền muốn nạp</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      value={amount ? Number(amount).toLocaleString('vi-VN') : ''}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, '');
-                        setAmount(digits.slice(0, 9));
-                      }}
-                      className="account-input wallet-amount-field__input"
-                      aria-label="Số tiền giao dịch"
-                      placeholder={`Nhập số tiền bất kỳ, tối thiểu ${formatMoney(minTopUp)}`}
-                    />
-                    <span className="wallet-amount-field__hint">
-                      Tối thiểu {formatMoney(minTopUp)} · Tối đa {formatMoney(maxTopUp)}
-                    </span>
-                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={amount ? Number(amount).toLocaleString('vi-VN') : ''}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '');
+                      setAmount(digits.slice(0, 9));
+                    }}
+                    className="account-input"
+                    aria-label="Số tiền giao dịch"
+                    placeholder={`Nhập số tiền bất kỳ, tối thiểu ${formatMoney(minTopUp)}`}
+                  />
 
-                  <div className="wallet-method-section">
-                    <p className="wallet-section-label">Chọn phương thức nạp tiền</p>
+                  <div className="mb-5">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Chọn phương thức nạp tiền</p>
                     <div className="wallet-method-grid">
                       {methods.map((m) => (
                         <MethodCard
@@ -344,7 +403,7 @@ const WalletPage = () => {
                     </div>
                   </div>
 
-                  <div className="account-actions wallet-submit-row">
+                  <div className="account-actions">
                     <button
                       type="button"
                       disabled={isSubmitting || !selectedMethod}
@@ -354,6 +413,17 @@ const WalletPage = () => {
                       {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownCircle className="h-4 w-4" />}
                       {selectedMethod === 'vietqr' ? 'Tạo mã QR' : 'Nạp tiền'}
                     </button>
+                    {mockMode && (
+                      <button
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={handleWithdraw}
+                        className="account-action account-action--secondary"
+                      >
+                        <ArrowUpCircle className="h-4 w-4" />
+                        Rút tiền (Mock)
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -361,7 +431,6 @@ const WalletPage = () => {
           </div>
 
           <aside className="wallet-balance wallet-secondary" aria-labelledby="wallet-balance-title">
-            <div className="wallet-balance__badge">NASA Wallet</div>
             <div className="wallet-balance__label" id="wallet-balance-title">
               <Wallet className="h-5 w-5" />
               Số dư khả dụng
@@ -371,9 +440,8 @@ const WalletPage = () => {
             ) : (
               <p className="wallet-balance__value">{formatMoney(summary?.balance)}</p>
             )}
-            <div className="wallet-balance__glow" aria-hidden />
             <p className="wallet-balance__provider">
-              Live Gateway / {summary?.provider || 'stripe'}
+              {mockMode ? 'Mock Gateway' : 'Live Gateway'} / {summary?.provider || (mockMode ? 'mock' : 'stripe')}
             </p>
           </aside>
         </div>
@@ -504,6 +572,7 @@ const WalletPage = () => {
         </section>
       </main>
 
+      {/* VietQR modal */}
       {showVietQR && (
         <WalletVietQRModal
           amount={Number(amount)}

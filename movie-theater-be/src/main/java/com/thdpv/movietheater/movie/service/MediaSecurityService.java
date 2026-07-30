@@ -25,7 +25,7 @@ public class MediaSecurityService {
     private final MovieRepository movieRepository;
 
     /**
-     * Xác thực token vé VOD khi stream key movie/ (trailer công khai không gọi method này).
+     * Xác thực token vé VOD khi stream key movie/.
      */
     public void assertVodStreamAllowed(String objectKey, String token) {
         if (objectKey == null || !objectKey.toLowerCase(Locale.ROOT).startsWith("movie/")) {

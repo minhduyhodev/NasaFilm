@@ -9,6 +9,8 @@ import {
 import { AuthProvider } from "./features/auth/store/AuthContext";
 import { AuthRoutes } from "./features/auth/routes/index.jsx";
 import { HomeRoutes } from "./features/home/routes/index.jsx";
+import { AdminRoutes } from "./features/admin/routes/index.jsx";
+import { CounterRoutes } from "./features/counter/index.js";
 import { ProtectedRoute } from "./features/auth/components/ProtectedRoute.jsx";
 import { PublicRoute } from "./features/auth";
 import { NotificationProvider } from "./shared/context/NotificationContext";
@@ -24,16 +26,6 @@ const LoginPage = lazy(() => import("./features/auth/pages/LoginPage"));
 const RegisterPage = lazy(() => import("./features/auth/pages/RegisterPage"));
 const UnauthorizedPage = lazy(
   () => import("./features/auth/pages/UnauthorizedPage"),
-);
-const AdminRoutes = lazy(() =>
-  import("./features/admin/routes/index.jsx").then((m) => ({
-    default: m.AdminRoutes,
-  })),
-);
-const CounterRoutes = lazy(() =>
-  import("./features/counter/index.js").then((m) => ({
-    default: m.CounterRoutes,
-  })),
 );
 
 const AuthPageLoader = () => (
@@ -109,9 +101,7 @@ export default function App() {
                   path="/admin/*"
                   element={
                     <ProtectedRoute allowedRoles={["admin", "staff"]}>
-                      <Suspense fallback={<AuthPageLoader />}>
-                        <AdminRoutes />
-                      </Suspense>
+                      <AdminRoutes />
                     </ProtectedRoute>
                   }
                 />
@@ -120,9 +110,7 @@ export default function App() {
                   path="/counter/*"
                   element={
                     <ProtectedRoute allowedRoles={["admin", "staff"]}>
-                      <Suspense fallback={<AuthPageLoader />}>
-                        <CounterRoutes />
-                      </Suspense>
+                      <CounterRoutes />
                     </ProtectedRoute>
                   }
                 />

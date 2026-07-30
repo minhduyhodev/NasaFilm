@@ -496,12 +496,10 @@
     0 8px 24px rgba(239, 68, 68, 0.2);
 }
 
-/* POS — seat map scroll handled by SeatMapZoomViewport */
+/* POS ? same seat map shell as user booking page */
 .counter-pos-seatmap {
   width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
   padding: 0.25rem 0;
 }
 
@@ -924,27 +922,6 @@
 .staff-control__ticket-customer,
 .staff-control__ticket-combos {
   margin-bottom: 0.75rem;
-}
-
-.staff-control__ticket-movie {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.staff-control__ticket-poster {
-  width: 3.25rem;
-  height: 4.5rem;
-  flex-shrink: 0;
-  object-fit: cover;
-  border-radius: 0.45rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.staff-control__ticket-movie-copy {
-  min-width: 0;
-  flex: 1;
 }
 
 .staff-control__ticket-grid {
@@ -2428,8 +2405,6 @@
 .counter-pos__map-body {
   flex: 1;
   min-height: 0;
-  min-width: 0;
-  overflow: hidden;
 }
 
 .counter-pos__map-empty {
@@ -2566,11 +2541,6 @@
   .staff-control__ticket-stub * {
     color: #000 !important;
     border-color: #000 !important;
-  }
-
-  .staff-control__ticket-poster {
-    border-color: #ccc !important;
-    background: #eee !important;
   }
 
   .staff-control__ticket-qr {

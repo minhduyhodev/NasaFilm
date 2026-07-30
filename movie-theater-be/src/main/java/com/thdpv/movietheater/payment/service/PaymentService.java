@@ -47,11 +47,10 @@ public class PaymentService {
     }
 
     /**
-     * True when the booking payment gateway is the always-succeeds mock
-     * (demo/local), not a real provider.
+     * True only when an explicit local/demo mock provider is configured.
      */
     public boolean isMockProvider() {
-        return paymentProvider == null || "mock".equalsIgnoreCase(paymentProvider.trim());
+        return "mock".equalsIgnoreCase(paymentProvider != null ? paymentProvider.trim() : null);
     }
 
     @Transactional(readOnly = true)
@@ -105,7 +104,7 @@ public class PaymentService {
                 .orElseGet(() -> chargeBooking(
                         booking.getUuid(),
                         booking.getTotalPrice(),
-                        method != null ? method : "CARD",
+                        method != null ? method : "MOCK",
                         "pay-" + booking.getUuid()));
     }
 
@@ -235,7 +234,7 @@ public class PaymentService {
 
     private String normalizeMethod(String method) {
         if (method == null || method.isBlank()) {
-            return "CARD";
+            return "MOCK";
         }
         return switch (method.toLowerCase()) {
             case "wallet" -> "WALLET";

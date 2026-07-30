@@ -1,30 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 import { dismissToast, runToastAction, subscribeToToasts } from '../../shared/services/notificationService';
 import './ToastViewport.css';
 
 const TOAST_STYLES = {
-  success: { accent: 'bg-emerald-500' },
-  error: { accent: 'bg-red-500' },
-  warning: { accent: 'bg-amber-500' },
-  info: { accent: 'bg-sky-500' },
-  loading: { accent: 'bg-slate-400' },
+  success: {
+    accent: 'bg-emerald-500',
+    title: 'Success',
+  },
+  error: {
+    accent: 'bg-red-500',
+    title: 'Lỗi',
+  },
+  warning: {
+    accent: 'bg-amber-500',
+    title: 'Warning',
+  },
+  info: {
+    accent: 'bg-sky-500',
+    title: 'Info',
+  },
+  loading: {
+    accent: 'bg-slate-400',
+    title: 'Loading',
+  },
 };
-
-/** Không bao giờ hiện nhãn loại toast. */
-const TYPE_LABELS = new Set([
-  'success',
-  'error',
-  'warning',
-  'info',
-  'loading',
-  'lỗi',
-  'loi',
-  'thành công',
-  'thanh cong',
-]);
 
 const LoadingSpinner = () => (
   <div className="h-4 w-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
@@ -35,41 +36,21 @@ const handleActionClick = (toast) => {
   dismissToast(toast.id);
 };
 
-/** Chỉ lấy nội dung thông báo — bỏ title / Success / Error / Info. */
-const resolveMessage = (toast) => {
-  const message = typeof toast.message === 'string' ? toast.message.trim() : '';
-  const title = typeof toast.title === 'string' ? toast.title.trim() : '';
-  const primary = message || title;
-  if (!primary) return '';
-  if (TYPE_LABELS.has(primary.toLowerCase())) return '';
-  return primary;
-};
-
 export const ToastViewport = () => {
   const [toasts, setToasts] = useState([]);
 
   useEffect(() => subscribeToToasts(setToasts), []);
 
-  const visibleToasts = useMemo(
-    () => toasts
-      .map((toast) => ({ toast, message: resolveMessage(toast) }))
-      .filter((item) => item.message),
-    [toasts],
-  );
-
-  if (visibleToasts.length === 0 || typeof document === 'undefined') {
+  if (toasts.length === 0) {
     return null;
   }
 
-  return createPortal(
-    <div
-      className="toast-viewport pointer-events-none fixed bottom-4 right-4 z-[9999] flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-3"
-      aria-live="polite"
-      aria-relevant="additions"
-    >
-      {visibleToasts.map(({ toast, message }) => {
+  return (
+    <div className="toast-viewport pointer-events-none fixed bottom-4 right-4 z-[9999] flex w-[360px] max-w-[calc(100vw-2rem)] flex-col gap-3">
+      {toasts.map((toast) => {
         const style = TOAST_STYLES[toast.type] ?? TOAST_STYLES.info;
         const isMessage = toast.variant === 'message';
+        const title = toast.title || style.title;
 
         return (
           <div
@@ -78,7 +59,6 @@ export const ToastViewport = () => {
               'toast-card pointer-events-auto overflow-hidden rounded-2xl border border-white/10 bg-[#11131a] shadow-[0_20px_60px_rgba(0,0,0,0.35)]',
               isMessage ? 'toast-card--message' : '',
             ].filter(Boolean).join(' ')}
-            role="status"
           >
             <div className={`h-1 w-full ${isMessage ? 'bg-rose-500' : style.accent}`} />
             <div className="flex items-start gap-3 p-4">
@@ -94,7 +74,8 @@ export const ToastViewport = () => {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="break-words text-sm font-medium text-white">{message}</p>
+                <p className="text-sm font-semibold text-white">{title}</p>
+                <p className="mt-1 break-words text-sm text-slate-300">{toast.message}</p>
                 {toast.actionLabel && toast.actionPath ? (
                   <Link
                     to={toast.actionPath}
@@ -128,8 +109,7 @@ export const ToastViewport = () => {
           </div>
         );
       })}
-    </div>,
-    document.body,
+    </div>
   );
 };
 

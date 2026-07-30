@@ -19,7 +19,7 @@ const OrbitSeatMapSection = ({
     : null;
 
   return (
-    <section className="w-full min-w-0 overflow-hidden flex flex-col items-center bg-[#111215]/30 border border-white/5 p-6 rounded-2xl orbit-booking__panel">
+    <section className="w-full flex flex-col items-center bg-[#111215]/30 border border-white/5 p-6 rounded-2xl orbit-booking__panel">
       {isSyncing && (
         <p className="text-xs text-amber-400 mb-3 self-start flex items-center gap-1.5">
           <Loader2 className="w-3.5 h-3.5 animate-spin" />

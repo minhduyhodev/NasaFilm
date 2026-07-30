@@ -48,6 +48,7 @@ const MediaCatalogPage = () => {
   const [genresList, setGenresList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [actorCountryFilter, setActorCountryFilter] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,6 +83,7 @@ const MediaCatalogPage = () => {
 
   useEffect(() => {
     setSearchTerm("");
+    setActorCountryFilter("");
     setCurrentPage(1);
   }, [activeTab]);
 
@@ -92,12 +94,15 @@ const MediaCatalogPage = () => {
   const filteredActors = useMemo(
     () =>
       actors.filter(
-        (actor) =>
-          actor.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (actor) => {
+          const matchSearch = actor.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (actor.countryName &&
-            actor.countryName.toLowerCase().includes(searchTerm.toLowerCase())),
+            actor.countryName.toLowerCase().includes(searchTerm.toLowerCase()));
+          const matchCountry = actorCountryFilter ? actor.countryUuid === actorCountryFilter : true;
+          return matchSearch && matchCountry;
+        }
       ),
-    [actors, searchTerm],
+    [actors, searchTerm, actorCountryFilter],
   );
 
   const filteredCountries = useMemo(
@@ -437,15 +442,31 @@ const MediaCatalogPage = () => {
               items={TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
               ariaLabel="Danh mục truyền thông"
             />
-            <div className="adm-toolbar__search max-w-md w-full">
-              <Search className="adm-toolbar__search-icon" />
-              <input
-                type="text"
-                className="adm-input"
-                placeholder={searchPlaceholder}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex items-center gap-2 max-w-md w-full">
+              {activeTab === "actors" && (
+                <select
+                  className="adm-input w-48 shrink-0 bg-transparent text-sm font-medium"
+                  value={actorCountryFilter}
+                  onChange={(e) => setActorCountryFilter(e.target.value)}
+                >
+                  <option value="">Tất cả quốc gia</option>
+                  {countriesList.map((c) => (
+                    <option key={c.uuid} value={c.uuid}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <div className="adm-toolbar__search flex-1">
+                <Search className="adm-toolbar__search-icon" />
+                <input
+                  type="text"
+                  className="adm-input"
+                  placeholder={searchPlaceholder}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         }

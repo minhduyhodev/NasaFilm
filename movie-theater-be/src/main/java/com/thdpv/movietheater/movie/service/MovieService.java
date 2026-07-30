@@ -251,6 +251,15 @@ public class MovieService {
                 predicates.add(cb.equal(movieCountryJoin.get("country").get("uuid"), countryUuid));
             }
 
+            String screeningMode = filter.getScreeningMode();
+            if (screeningMode != null && !screeningMode.isBlank()) {
+                try {
+                    predicates.add(cb.equal(root.get("screeningMode"), ScreeningMode.valueOf(screeningMode.trim().toUpperCase())));
+                } catch (IllegalArgumentException e) {
+                    // Ignore invalid screeningMode
+                }
+            }
+
             String ageRestriction = filter.getAgeRestriction();
             if (ageRestriction != null && !ageRestriction.isBlank()) {
                 predicates.add(cb.equal(root.get("ageRestriction"), ageRestriction.trim()));
@@ -1042,14 +1051,10 @@ public class MovieService {
     }
 
     private MovieMediaResponse toMovieMediaResponse(MovieMedia movieMedia) {
-        String mediaType = movieMedia.getMediaType();
-        String playableUrl = "TRAILER".equalsIgnoreCase(mediaType)
-                ? toPlayableStreamingUrl(movieMedia.getMediaUrl())
-                : toBorderMediaUrl(movieMedia.getMediaUrl());
         return new MovieMediaResponse(
                 movieMedia.getUuid(),
-                playableUrl,
-                mediaType,
+                toBorderMediaUrl(movieMedia.getMediaUrl()),
+                movieMedia.getMediaType(),
                 movieMedia.getTitle(),
                 movieMedia.getIsPrimary(),
                 movieMedia.getSortOrder(),
@@ -1061,7 +1066,7 @@ public class MovieService {
         return S3MediaBorderUtils.toBorderUrl(mediaUrl);
     }
 
-    /** File phim (movie/) hoặc trailer → /api/media/stream; poster giữ border. */
+    /** File phim (movie/) → /api/media/stream; còn lại giữ border. */
     private String toPlayableStreamingUrl(String mediaUrl) {
         return S3MediaBorderUtils.toStreamUrl(mediaUrl);
     }

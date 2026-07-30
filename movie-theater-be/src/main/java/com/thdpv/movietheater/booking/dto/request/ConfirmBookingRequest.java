@@ -22,7 +22,7 @@ public class ConfirmBookingRequest {
 
     private String promotionCode;
 
-    /** wallet | card | apple | momo — mapped by PaymentService */
+    /** wallet | card | apple | momo — mapped by PaymentService when provider=mock */
     private String paymentMethod;
 
     /** Present when checkout originates from an Orbit group room (host pays all). */

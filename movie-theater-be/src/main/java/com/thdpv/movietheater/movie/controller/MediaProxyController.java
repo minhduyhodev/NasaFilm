@@ -80,14 +80,11 @@ public class MediaProxyController {
         } else {
             resolvedKey = S3MediaBorderUtils.sanitizeKey(resolvedKey);
         }
-        if (resolvedKey == null || !S3MediaBorderUtils.isStreamableKey(resolvedKey)) {
+        if (resolvedKey == null || !resolvedKey.toLowerCase(Locale.ROOT).startsWith("movie/")) {
             return ResponseEntity.badRequest().build();
         }
 
-        // Trailer công khai — xem ngay. Chỉ file movie/ mới bắt token vé VOD.
-        if (S3MediaBorderUtils.requiresVodStreamToken(resolvedKey)) {
-            mediaSecurityService.assertVodStreamAllowed(resolvedKey, resolvedToken);
-        }
+        mediaSecurityService.assertVodStreamAllowed(resolvedKey, resolvedToken);
 
         return mediaS3Service.buildStreamResponse(resolvedKey, rangeHeader);
     }

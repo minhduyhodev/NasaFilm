@@ -289,11 +289,6 @@ const MovieReviewsSection = ({
         vibeTags: selectedVibeTags,
       });
       notificationService.success('Đã gửi đánh giá.');
-      notificationService.addNotification(
-        'Đánh giá phim',
-        'Đã gửi đánh giá của bạn.',
-        'success',
-      );
       showMissionCompletionToasts(reviewResponse?.missionCompletions);
       await refreshAll();
       setRating(0);
@@ -321,11 +316,6 @@ const MovieReviewsSection = ({
     try {
       await movieReviewService.deleteReview(movieUuid, reviewUuid);
       notificationService.success('Đã xóa đánh giá.');
-      notificationService.addNotification(
-        'Đánh giá phim',
-        'Đã xóa đánh giá của bạn.',
-        'info',
-      );
       setRating(0);
       setComment('');
       setSelectedVibeTags([]);
@@ -379,11 +369,6 @@ const MovieReviewsSection = ({
     try {
       await movieReviewService.reportReview(movieUuid, review.uuid, result.value.trim());
       notificationService.success('Đã gửi báo cáo. Admin sẽ xem xét sớm nhất.');
-      notificationService.addNotification(
-        'Báo cáo bình luận',
-        'Đã gửi báo cáo. Admin sẽ xem xét sớm nhất.',
-        'success',
-      );
       setReviews((prev) =>
         prev.map((item) =>
           item.uuid === review.uuid ? { ...item, reportedByMe: true } : item,
