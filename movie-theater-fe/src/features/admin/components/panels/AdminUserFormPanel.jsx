@@ -144,16 +144,7 @@ const AdminUserFormPanel = ({ mode = 'STAFF', initialPermissions, onSuccess, onC
             required
           />
         </div>
-        {isStaff && (
-          <div className="sm:col-span-2">
-            <div className="flex items-start gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2">
-              <span className="text-blue-400 mt-0.5">🔐</span>
-              <p className="text-xs text-blue-300/80">
-                Mật khẩu sẽ được <strong className="text-blue-300">tạo tự động</strong> và gửi kèm trong email kích hoạt. Nhân viên cần nhấn link để đặt mật khẩu mới.
-              </p>
-            </div>
-          </div>
-        )}
+
       </div>
 
       {isStaff && (

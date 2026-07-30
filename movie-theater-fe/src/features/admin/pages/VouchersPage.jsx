@@ -8,6 +8,8 @@ import {
   Pause,
   Edit2,
   Trash2,
+  X,
+  ChevronDown,
 } from "lucide-react";
 import { adminPromotionService } from "../api/adminPromotionService";
 import { notificationService } from "../../../shared/services/notificationService";
@@ -33,6 +35,129 @@ import {
 import { useConfirm } from "../../../shared/context/ConfirmDialogContext";
 import { resolveTierLabelByMinScore } from "../../../shared/utils/memberTiers";
 import "./VouchersPage.css";
+import { createPortal } from 'react-dom';
+
+const FilterDropdown = ({ label, value, options, onChange, className = '' }) => {
+  const [open, setOpen] = React.useState(false);
+  const [coords, setCoords] = React.useState(null);
+  const rootRef = React.useRef(null);
+  const triggerRef = React.useRef(null);
+  const menuRef = React.useRef(null);
+  const listId = React.useId();
+  const selected = options.find((o) => o.value === value);
+
+  const updatePosition = () => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const menuWidth = Math.max(rect.width, 240);
+    const gap = 6;
+    const pad = 8;
+    let left = rect.left;
+    if (left + menuWidth > window.innerWidth - pad) {
+      left = Math.max(pad, rect.right - menuWidth);
+    }
+    setCoords({
+      top: rect.bottom + gap,
+      left,
+      width: menuWidth,
+      maxHeight: Math.min(280, Math.max(120, window.innerHeight - rect.bottom - gap - pad)),
+    });
+  };
+
+  React.useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null);
+      return undefined;
+    }
+    updatePosition();
+    const onReposition = () => updatePosition();
+    window.addEventListener('resize', onReposition);
+    window.addEventListener('scroll', onReposition, true);
+    return () => {
+      window.removeEventListener('resize', onReposition);
+      window.removeEventListener('scroll', onReposition, true);
+    };
+  }, [open]);
+
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const handleClick = (e) => {
+      const target = e.target;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  const menu =
+    open &&
+    coords &&
+    createPortal(
+      <div
+        ref={menuRef}
+        id={listId}
+        className="vouchers-dd__menu vouchers-dd__menu--portal"
+        role="listbox"
+        style={{
+          top: coords.top,
+          left: coords.left,
+          width: coords.width,
+          maxHeight: coords.maxHeight,
+          zIndex: 9999,
+        }}
+      >
+        <div className="vouchers-dd__list">
+          {options.map((opt) => (
+            <button
+              key={opt.value || '__all__'}
+              type="button"
+              role="option"
+              aria-selected={value === opt.value}
+              onClick={() => {
+                onChange(opt.value);
+                setOpen(false);
+              }}
+              className={`vouchers-dd__option${value === opt.value ? ' is-selected' : ''}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>,
+      document.body,
+    );
+
+  return (
+    <div className={`vouchers-dd ${className}`.trim()} ref={rootRef}>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        className={`vouchers-dd__trigger${open ? ' is-open' : ''}`}
+      >
+        <span className="truncate">{selected?.label || label}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {menu}
+    </div>
+  );
+};
 
 function lifecycleVariant(tone) {
   if (tone === "emerald") return "success";
@@ -47,6 +172,9 @@ const VouchersPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [discountTypeFilter, setDiscountTypeFilter] = useState("");
+  const [methodFilter, setMethodFilter] = useState("");
+  const [tierFilter, setTierFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -76,7 +204,7 @@ const VouchersPage = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, discountTypeFilter, methodFilter, tierFilter]);
 
   const filteredVouchers = vouchersList.filter((v) => {
     const matchesSearch =
@@ -90,7 +218,13 @@ const VouchersPage = () => {
         lifecycle.code !== "ACTIVE" &&
         lifecycle.code !== "DELETED") ||
       (statusFilter === "DELETED" && lifecycle.code === "DELETED");
-    return matchesSearch && matchesStatus;
+    
+    const matchesDiscount = discountTypeFilter === "" || v.discountType === discountTypeFilter;
+    const isRedeem = v.pointsCost > 0;
+    const matchesMethod = methodFilter === "" || (methodFilter === "REDEEM" ? isRedeem : !isRedeem);
+    const matchesTier = tierFilter === "" || v.minScore.toString() === tierFilter;
+
+    return matchesSearch && matchesStatus && matchesDiscount && matchesMethod && matchesTier;
   });
 
   const totalVouchers = vouchersList.filter(
@@ -202,15 +336,78 @@ const VouchersPage = () => {
         className="vouchers-shell"
         toolbar={
           <div className="vouchers-toolbar">
-            <div className="vouchers-search">
-              <Search className="vouchers-search__icon" aria-hidden="true" />
-              <input
-                className="vouchers-search__input"
-                placeholder="Tìm kiếm theo mã voucher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+            <div className="vouchers-toolbar__main">
+              <div className="vouchers-search">
+                <Search className="vouchers-search__icon" />
+                <input
+                  type="text"
+                  className="vouchers-search__input"
+                  placeholder="Tìm mã voucher..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="vouchers-search__clear"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              
+              <FilterDropdown
+                label="Loại khuyến mãi"
+                value={discountTypeFilter}
+                options={[
+                  { value: '', label: 'Loại khuyến mãi' },
+                  { value: 'PERCENTAGE', label: 'Giảm theo %' },
+                  { value: 'FIXED_AMOUNT', label: 'Giảm tiền mặt' }
+                ]}
+                onChange={setDiscountTypeFilter}
               />
+              
+              <FilterDropdown
+                label="Cách nhận"
+                value={methodFilter}
+                options={[
+                  { value: '', label: 'Cách nhận' },
+                  { value: 'DIRECT', label: 'Dùng trực tiếp' },
+                  { value: 'REDEEM', label: 'Đổi điểm' }
+                ]}
+                onChange={setMethodFilter}
+              />
+
+              <FilterDropdown
+                label="Hạng thẻ tối thiểu"
+                value={tierFilter}
+                options={[
+                  { value: '', label: 'Hạng thẻ tối thiểu' },
+                  { value: '0', label: 'Thành viên mới (0đ)' },
+                  { value: '1000000', label: 'Bạc (1.000.000đ)' },
+                  { value: '3000000', label: 'Vàng (3.000.000đ)' },
+                  { value: '5000000', label: 'Bạch Kim (5.000.000đ)' }
+                ]}
+                onChange={setTierFilter}
+              />
+              
+              {(discountTypeFilter || methodFilter || tierFilter) && (
+                <button
+                  type="button"
+                  className="adm-filter-pill"
+                  style={{ marginLeft: 'auto' }}
+                  onClick={() => {
+                    setDiscountTypeFilter('');
+                    setMethodFilter('');
+                    setTierFilter('');
+                  }}
+                >
+                  Xóa lọc
+                </button>
+              )}
             </div>
+
             <FilterPills
               value={statusFilter}
               onChange={setStatusFilter}

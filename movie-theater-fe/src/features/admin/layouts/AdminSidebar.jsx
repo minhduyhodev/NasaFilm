@@ -493,7 +493,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
             <div
               className={`${isOpen ? "adm-nav-group-items adm-nav-group-items--nested" : "adm-nav-group-items"}`}
             >
-              {renderLink(
+              {!isAdmin(user) && renderLink(
                 "/admin/hr/me",
                 Clock,
                 "Bảng công của tôi",
@@ -505,7 +505,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 "Mã QR điểm danh quầy",
                 "text-amber-400",
               )}
-              {renderLink(
+              {!isAdmin(user) && renderLink(
                 "/admin/hr/me?tab=swap",
                 ArrowLeftRight,
                 "Đổi ca & nghỉ phép",

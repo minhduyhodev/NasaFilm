@@ -69,6 +69,7 @@ const MovieCardButton = ({ movie, onSelect, interactive = true, onPauseChange, o
         if (!interactive) return;
         onSelect?.(movie.path || getMovieDetailPath(movie.uuid));
       }}
+      onDragStart={(e) => e.preventDefault()}
     >
       <span className="nasa-bot-movie-card__poster">
         {movie.posterUrl ? (
@@ -182,8 +183,13 @@ const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
     let lastTs = 0;
     let edgeWait = 0;
 
+    let isDragging = false;
+    let startX = 0;
+    let startOffset = 0;
+    let hasDragged = false;
+
     const measure = () => {
-      maxTravel = Math.max(track.scrollWidth / 2, 160);
+      maxTravel = Math.max(0, track.scrollWidth - viewport.clientWidth + 10);
     };
 
     measure();
@@ -194,12 +200,66 @@ const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
     ro?.observe(track);
     ro?.observe(viewport);
 
+    const getClientX = (e) => e.touches ? e.touches[0].clientX : e.clientX;
+
+    const onPointerDown = (e) => {
+      isDragging = true;
+      hasDragged = false;
+      startX = getClientX(e);
+      startOffset = offset;
+      track.style.cursor = 'grabbing';
+    };
+
+    const onPointerMove = (e) => {
+      if (!isDragging) return;
+      const x = getClientX(e);
+      const dx = x - startX;
+      
+      if (Math.abs(dx) > 5) {
+        hasDragged = true;
+      }
+      
+      if (hasDragged && e.cancelable) {
+        e.preventDefault();
+      }
+
+      offset = startOffset + dx;
+      
+      if (offset > 0) offset = 0;
+      if (offset < -maxTravel) offset = -maxTravel;
+      
+      track.style.transform = `translate3d(${offset}px, 0, 0)`;
+    };
+
+    const onPointerUp = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      track.style.cursor = '';
+    };
+
+    const onClick = (e) => {
+      if (hasDragged) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    viewport.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('mousemove', onPointerMove, { passive: false });
+    window.addEventListener('mouseup', onPointerUp);
+    
+    viewport.addEventListener('touchstart', onPointerDown, { passive: true });
+    window.addEventListener('touchmove', onPointerMove, { passive: false });
+    window.addEventListener('touchend', onPointerUp);
+    
+    viewport.addEventListener('click', onClick, true);
+
     const tick = (ts) => {
       const prev = lastTs || ts;
       const dt = Math.min(50, ts - prev);
       lastTs = ts;
 
-      if (!pausedRef.current && maxTravel > 8) {
+      if (!pausedRef.current && maxTravel > 8 && !isDragging) {
         if (edgeWait > 0) {
           edgeWait -= dt;
         } else {
@@ -226,6 +286,16 @@ const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
       timers.forEach((id) => window.clearTimeout(id));
       ro?.disconnect();
       window.cancelAnimationFrame(rafId);
+      
+      viewport.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('mousemove', onPointerMove);
+      window.removeEventListener('mouseup', onPointerUp);
+      
+      viewport.removeEventListener('touchstart', onPointerDown);
+      window.removeEventListener('touchmove', onPointerMove);
+      window.removeEventListener('touchend', onPointerUp);
+      
+      viewport.removeEventListener('click', onClick, true);
     };
   }, [cards, showLoading]);
 
@@ -263,17 +333,6 @@ const NasaBotMovieCards = ({ movies = null, text = '', onSelect }) => {
             onPosterSettled={handlePosterSettled}
           />
         ))}
-        {marquee
-          ? cards.map((movie) => (
-            <MovieCardButton
-              key={`loop-${movie.uuid}`}
-              movie={movie}
-              onSelect={onSelect}
-              interactive={false}
-              onPosterSettled={undefined}
-            />
-          ))
-          : null}
       </div>
     </div>
   );
