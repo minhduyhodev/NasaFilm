@@ -251,6 +251,15 @@ public class MovieService {
                 predicates.add(cb.equal(movieCountryJoin.get("country").get("uuid"), countryUuid));
             }
 
+            String screeningMode = filter.getScreeningMode();
+            if (screeningMode != null && !screeningMode.isBlank()) {
+                try {
+                    predicates.add(cb.equal(root.get("screeningMode"), ScreeningMode.valueOf(screeningMode.trim().toUpperCase())));
+                } catch (IllegalArgumentException e) {
+                    // Ignore invalid screeningMode
+                }
+            }
+
             String ageRestriction = filter.getAgeRestriction();
             if (ageRestriction != null && !ageRestriction.isBlank()) {
                 predicates.add(cb.equal(root.get("ageRestriction"), ageRestriction.trim()));

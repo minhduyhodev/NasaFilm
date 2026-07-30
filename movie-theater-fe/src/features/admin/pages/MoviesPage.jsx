@@ -208,6 +208,7 @@ const MoviesPage = () => {
   const [genreFilter, setGenreFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [screeningModeFilter, setScreeningModeFilter] = useState('');
   const requestIdRef = useRef(0);
   const hasLoadedRef = useRef(false);
 
@@ -250,6 +251,7 @@ const MoviesPage = () => {
           status: statusFilter || undefined,
           genreUuids: genreFilter ? [genreFilter] : undefined,
           countryUuid: countryFilter || undefined,
+          screeningMode: screeningModeFilter || undefined,
           page: currentPage - 1,
           size: itemsPerPage,
         });
@@ -274,7 +276,7 @@ const MoviesPage = () => {
         }
       }
     })();
-  }, [debouncedKeyword, currentPage, itemsPerPage, statusFilter, genreFilter, countryFilter]);
+  }, [debouncedKeyword, currentPage, itemsPerPage, statusFilter, genreFilter, countryFilter, screeningModeFilter]);
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -308,9 +310,15 @@ const MoviesPage = () => {
     setCurrentPage(1);
   };
 
+  const applyScreeningModeFilter = (value) => {
+    setScreeningModeFilter(value);
+    setCurrentPage(1);
+  };
+
   const clearExtraFilters = () => {
     setGenreFilter('');
     setCountryFilter('');
+    setScreeningModeFilter('');
     setCurrentPage(1);
   };
 
@@ -331,6 +339,13 @@ const MoviesPage = () => {
   const countryOptions = [
     { value: '', label: 'Tất cả quốc gia' },
     ...countriesList.map((c) => ({ value: c.uuid, label: c.name })),
+  ];
+
+  const screeningModeOptions = [
+    { value: '', label: 'Tất cả hình thức' },
+    { value: 'BOTH', label: 'Cả rạp & Xem Online' },
+    { value: 'THEATER_ONLY', label: 'Chỉ chiếu rạp' },
+    { value: 'ONLINE_ONLY', label: 'Chỉ xem Online (VOD)' },
   ];
 
   const kpiStats = [
@@ -426,7 +441,15 @@ const MoviesPage = () => {
             searchable
           />
 
-          {(genreFilter || countryFilter) && (
+          <FilterDropdown
+            label="Tất cả hình thức"
+            value={screeningModeFilter}
+            options={screeningModeOptions}
+            onChange={applyScreeningModeFilter}
+            searchable={false}
+          />
+
+          {(genreFilter || countryFilter || screeningModeFilter) && (
             <button
               type="button"
               className="movies-pill"

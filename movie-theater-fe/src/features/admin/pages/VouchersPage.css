@@ -99,16 +99,23 @@
 
 .vouchers-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.vouchers-toolbar__main {
+  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: space-between;
   gap: 0.85rem;
+  width: 100%;
 }
 
 .vouchers-search {
   position: relative;
-  width: 100%;
+  flex: 1 1 260px;
   max-width: 360px;
+  min-width: 200px;
 }
 
 .vouchers-search__icon {
@@ -132,6 +139,9 @@
   color: #f8fafc;
   font-size: 13px;
   outline: none;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -625,4 +635,114 @@
   .vouchers-state__spinner {
     animation: none;
   }
+}
+
+/* ---- Dropdown (glass popup via portal) ---- */
+.vouchers-dd {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.vouchers-dd__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 170px;
+  height: 42px;
+  padding: 0 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 10, 14, 0.9);
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vouchers-dd__trigger:hover,
+.vouchers-dd__trigger:focus-visible,
+.vouchers-dd__trigger.is-open {
+  border-color: rgba(225, 29, 72, 0.45);
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.16);
+  outline: none;
+}
+
+.vouchers-dd__menu {
+  z-index: 80;
+  padding: 0.4rem;
+  border-radius: 14px;
+  border: 1px solid rgba(225, 29, 72, 0.22);
+  background: rgba(8, 12, 22, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 0 1px rgba(255, 45, 85, 0.08),
+    0 16px 40px rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(225, 29, 72, 0.08);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.vouchers-dd__menu--portal {
+  position: fixed;
+  z-index: 22000;
+  animation: vouchers-pop 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes vouchers-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.vouchers-dd__list {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.15rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(225, 29, 72, 0.45) transparent;
+}
+
+.vouchers-dd__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.vouchers-dd__list::-webkit-scrollbar-thumb {
+  background: rgba(225, 29, 72, 0.45);
+  border-radius: 999px;
+}
+
+.vouchers-dd__option {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #9aa3b5;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.vouchers-dd__option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.vouchers-dd__option.is-selected {
+  background: rgba(225, 29, 72, 0.14);
+  color: #e11d48;
+  font-weight: 600;
 }
