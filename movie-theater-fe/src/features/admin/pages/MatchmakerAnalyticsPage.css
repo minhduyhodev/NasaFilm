@@ -149,15 +149,15 @@
   border-radius: 1rem;
   font-size: 0.8125rem;
   line-height: 1.5;
-  color: #8a8f98;
-  background: rgba(10, 10, 12, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 24px rgba(0, 0, 0, 0.6);
+  color: var(--adm-text-muted, #8a8f98);
+  background: var(--adm-bg-panel-solid, rgba(10, 10, 12, 0.8));
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.06));
+  box-shadow: var(--adm-shadow-panel, 0 4px 24px rgba(0, 0, 0, 0.6));
   backdrop-filter: blur(12px);
 }
 
 .matchmaker-analytics__highlight strong {
-  color: #ededef;
+  color: var(--adm-text, #ededef);
   font-weight: 700;
 }
 
@@ -177,11 +177,9 @@
 .mma-manage__panel {
   padding: 1.35rem;
   border-radius: 1rem;
-  background:
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
-    rgba(10, 10, 12, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 24px rgba(0, 0, 0, 0.6);
+  background: var(--adm-bg-panel-solid, rgba(10, 10, 12, 0.8));
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.06));
+  box-shadow: var(--adm-shadow-panel, 0 4px 24px rgba(0, 0, 0, 0.6));
   backdrop-filter: blur(14px);
   transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }

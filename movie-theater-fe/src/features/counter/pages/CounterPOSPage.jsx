@@ -22,6 +22,7 @@ import { applyShowtimeFilters } from '../../../shared/utils/showtimeFilterUtils'
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { logger } from '../../../shared/utils/logger';
 import '../styles/counter-staff-theme.css';
+import '../../admin/styles/admin-light-surfaces.css';
 import '../../home/pages/BookingPage.css';
 
 const FORMAT_KEYWORDS = [

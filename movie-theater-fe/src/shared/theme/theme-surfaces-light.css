@@ -1,0 +1,675 @@
+/* ===== Light theme: NASA Bot, Auth, Admin ===== */
+
+/* ---------- NASA Bot ---------- */
+html[data-theme='light'] .nasa-assistant-panel {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7f8fa 48%, #ffffff 100%) !important;
+  border-color: var(--nf-border) !important;
+  color: var(--nf-text) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-header {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom: 1px solid var(--nf-border) !important;
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .nasa-assistant-title {
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-subtitle {
+  color: var(--nf-text-muted) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-icon-btn {
+  color: var(--nf-text-secondary) !important;
+  background: var(--nf-surface) !important;
+  border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-icon-btn:hover {
+  color: var(--nf-accent) !important;
+  background: var(--nf-accent-soft) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-body,
+html[data-theme='light'] .nasa-assistant-bot-stage,
+html[data-theme='light'] .nasa-assistant-thread--bot,
+html[data-theme='light'] .nasa-assistant-thread--staff,
+html[data-theme='light'] .nasa-assistant-thread--support {
+  background: #f4f5f7 !important;
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-bubble--bot {
+  background: #ffffff !important;
+  border: 1px solid var(--nf-border) !important;
+  color: var(--nf-text) !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+html[data-theme='light'] .nasa-assistant-bubble--user {
+  background: #e8eaed !important;
+  border: 1px solid var(--nf-border) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasa-assistant-time {
+  color: var(--nf-text-dim) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-footer {
+  background: #ffffff !important;
+  border-top: 1px solid var(--nf-border) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-inputshell,
+html[data-theme='light'] .nasa-chat-tabs,
+html[data-theme='light'] .nasa-chat-tabs--footer,
+html[data-theme='light'] .nasa-composer-segment,
+html[data-theme='light'] .nasa-quick-support {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-inputshell input,
+html[data-theme='light'] .nasa-assistant-inputshell textarea {
+  color: var(--nf-text) !important;
+  background: transparent !important;
+}
+
+html[data-theme='light'] .nasa-assistant-inputshell input::placeholder,
+html[data-theme='light'] .nasa-assistant-inputshell textarea::placeholder {
+  color: var(--nf-text-dim) !important;
+}
+
+html[data-theme='light'] .nasa-chat-tabs__btn,
+html[data-theme='light'] .nasa-composer-segment__btn {
+  color: var(--nf-text-muted) !important;
+}
+
+html[data-theme='light'] .nasa-chat-tabs__btn:hover,
+html[data-theme='light'] .nasa-composer-segment__btn:hover {
+  color: var(--nf-text) !important;
+  background: var(--nf-surface-hover) !important;
+}
+
+html[data-theme='light'] .nasa-chat-tabs__btn--active,
+html[data-theme='light'] .nasa-composer-segment__btn--active,
+html[data-theme='light'] .nasa-chat-tabs--footer .nasa-chat-tabs__btn--active {
+  color: #0a0a0a !important;
+  background: #ffffff !important;
+  border: 1px solid var(--nf-border-strong) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker,
+html[data-theme='light'] .nasa-mode-picker__hero,
+html[data-theme='light'] .nasa-mode-picker__greeting,
+html[data-theme='light'] .nasa-mode-picker__lead,
+html[data-theme='light'] .nasa-mode-picker__hint,
+html[data-theme='light'] .nasa-mode-picker__meta,
+html[data-theme='light'] .nasa-mode-picker__meta-item,
+html[data-theme='light'] .nasa-wizard,
+html[data-theme='light'] .nasa-ticket-drawer,
+html[data-theme='light'] .nasa-assistant-empty-state,
+html[data-theme='light'] .nasa-assistant-empty-state__title,
+html[data-theme='light'] .nasa-assistant-empty-state__text {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker__lead,
+html[data-theme='light'] .nasa-mode-picker__meta-item,
+html[data-theme='light'] .nasa-mode-picker__copy span,
+html[data-theme='light'] .nasa-mode-picker__arrow {
+  color: #3f3f46 !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker__option,
+html[data-theme='light'] .nasa-mode-picker__option--support,
+html[data-theme='light'] .nasa-mode-picker__option--answer,
+html[data-theme='light'] .nasa-wizard,
+html[data-theme='light'] .nasa-ticket-drawer,
+html[data-theme='light'] .nasa-assistant-ticket-card,
+html[data-theme='light'] .nasa-cat-picker__menu {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker__option::before,
+html[data-theme='light'] .nasa-mode-picker__option--support::before,
+html[data-theme='light'] .nasa-mode-picker__option--answer::before {
+  background: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker__option:hover,
+html[data-theme='light'] .nasa-mode-picker__option--support:hover,
+html[data-theme='light'] .nasa-mode-picker__option--answer:hover,
+html[data-theme='light'] .nasa-cat-picker__option:hover,
+html[data-theme='light'] .nasa-cat-picker__option.is-selected {
+  background: #f4f5f7 !important;
+  border-color: var(--nf-border-strong) !important;
+  box-shadow: var(--nf-shadow) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker__option:hover .nasa-mode-picker__arrow {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker__copy,
+html[data-theme='light'] .nasa-mode-picker__copy strong {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker__icon,
+html[data-theme='light'] .nasa-mode-picker__option--support .nasa-mode-picker__icon,
+html[data-theme='light'] .nasa-mode-picker__option--answer .nasa-mode-picker__icon {
+  background: #f1f3f5 !important;
+  border-color: var(--nf-border) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker__avatar img {
+  border-color: var(--nf-border-strong) !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme='light'] .nasa-mode-picker__avatar-ring {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  background: radial-gradient(circle, rgba(15, 23, 42, 0.06), transparent 68%) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-fab-label {
+  background: rgba(255, 255, 255, 0.94) !important;
+  color: var(--nf-text) !important;
+  border: 1px solid var(--nf-border);
+  box-shadow: var(--nf-shadow);
+}
+
+html[data-theme='light'] .nasa-assistant-fab-badge,
+html[data-theme='light'] .nasa-assistant-fab-ping {
+  border-color: var(--nf-bg-app) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-link {
+  color: #b91c1c !important;
+}
+
+html[data-theme='light'] .nasa-bot-movies {
+  border-top-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .nasa-bot-movie-card__title {
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .nasa-bot-movies__loading {
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: var(--nf-text-secondary) !important;
+}
+
+/* ---------- Auth / Login / Register ---------- */
+html[data-theme='light'] .auth-cinema {
+  --auth-red: #334155;
+  --auth-red-deep: #1e293b;
+  --auth-ink: var(--nf-text);
+  --auth-muted: var(--nf-text-muted);
+  background: var(--nf-bg-app) !important;
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .cinema-auth-bg,
+html[data-theme='light'] .cinema-auth-bg__void {
+  background: var(--nf-bg-app) !important;
+}
+
+html[data-theme='light'] .cinema-auth-bg__veil,
+html[data-theme='light'] .cinema-auth-bg__grain {
+  opacity: 0.28;
+}
+
+html[data-theme='light'] .auth-card__inner {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  box-shadow: var(--nf-shadow) !important;
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .auth-card__header {
+  border-bottom-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .auth-card__title,
+html[data-theme='light'] .auth-cinema__brand-nasa,
+html[data-theme='light'] .auth-cinema__brand-name,
+html[data-theme='light'] .auth-cinema__tagline,
+html[data-theme='light'] .auth-cinema__brand-block--on-screen .auth-cinema__brand-nasa,
+html[data-theme='light'] .auth-cinema__brand-block--on-screen .auth-cinema__tagline,
+html[data-theme='light'] .auth-cinema__brand-block--on-screen .auth-cinema__desc {
+  color: var(--nf-text) !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] .auth-cinema__brand-film,
+html[data-theme='light'] .auth-cinema__brand-block--on-screen .auth-cinema__brand-film {
+  color: #334155 !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] .auth-card__subtitle,
+html[data-theme='light'] .auth-checkbox-label,
+html[data-theme='light'] .auth-footer-text,
+html[data-theme='light'] .auth-quick-login-title,
+html[data-theme='light'] .auth-field__label,
+html[data-theme='light'] .auth-link,
+html[data-theme='light'] .auth-cinema__desc {
+  color: var(--nf-text-muted) !important;
+}
+
+html[data-theme='light'] .auth-forgot-link,
+html[data-theme='light'] .auth-footer-link,
+html[data-theme='light'] .auth-link:hover {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .auth-field__icon,
+html[data-theme='light'] .auth-field__toggle {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .auth-field__control:focus-within .auth-field__icon,
+html[data-theme='light'] .auth-field__toggle:hover {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .auth-field__input,
+html[data-theme='light'] .auth-field__select,
+html[data-theme='light'] .auth-field input,
+html[data-theme='light'] .auth-field select,
+html[data-theme='light'] .auth-field textarea {
+  background: #f4f5f7 !important;
+  border-color: var(--nf-border) !important;
+  color: #0a0a0a !important;
+  color-scheme: light !important;
+  caret-color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .auth-field__input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='light'] .auth-field__input:hover,
+html[data-theme='light'] .auth-field__input:focus,
+html[data-theme='light'] .auth-field__select:focus {
+  background: #eef0f4 !important;
+  border-color: var(--nf-border-strong) !important;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Autofill: password/email keep light surface (was dark #141116) */
+html[data-theme='light'] .auth-field__input:-webkit-autofill,
+html[data-theme='light'] .auth-field__input:-webkit-autofill:hover,
+html[data-theme='light'] .auth-field__input:-webkit-autofill:focus,
+html[data-theme='light'] .auth-field__input:-webkit-autofill:active {
+  -webkit-text-fill-color: #0a0a0a !important;
+  caret-color: #0a0a0a !important;
+  box-shadow: 0 0 0 1000px #f4f5f7 inset !important;
+  border-color: var(--nf-border) !important;
+  transition: background-color 99999s ease-out;
+}
+
+html[data-theme='light'] .auth-field__select option {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .auth-field__input[type='date'] {
+  color-scheme: light !important;
+}
+
+html[data-theme='light'] .auth-field__input[type='date']::-webkit-calendar-picker-indicator {
+  filter: none !important;
+  opacity: 0.7;
+}
+
+html[data-theme='light'] .auth-checkbox {
+  accent-color: #334155 !important;
+}
+
+html[data-theme='light'] .auth-submit-btn {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 1px solid var(--nf-border-strong) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .auth-submit-btn:hover:not(:disabled) {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .auth-spinner-icon {
+  border-color: rgba(15, 23, 42, 0.2) !important;
+  border-top-color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .auth-quick-btn {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .auth-quick-btn:hover {
+  background: var(--nf-surface-hover) !important;
+  border-color: var(--nf-border-strong) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .auth-date-picker,
+html[data-theme='light'] .auth-date-picker__panel {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .min-h-screen.bg-\[\#07080d\],
+html[data-theme='light'] .min-h-screen.bg-black,
+html[data-theme='light'] .min-h-screen.bg-\[\#0b0f19\],
+html[data-theme='light'] .min-h-screen.bg-\[\#0f121d\],
+html[data-theme='light'] .min-h-screen.bg-\[\#0A0A0C\],
+html[data-theme='light'] .min-h-screen.bg-\[\#080c15\] {
+  background-color: var(--nf-bg-app) !important;
+  color: var(--nf-text) !important;
+}
+
+/* ---------- Admin ---------- */
+html[data-theme='light'] .adm-sidebar {
+  background: var(--adm-bg-sidebar) !important;
+  border-right: 1px solid var(--adm-border) !important;
+  color: var(--adm-text);
+}
+
+html[data-theme='light'] .adm-topbar {
+  border-bottom-color: var(--adm-border) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+}
+
+html[data-theme='light'] .adm-nav-link {
+  color: var(--adm-text-muted) !important;
+}
+
+html[data-theme='light'] .adm-nav-link:hover,
+html[data-theme='light'] .adm-nav-link--active {
+  color: var(--adm-nav-active-text) !important;
+  background: var(--adm-nav-active-bg) !important;
+  border-color: var(--adm-nav-active-border) !important;
+}
+
+html[data-theme='light'] .adm-nav-group__title,
+html[data-theme='light'] .adm-sidebar__user-role {
+  color: var(--adm-text-dim) !important;
+}
+
+html[data-theme='light'] .adm-sidebar__user-name,
+html[data-theme='light'] .adm-brand-text {
+  color: var(--adm-text) !important;
+}
+
+html[data-theme='light'] .adm-select-trigger,
+html[data-theme='light'] .adm-dropdown,
+html[data-theme='light'] .adm-panel,
+html[data-theme='light'] .adm-card,
+html[data-theme='light'] .adm-table-wrap {
+  background: var(--adm-bg-panel-solid) !important;
+  border-color: var(--adm-border) !important;
+  color: var(--adm-text) !important;
+}
+
+html[data-theme='light'] .adm-select-trigger {
+  background: var(--adm-bg-input) !important;
+}
+
+html[data-theme='light'] .adm-main {
+  background: var(--adm-bg-main) !important;
+  color: var(--adm-text);
+}
+
+html[data-theme='light'] .adm-sidebar__logout {
+  color: var(--adm-text-secondary) !important;
+  border-color: var(--adm-border) !important;
+}
+
+html[data-theme='light'] .adm-sidebar__logout:hover {
+  color: var(--adm-accent) !important;
+  background: var(--adm-accent-soft) !important;
+}
+
+html[data-theme='light'] .adm-icon-btn {
+  color: var(--adm-text) !important;
+  background: var(--adm-bg-input) !important;
+  border-color: var(--adm-border) !important;
+}
+
+/* Admin page leftover dark panels */
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\],
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\]\/50,
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\]\/80,
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\]\/90,
+html[data-theme='light'] .admin-shell .bg-\[\#121826\],
+html[data-theme='light'] .admin-shell .bg-\[\#0F1322\],
+html[data-theme='light'] .admin-shell .bg-\[\#0B1020\],
+html[data-theme='light'] .admin-shell .bg-\[\#070A13\],
+html[data-theme='light'] .admin-shell .bg-\[\#1A2238\],
+html[data-theme='light'] .admin-shell .bg-\[\#111113\],
+html[data-theme='light'] .admin-shell .bg-\[\#141418\],
+html[data-theme='light'] .admin-shell .bg-\[\#1a1a1f\],
+html[data-theme='light'] .admin-shell .bg-\[\#0f0f12\] {
+  background-color: var(--adm-bg-panel-solid) !important;
+  color: var(--adm-text) !important;
+}
+
+html[data-theme='light'] .admin-shell .border-\[\#1A2238\],
+html[data-theme='light'] .admin-shell .border-white\/5,
+html[data-theme='light'] .admin-shell .border-white\/10 {
+  border-color: var(--adm-border) !important;
+}
+
+html[data-theme='light'] .admin-shell .text-white {
+  color: var(--adm-text) !important;
+}
+
+html[data-theme='light'] .admin-shell .text-zinc-300,
+html[data-theme='light'] .admin-shell .text-zinc-400,
+html[data-theme='light'] .admin-shell .text-gray-400 {
+  color: var(--adm-text-muted) !important;
+}
+
+html[data-theme='light'] .cinema-auth-bg__void {
+  filter: saturate(0.7) brightness(1.35);
+  opacity: 0.55;
+}
+
+html[data-theme='light'] .auth-cinema__desc,
+html[data-theme='light'] .auth-cinema__brand-block--on-screen .auth-cinema__desc,
+html[data-theme='light'] .auth-cinema__brand-block--on-screen .auth-cinema__tagline {
+  color: var(--nf-text-secondary) !important;
+  text-shadow: none;
+}
+
+html[data-theme='light'] .auth-cinema__brand-block--on-screen .auth-cinema__brand-nasa {
+  color: var(--nf-text) !important;
+  text-shadow: none;
+}
+
+/* ========== Project-wide light sweep ========== */
+
+/* Global inputs / autofill (not only auth) */
+html[data-theme='light'] input,
+html[data-theme='light'] textarea,
+html[data-theme='light'] select {
+  color-scheme: light;
+}
+
+html[data-theme='light'] input:-webkit-autofill,
+html[data-theme='light'] input:-webkit-autofill:hover,
+html[data-theme='light'] input:-webkit-autofill:focus,
+html[data-theme='light'] textarea:-webkit-autofill,
+html[data-theme='light'] select:-webkit-autofill {
+  -webkit-text-fill-color: #0a0a0a !important;
+  caret-color: #0a0a0a !important;
+  box-shadow: 0 0 0 1000px #f4f5f7 inset !important;
+}
+
+html[data-theme='light'] input[type='checkbox'],
+html[data-theme='light'] input[type='radio'] {
+  accent-color: #334155;
+}
+
+/* Common dark page shells → light */
+html[data-theme='light'] .movies-page,
+html[data-theme='light'] .about-page,
+html[data-theme='light'] .profile-page,
+html[data-theme='light'] .profile-wrapper,
+html[data-theme='light'] .account-utility-page,
+html[data-theme='light'] .search-results-page,
+html[data-theme='light'] .movie-detail-page,
+html[data-theme='light'] .ticket-activation-page,
+html[data-theme='light'] .watch-page,
+html[data-theme='light'] .pre-show-boarding,
+html[data-theme='light'] .home-premium {
+  background-color: var(--nf-bg-app) !important;
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .bg-\[\#0b0f19\],
+html[data-theme='light'] .bg-\[\#0b0f19\]\/50,
+html[data-theme='light'] .bg-\[\#0b0f19\]\/95,
+html[data-theme='light'] .bg-\[\#080c15\],
+html[data-theme='light'] .bg-\[\#080c15\]\/95,
+html[data-theme='light'] .bg-\[\#0f0f0f\],
+html[data-theme='light'] .bg-\[\#0f0f0f\]\/95,
+html[data-theme='light'] .bg-\[\#0a0a0a\],
+html[data-theme='light'] .bg-\[\#050505\],
+html[data-theme='light'] .bg-\[\#030206\],
+html[data-theme='light'] .bg-\[\#0d0c12\],
+html[data-theme='light'] .bg-\[\#0f172a\],
+html[data-theme='light'] .bg-\[\#111827\]\/90 {
+  background-color: #ffffff !important;
+  color: var(--nf-text) !important;
+}
+
+/* Navbar / search dropdowns */
+html[data-theme='light'] .navbar-user-menu,
+html[data-theme='light'] .global-search-dropdown,
+html[data-theme='light'] .navbar-booking-menu {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  color: var(--nf-text) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+/* Red solid buttons that look like cards on forms → neutral + black */
+html[data-theme='light'] #root .auth-submit-btn,
+html[data-theme='light'] #root .auth-submit-btn * {
+  color: #0a0a0a !important;
+}
+
+/* Soft red “cards” / selected states → slate surface */
+html[data-theme='light'] #root .bg-red-600\/90,
+html[data-theme='light'] #root .bg-red-700 {
+  background-color: #e8eaed !important;
+  color: #0a0a0a !important;
+}
+
+/* Home widgets / glass panels */
+html[data-theme='light'] .home-space-zone,
+html[data-theme='light'] .home-spotlight,
+html[data-theme='light'] .home-spotlight__panel,
+html[data-theme='light'] .hero-detail-panel,
+html[data-theme='light'] .hero-movie-detail,
+html[data-theme='light'] .matchmaker-widget,
+html[data-theme='light'] .showtime-radar,
+html[data-theme='light'] .orbit-join-bar,
+html[data-theme='light'] .mission-board,
+html[data-theme='light'] .guest-auth-promo__inner,
+html[data-theme='light'] .guest-auth-promo-bar__inner {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  color: var(--nf-text) !important;
+  box-shadow: var(--nf-shadow);
+}
+
+html[data-theme='light'] #root .home-spotlight__btn--primary,
+html[data-theme='light'] #root .home-spotlight__btn--primary *,
+html[data-theme='light'] #root .hero-detail__btn--primary,
+html[data-theme='light'] #root .hero-detail__btn--primary *,
+html[data-theme='light'] #root .auth-submit-btn,
+html[data-theme='light'] #root .auth-submit-btn * {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 1px solid var(--nf-border-strong) !important;
+  box-shadow: none !important;
+}
+
+/* Profile / purchase history panels */
+html[data-theme='light'] .profile-page .panel,
+html[data-theme='light'] .profile-page .glass-panel,
+html[data-theme='light'] .ph-panel,
+html[data-theme='light'] .ph-card,
+html[data-theme='light'] .tickets-page,
+html[data-theme='light'] .wallet-page {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  color: var(--nf-text) !important;
+}
+
+/* Admin leftover dark hex panels */
+html[data-theme='light'] .admin-shell [style*='background: #0f0f12'],
+html[data-theme='light'] .admin-shell .bg-\[\#0f0f12\],
+html[data-theme='light'] .admin-shell .bg-\[\#0F1322\],
+html[data-theme='light'] .admin-shell .bg-\[\#090D1A\],
+html[data-theme='light'] .st-auto-input,
+html[data-theme='light'] .st-auto-check-grid,
+html[data-theme='light'] .st-auto-movie-grid,
+html[data-theme='light'] .st-auto-movie-picker__search,
+html[data-theme='light'] .st-auto-movie-picker__sort,
+html[data-theme='light'] .st-auto-summary > div,
+html[data-theme='light'] .st-auto-publish-option,
+html[data-theme='light'] .stcm-daysched,
+html[data-theme='light'] .stcm-foot {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: var(--adm-border) !important;
+  color: var(--adm-text) !important;
+}
+
+/* Counter / staff */
+html[data-theme='light'] .counter-shell,
+html[data-theme='light'] .staff-mission-shell,
+html[data-theme='light'] .counter-shell input,
+html[data-theme='light'] .counter-shell select,
+html[data-theme='light'] .counter-shell textarea {
+  background-color: var(--nf-bg-app) !important;
+  color: var(--nf-text) !important;
+  color-scheme: light !important;
+}
+
+html[data-theme='light'] .counter-shell input:-webkit-autofill {
+  box-shadow: 0 0 0 1000px #f4f5f7 inset !important;
+  -webkit-text-fill-color: #0a0a0a !important;
+}
+
+/* Calendar picker icon on light */
+html[data-theme='light'] input[type='date']::-webkit-calendar-picker-indicator,
+html[data-theme='light'] input[type='datetime-local']::-webkit-calendar-picker-indicator,
+html[data-theme='light'] input[type='time']::-webkit-calendar-picker-indicator {
+  filter: none !important;
+  opacity: 0.65;
+}

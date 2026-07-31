@@ -67,8 +67,8 @@
 
 /* ── Cards ── */
 .amf-card {
-  background: linear-gradient(180deg, #1a1a1f 0%, #16161a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--adm-bg-panel-solid, #1a1a1f);
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
   padding: 1.1rem 1.15rem 1.2rem;
   display: flex;

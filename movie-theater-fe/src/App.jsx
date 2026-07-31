@@ -15,11 +15,15 @@ import { ProtectedRoute } from "./features/auth/components/ProtectedRoute.jsx";
 import { PublicRoute } from "./features/auth";
 import { NotificationProvider } from "./shared/context/NotificationContext";
 import { QueryProvider } from "./app/providers/QueryProvider";
+import { ThemeProvider } from "./shared/theme/ThemeProvider";
 import { GlobalStyles } from "./app/styles/GlobalStyles";
 import { ErrorBoundary } from "./app/components/ErrorBoundary";
 import { ToastViewport } from "./app/components/ToastViewport";
 import { initMediaUrlRouting } from "./shared/utils/mediaUrlUtils";
 import NasaAiAssistantWidget from "./shared/components/NasaAiAssistantWidget";
+import "./shared/theme/theme-tokens.css";
+import "./shared/theme/theme-light.css";
+import "./shared/theme/theme-surfaces-light.css";
 import "./index.css";
 
 const LoginPage = lazy(() => import("./features/auth/pages/LoginPage"));
@@ -29,7 +33,7 @@ const UnauthorizedPage = lazy(
 );
 
 const AuthPageLoader = () => (
-  <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
+  <div className="min-h-screen bg-background-base flex items-center justify-center">
     <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-500" />
   </div>
 );
@@ -51,14 +55,15 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <GlobalStyles />
-      <BrowserRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <ScrollToTop />
-        <QueryProvider>
-          <AuthProvider>
-            <NotificationProvider>
+      <ThemeProvider>
+        <GlobalStyles />
+        <BrowserRouter
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
+          <ScrollToTop />
+          <QueryProvider>
+            <AuthProvider>
+              <NotificationProvider>
               <Routes>
                 <Route
                   path="/login"
@@ -142,6 +147,7 @@ export default function App() {
           </AuthProvider>
         </QueryProvider>
       </BrowserRouter>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

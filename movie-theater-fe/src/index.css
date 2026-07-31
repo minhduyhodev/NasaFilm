@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,8 +7,9 @@
 @layer base {
   body {
     font-family: 'Be Vietnam Pro', sans-serif;
-    background: radial-gradient(circle at 50% 0%, rgba(220, 38, 38, 0.12) 0%, #060608 75%) no-repeat, #060608;
+    background: var(--nf-body-bg);
     background-attachment: fixed;
+    color: var(--nf-text);
     @apply font-normal; /* 400 */
   }
 
@@ -37,18 +39,18 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(220, 38, 38, 0.45);
+  background: var(--nf-scrollbar);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(220, 38, 38, 0.7);
+  background: var(--nf-scrollbar-hover);
 }
 
 /* Selection styling */
 ::selection {
   background-color: rgba(220, 38, 38, 0.3);
-  color: #ffffff;
+  color: var(--nf-selection-fg);
 }
 
 /* Global animations */
@@ -58,21 +60,44 @@
   }
 
   .btn-secondary {
-    @apply py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/[0.06] hover:border-white/10 text-white font-medium rounded-lg transition-all duration-300;
+    @apply py-3 px-4 font-medium rounded-lg transition-all duration-300;
+    background: var(--nf-surface);
+    border: 1px solid var(--nf-border);
+    color: var(--nf-text);
+  }
+
+  .btn-secondary:hover {
+    background: var(--nf-surface-hover);
+    border-color: var(--nf-border-strong);
   }
 
   .glass-effect {
-    @apply bg-black/50 backdrop-blur-xl border border-white/[0.06] rounded-2xl transition-all duration-300;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+    @apply rounded-2xl transition-all duration-300;
+    background: var(--nf-glass);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--nf-glass-border);
+    box-shadow: var(--nf-shadow);
   }
 
   .glass-effect:hover {
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 12px 40px 0 rgba(220, 38, 38, 0.03), 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+    border-color: var(--nf-border-strong);
   }
 
   .input-auth {
-    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500/30 focus:bg-white/[0.08] transition-all duration-300;
+    @apply w-full px-4 py-3 rounded-lg transition-all duration-300;
+    background: var(--nf-bg-input);
+    border: 1px solid var(--nf-border);
+    color: var(--nf-text);
+  }
+
+  .input-auth::placeholder {
+    color: var(--nf-text-dim);
+  }
+
+  .input-auth:focus {
+    outline: none;
+    border-color: rgba(220, 38, 38, 0.35);
+    background: var(--nf-surface-hover);
   }
 }
 
@@ -199,7 +224,7 @@ input[class*="bg-white"]::-webkit-calendar-picker-indicator {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  color-scheme: dark;
+  color-scheme: inherit;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;

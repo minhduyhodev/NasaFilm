@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import ThemeToggle from '../../../shared/components/ThemeToggle';
 import { bookingService } from '../../../shared/services/bookingService';
 import { adminReviewService } from '../../../shared/services/adminReviewService';
 import { supportService } from '../../../shared/services/supportService';
@@ -578,7 +579,8 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
         </div>
 
         {isOpen && (
-          <div className="flex items-center justify-center border-t border-[var(--adm-border)] pt-3">
+          <div className="flex items-center justify-between gap-2 border-t border-[var(--adm-border)] pt-3">
+            <ThemeToggle className="adm-theme-toggle" />
             <button
               type="button"
               onClick={handleLogout}
@@ -588,6 +590,11 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
               <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Đăng xuất</span>
             </button>
+          </div>
+        )}
+        {!isOpen && (
+          <div className="flex justify-center border-t border-[var(--adm-border)] pt-3">
+            <ThemeToggle className="adm-theme-toggle" />
           </div>
         )}
       </div>

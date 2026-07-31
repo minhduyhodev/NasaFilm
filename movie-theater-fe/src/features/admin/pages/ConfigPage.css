@@ -1,9 +1,9 @@
 .sys-config {
   --sc-accent: var(--adm-accent, #ef4444);
   --sc-line: var(--adm-border, rgba(255, 255, 255, 0.08));
-  --sc-frame: rgba(148, 163, 184, 0.12);
-  --sc-frame-bg: rgba(15, 19, 34, 0.92);
-  --sc-frame-inner: rgba(0, 0, 0, 0.22);
+  --sc-frame: var(--adm-border-strong, rgba(148, 163, 184, 0.12));
+  --sc-frame-bg: var(--adm-bg-panel-solid, rgba(15, 19, 34, 0.92));
+  --sc-frame-inner: var(--adm-bg-elevated, rgba(0, 0, 0, 0.22));
   --sc-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
   display: flex;
   flex-direction: column;

@@ -325,8 +325,8 @@
   padding: 0;
   overflow: hidden;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #141418;
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.1));
+  background: var(--adm-bg-panel-solid, #141418);
   box-shadow:
     0 18px 48px rgba(0, 0, 0, 0.55),
     0 0 0 1px rgba(255, 255, 255, 0.04);

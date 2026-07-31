@@ -1010,7 +1010,7 @@ const SupportInboxPage = () => {
             value: ticketStats.resolved,
             badge: pct(ticketStats.resolved, ticketStats.total),
             icon: CheckCircle2,
-            kpiClass: 'kpi-active',
+            kpiClass: 'kpi-upcoming',
             onClick: () => setStatusFilter('resolved'),
             active: statusFilter === 'resolved',
           },
