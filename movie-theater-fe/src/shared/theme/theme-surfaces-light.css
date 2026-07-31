@@ -576,6 +576,11 @@ html[data-theme='light'] .bg-\[\#050505\],
 html[data-theme='light'] .bg-\[\#030206\],
 html[data-theme='light'] .bg-\[\#0d0c12\],
 html[data-theme='light'] .bg-\[\#0f172a\],
+html[data-theme='light'] .bg-\[\#0b0a1a\],
+html[data-theme='light'] .bg-slate-950\/40,
+html[data-theme='light'] .bg-\[\#121826\],
+html[data-theme='light'] .bg-\[\#0f1729\],
+html[data-theme='light'] .bg-\[\#111215\],
 html[data-theme='light'] .bg-\[\#111827\]\/90 {
   background-color: #ffffff !important;
   color: var(--nf-text) !important;
@@ -612,7 +617,7 @@ html[data-theme='light'] #root .bg-red-700 {
 
 /* Home widgets / glass panels */
 html[data-theme='light'] .hero-detail-panel,
-html[data-theme='light'] .hero-movie-detail,
+html[data-theme='light'] .hero-movie-detail__info,
 html[data-theme='light'] .nsf-matchmaker-cta,
 html[data-theme='light'] .showtime-radar-widget,
 html[data-theme='light'] .orbit-join-bar,
@@ -768,8 +773,7 @@ html[data-theme='light'] .cinemas-city-tabs {
   border-color: var(--nf-border) !important;
 }
 
-html[data-theme='light'] .movie-list-tab-btn-active,
-html[data-theme='light'] .cinemas-city-btn-active {
+html[data-theme='light'] .movie-list-tab-btn-active {
   background-color: #ffffff !important;
   border-color: var(--nf-border-strong) !important;
   color: #0a0a0a !important;
@@ -777,14 +781,12 @@ html[data-theme='light'] .cinemas-city-btn-active {
 }
 
 html[data-theme='light'] .movie-list-tab-btn,
-html[data-theme='light'] .cinemas-city-btn,
 html[data-theme='light'] .filter-actor-option {
   color: var(--nf-text-muted) !important;
   background-color: transparent !important;
 }
 
 html[data-theme='light'] .movie-list-tab-btn:hover,
-html[data-theme='light'] .cinemas-city-btn:hover,
 html[data-theme='light'] .filter-actor-option:hover {
   color: var(--nf-text);
   background-color: var(--nf-surface-hover) !important;
@@ -890,10 +892,12 @@ html[data-theme='light'] .movie-detail-cast-card {
   border-color: var(--nf-border) !important;
   color: var(--nf-text) !important;
 }
+
 html[data-theme='light'] .movie-detail-date-tab:not(.is-active):hover,
 html[data-theme='light'] .movie-detail-showtime-btn:not(.is-selected):hover:not(:disabled) {
   background: var(--nf-bg-app) !important;
 }
+
 html[data-theme='light'] .movie-detail-section-title,
 html[data-theme='light'] .movie-detail-cinema-name,
 html[data-theme='light'] .movie-detail-cast-name,
@@ -901,6 +905,7 @@ html[data-theme='light'] .movie-detail-showtime-room,
 html[data-theme='light'] .movie-detail-showtime-btn.is-sold-out {
   color: var(--nf-text) !important;
 }
+
 html[data-theme='light'] .movie-detail-cinema-divider {
   background: var(--nf-border) !important;
 }
@@ -943,6 +948,7 @@ html[data-theme='light'] .bg-amber-500\/10 {
   background-color: #fef3c7 !important;
   border-color: #f59e0b !important;
 }
+
 html[data-theme='light'] .text-amber-200,
 html[data-theme='light'] .text-amber-300 {
   color: #b45309 !important;
@@ -954,6 +960,7 @@ html[data-theme='light'] .movie-favorite-btn {
   border-color: rgba(0, 0, 0, 0.2) !important;
   color: var(--nf-text) !important;
 }
+
 html[data-theme='light'] .movie-favorite-btn:hover {
   background: #ffffff !important;
   border-color: rgba(239, 68, 68, 0.6) !important;
@@ -966,9 +973,968 @@ html[data-theme='light'] .global-search-input {
   color: var(--nf-text) !important;
   box-shadow: none !important;
 }
+
 html[data-theme='light'] .global-search-input:focus {
   border-color: rgba(239, 68, 68, 0.5) !important;
 }
+
 html[data-theme='light'] .global-search-icon {
   color: var(--nf-text-muted) !important;
+}
+
+/* Fix Hero Movie Detail text contrast in light mode */
+html[data-theme='light'] #root .hero-movie-detail__title {
+  color: var(--nf-text-strong, #0a0a0a) !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] #root .hero-movie-detail__meta,
+html[data-theme='light'] #root .hero-movie-detail__release,
+html[data-theme='light'] #root .hero-movie-detail__desc {
+  color: var(--nf-text-muted, #475569) !important;
+}
+
+html[data-theme='light'] #root .hero-movie-detail__rating-count {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .hero-movie-detail__btn--ghost {
+  background: #f1f5f9 !important;
+  border-color: var(--nf-border) !important;
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] #root .hero-movie-detail__btn--ghost:hover {
+  background: #e2e8f0 !important;
+  border-color: var(--nf-border-strong) !important;
+}
+
+/* Fix VOD Online Hero text contrast inside light mode page wrapper */
+html[data-theme='light'] #root .online-hero {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .online-hero__title {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .online-hero__sub {
+  color: #e5e7eb !important;
+}
+
+html[data-theme='light'] #root .online-hero__nav-btn {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+html[data-theme='light'] #root .online-hero__nav-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Fix Profile page header text and element contrast in light mode */
+html[data-theme='light'] #root .space-hub-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid var(--nf-border) !important;
+}
+
+html[data-theme='light'] #root .profile-full-name-text {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: var(--nf-text-strong, #0f172a) !important;
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .profile-badge-item {
+  color: var(--nf-text-muted, #475569) !important;
+}
+
+html[data-theme='light'] #root .profile-preference-banner {
+  border-top-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] #root .profile-preference-banner__label {
+  color: var(--nf-text-muted, #475569) !important;
+}
+
+html[data-theme='light'] #root .space-hub-header .orbit-ring {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] #root .space-hub-header .orbit-ring-outer {
+  border-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+html[data-theme='light'] #root .space-hub-header .orbit-ring-middle {
+  border-color: rgba(124, 58, 237, 0.1) !important;
+}
+
+/* Force Profile VIP membership card to be a premium light gold card in light mode */
+html[data-theme='light'] #root .profile-membership-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%) !important;
+  border: 1px solid rgba(251, 191, 36, 0.35) !important;
+  color: var(--nf-text, #334155) !important;
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.06), var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card h2 {
+  color: #1e293b !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card p {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card p span {
+  color: #d97706 !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card span.rounded-full {
+  background-color: #fef3c7 !important;
+  border-color: #fcd34d !important;
+  color: #d97706 !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card .text-zinc-400 {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card span.font-mono.text-amber-400 {
+  color: #d97706 !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card span.font-mono.text-white {
+  color: #1e293b !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card svg.text-amber-400 {
+  color: #f59e0b !important;
+  fill: #f59e0b !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card svg.text-zinc-800 {
+  color: #cbd5e1 !important;
+  fill: #cbd5e1 !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card svg circle.text-white\/5 {
+  color: #e2e8f0 !important;
+  stroke: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card svg circle.text-amber-500 {
+  color: #f59e0b !important;
+  stroke: #f59e0b !important;
+}
+
+html[data-theme='light'] #root .profile-membership-card svg circle.text-white\/70 {
+  color: #94a3b8 !important;
+  stroke: #94a3b8 !important;
+}
+
+/* Light-mode profile navigation rail (sidebar) container */
+html[data-theme='light'] #root .rail-container {
+  background: #ffffff !important;
+  border: 1px solid var(--nf-border, #e2e8f0) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+/* Inactive sidebar tabs in light mode */
+html[data-theme='light'] #root .rail-item {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .rail-item:hover {
+  background: #f1f5f9 !important;
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+/* Active sidebar tab in light mode (yellow accent) */
+html[data-theme='light'] #root .rail-item.active,
+html[data-theme='light'] #root .rail-item.active * {
+  background: #fef3c7 !important;
+  /* light yellow bg */
+  color: #b45309 !important;
+  /* dark amber text */
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] #root .rail-item.active .rail-icon-wrapper {
+  background: #fde68a !important;
+  /* slightly darker yellow for icon bg */
+  box-shadow: none !important;
+}
+
+/* Light-mode rewards table card in profile page */
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] {
+  border: 1px solid var(--nf-border, #e2e8f0) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] h3 {
+  background: linear-gradient(to right, #b91c1c, #d97706) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] p {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] th,
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] th * {
+  color: #b45309 !important;
+  /* dark amber text */
+}
+
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] thead tr {
+  background-color: #f8fafc !important;
+  /* very light grey bg */
+  border-bottom-color: var(--nf-border, #e2e8f0) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] tbody tr {
+  border-bottom-color: var(--nf-border, #e2e8f0) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] td {
+  color: var(--nf-text, #334155) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0b0a1a\] td.font-mono {
+  color: #d97706 !important;
+  /* points value in dark gold */
+}
+
+/* Light-mode profile member tier boxes and buttons */
+html[data-theme='light'] #root .bg-slate-950\/40 {
+  border: 1px solid var(--nf-border, #e2e8f0) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] #root .bg-slate-950\/40 h3 {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .bg-slate-950\/40 p {
+  color: var(--nf-text-muted, #475569) !important;
+}
+
+html[data-theme='light'] #root .bg-slate-950\/40 li {
+  color: var(--nf-text, #334155) !important;
+}
+
+html[data-theme='light'] #root .bg-slate-950\/40 .bg-slate-900 {
+  background-color: #f1f5f9 !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  color: var(--nf-text-muted, #475569) !important;
+}
+
+html[data-theme='light'] #root .border-slate-800 {
+  border-color: var(--nf-border, #e2e8f0) !important;
+}
+
+html[data-theme='light'] #root .bg-slate-800 {
+  background-color: #e2e8f0 !important;
+  border-color: var(--nf-border, #cbd5e1) !important;
+}
+
+/* Light theme overrides for customer-facing modals/popups */
+html[data-theme='light'] #root .bg-\[\#121826\],
+html[data-theme='light'] #root .bg-\[\#0f1729\],
+html[data-theme='light'] #root .bg-\[\#111215\],
+html[data-theme='light'] #root .booking-confirmed-ticket {
+  background-color: #ffffff !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  color: var(--nf-text, #334155) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), var(--nf-shadow) !important;
+}
+
+/* Modal Headers */
+html[data-theme='light'] #root .bg-\[\#121826\] h3,
+html[data-theme='light'] #root .bg-\[\#0f1729\] h2,
+html[data-theme='light'] #root .booking-confirmed-ticket h3 {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#121826\] .border-b,
+html[data-theme='light'] #root .bg-\[\#0f1729\] .border-b,
+html[data-theme='light'] #root .booking-confirmed-ticket .border-b,
+html[data-theme='light'] #root .booking-confirmed-ticket .border-r,
+html[data-theme='light'] #root .booking-confirmed-ticket .border-t {
+  border-color: var(--nf-border, #e2e8f0) !important;
+}
+
+/* Close buttons */
+html[data-theme='light'] #root .bg-\[\#121826\] button .lucide-x,
+html[data-theme='light'] #root .bg-\[\#0f1729\] button .lucide-x {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#121826\] button:hover .lucide-x,
+html[data-theme='light'] #root .bg-\[\#0f1729\] button:hover .lucide-x {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+/* Form controls & Textareas inside modals */
+html[data-theme='light'] #root .bg-\[\#121826\] .bg-\[\#0f172a\],
+html[data-theme='light'] #root .bg-\[\#121826\] textarea.bg-\[\#0f172a\] {
+  background-color: #f8fafc !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  color: var(--nf-text, #334155) !important;
+}
+
+/* Wallet VietQR Modal specific overrides */
+html[data-theme='light'] #root .bg-\[\#0f1729\] .bg-white\/\[0\.02\] {
+  background-color: #f8fafc !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0f1729\] .border-white\/10 {
+  border-color: var(--nf-border, #e2e8f0) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0f1729\] .divide-white\/5>* {
+  border-color: var(--nf-border, #e2e8f0) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0f1729\] .hover\:bg-white\/\[0\.02\]:hover {
+  background-color: #f1f5f9 !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0f1729\] .text-emerald-400 {
+  color: #059669 !important;
+  /* dark emerald for contrast */
+}
+
+html[data-theme='light'] #root .bg-\[\#0f1729\] .text-slate-400 {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .bg-\[\#0f1729\] .bg-white\/5 {
+  background-color: #f1f5f9 !important;
+  border-color: var(--nf-border, #cbd5e1) !important;
+  color: var(--nf-text, #334155) !important;
+}
+
+/* Booking Confirmation details */
+html[data-theme='light'] #root .booking-confirmed-ticket {
+  background-color: #ffffff !important;
+  border: 1px solid var(--nf-border, #e2e8f0) !important;
+}
+
+html[data-theme='light'] #root .booking-confirmed-ticket .text-slate-300,
+html[data-theme='light'] #root .booking-confirmed-ticket .text-slate-400 {
+  color: var(--nf-text-muted, #475569) !important;
+}
+
+html[data-theme='light'] #root .booking-confirmed-ticket .text-white {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+/* Light theme overrides for Mission Board (profile?tab=missions) panels */
+html[data-theme='light'] #root .mission-board__intro {
+  background: linear-gradient(145deg, #ffffff, #fffbeb) !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] #root .mission-board__title {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .mission-board__lede {
+  color: var(--nf-text-muted, #475569) !important;
+}
+
+html[data-theme='light'] #root .mission-board__campaign {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+  color: #ef4444 !important;
+}
+
+html[data-theme='light'] #root .mission-board__tier-panel {
+  background-color: #ffffff !important;
+  border-color: rgba(245, 158, 11, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.05) !important;
+}
+
+html[data-theme='light'] #root .mission-board__tier-label,
+html[data-theme='light'] #root .mission-board__tier-gap {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .mission-board__tier-score {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .mission-board__tier-bar {
+  background-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #root .mission-board__tier-orbit-ring {
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Mission row panels */
+html[data-theme='light'] #root .mission-row {
+  background: #ffffff !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] #root .mission-row__title {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .mission-row__description {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .mission-row__icon {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+  color: #ef4444 !important;
+}
+
+html[data-theme='light'] #root .mission-row__progress-bar {
+  background-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #root .mission-row__progress-text {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+/* Active row hover */
+html[data-theme='light'] #root .mission-row--active:hover {
+  background-color: #f8fafc !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+/* Completed row */
+html[data-theme='light'] #root .mission-row--completed {
+  background: #f0fdf4 !important;
+  border-color: rgba(34, 197, 94, 0.25) !important;
+}
+
+html[data-theme='light'] #root .mission-row--completed .mission-row__title {
+  color: #15803d !important;
+}
+
+html[data-theme='light'] #root .mission-row--completed .mission-row__icon {
+  background-color: rgba(34, 197, 94, 0.12) !important;
+  color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12) !important;
+}
+
+html[data-theme='light'] #root .mission-row--completed .mission-row__progress-bar {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+}
+
+html[data-theme='light'] #root .mission-row--completed .mission-row__progress-text {
+  color: #16a34a !important;
+}
+
+/* Locked row */
+html[data-theme='light'] #root .mission-row--locked {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] #root .mission-row--locked .mission-row__title {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .mission-row--locked .mission-row__icon {
+  background-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+/* Mission Board Notice boxes */
+html[data-theme='light'] #root .mission-board__notice {
+  background: #f8fafc !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  color: var(--nf-text, #334155) !important;
+}
+
+html[data-theme='light'] #root .mission-board__notice p {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .mission-board__notice--success {
+  background: #f0fdf4 !important;
+  border-color: rgba(34, 197, 94, 0.25) !important;
+  color: #15803d !important;
+}
+
+html[data-theme='light'] #root .mission-board__notice--success p {
+  color: #16a34a !important;
+}
+
+/* Mission Board Extras / Badges list card */
+html[data-theme='light'] #root .mission-board__extras {
+  background-color: #ffffff !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] #root .mission-board__extras-head h4,
+html[data-theme='light'] #root .mission-board__section-head h4 {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .mission-board__recent-list li {
+  color: var(--nf-text, #334155) !important;
+}
+
+html[data-theme='light'] #root .mission-board__badge {
+  background-color: #fef3c7 !important;
+  border-color: #fcd34d !important;
+  color: #d97706 !important;
+}
+
+/* Light-mode Showtime Radar section (profile?tab=preferences) */
+html[data-theme='light'] #root .profile-preferences-tab__radar {
+  background: #ffffff !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] #root .profile-preferences-tab__radar-title h3 {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .profile-preferences-tab__refresh {
+  background-color: #f1f5f9 !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .profile-preferences-tab__refresh:hover {
+  background-color: #e2e8f0 !important;
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+/* Suggestions cards within Radar */
+html[data-theme='light'] #root .radar-suggestions__card {
+  background: #ffffff !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+html[data-theme='light'] #root .radar-suggestions__card:hover {
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-theme='light'] #root .radar-suggestions__title {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .radar-suggestions__meta,
+html[data-theme='light'] #root .radar-suggestions__cinema {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .radar-suggestions__tags span {
+  background-color: #f1f5f9 !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  color: var(--nf-text-muted, #475569) !important;
+}
+
+html[data-theme='light'] #root .radar-suggestions__book {
+  background-color: #f1f5f9 !important;
+  border-color: var(--nf-border, #cbd5e1) !important;
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .radar-suggestions__book:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Light-mode My Tickets tab styling (profile?tab=tickets) */
+html[data-theme='light'] #root .tickets-section {
+  background: #ffffff !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] #root .tickets-section__title {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .tickets-section__count {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: var(--nf-text, #334155) !important;
+}
+
+html[data-theme='light'] #root .tickets-section__empty {
+  background-color: #f8fafc !important;
+  border-color: var(--nf-border, #cbd5e1) !important;
+}
+
+html[data-theme='light'] #root .tickets-section__empty strong {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .tickets-section__empty-icon {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .tickets-section--archived {
+  background: #ffffff !important;
+}
+
+html[data-theme='light'] #root .tickets-section__toggle:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Light theme overrides for Purchase History Panel (profile?tab=history) */
+html[data-theme='light'] #root .ph-filters {
+  background: #ffffff !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+}
+
+html[data-theme='light'] #root .ph-filter-btn {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .ph-filter-btn:hover {
+  background-color: #f1f5f9 !important;
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+html[data-theme='light'] #root .ph-filter-btn.is-active {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .ph-search input {
+  background: #f8fafc !important;
+  border-color: var(--nf-border, #cbd5e1) !important;
+  color: var(--nf-text, #334155) !important;
+}
+
+html[data-theme='light'] #root .ph-search svg {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .ph-pagination {
+  background: #ffffff !important;
+  border-color: var(--nf-border, #e2e8f0) !important;
+}
+
+html[data-theme='light'] #root .ph-stat {
+  background-color: #f8fafc !important;
+  border: 1px solid var(--nf-border, #e2e8f0) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+}
+
+html[data-theme='light'] #root .ph-stat__label {
+  color: var(--nf-text-muted, #64748b) !important;
+}
+
+html[data-theme='light'] #root .ph-stat strong {
+  color: var(--nf-text-strong, #0f172a) !important;
+}
+
+/* Maintain readable dark-styled action buttons on Movie Detail dark hero background in light theme */
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-red-600 {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.45) !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-red-600:hover {
+  background-color: #b91c1c !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-red-600 * {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-purple-600 {
+  background-color: #7c3aed !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 10px 24px rgba(124, 58, 237, 0.2) !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-purple-600:hover {
+  background-color: #6d28d9 !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-purple-600 * {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-emerald-600 {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 10px 24px rgba(5, 150, 105, 0.2) !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-emerald-600:hover {
+  background-color: #047857 !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-emerald-600 * {
+  color: #ffffff !important;
+}
+
+/* Glass panel action button ("Xem Trailer") */
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.glass-panel {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.glass-panel:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.glass-panel * {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.glass-panel:hover * {
+  color: #ef4444 !important;
+  /* Keep red icon hover color */
+}
+
+/* Active Reminder button ("Đã nhắc") */
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-amber-500\/10 {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  color: #fde68a !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-amber-500\/10 * {
+  color: #fde68a !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.bg-amber-500\/10:hover {
+  background: rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Favorite/Share buttons in detail page hero */
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.border-white\/10 {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.border-white\/10 * {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.border-white\/10:hover {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #ef4444 !important;
+}
+
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black button.border-white\/10:hover * {
+  color: #ef4444 !important;
+}
+
+/* Maintain readable seat numbers, row labels, and indicators on Booking Page dark background in light theme */
+html[data-theme='light'] #root .booking-wrapper .seat.standard {
+  color: #a1a1aa !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.standard:hover:not(.occupied) {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.vip {
+  color: #fbbf24 !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.vip:hover:not(.occupied) {
+  color: #fbbf24 !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.couple {
+  color: #e879f9 !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.couple:hover:not(.occupied) {
+  color: #f0abfc !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.selected {
+  color: #000000 !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.occupied {
+  color: rgba(239, 68, 68, 0.35) !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.blocked {
+  color: #ef4444 !important;
+}
+
+/* Row letters (A, B, C...) */
+html[data-theme='light'] #root .booking-wrapper .seat-map-row__label {
+  color: #94a3b8 !important;
+}
+
+/* Screen label ("MÀN HÌNH CHÍNH") */
+html[data-theme='light'] #root .booking-wrapper .text-gray-500 {
+  color: #6b7280 !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .text-zinc-500 {
+  color: #71717a !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+/* Zoom controls and toolbar tags */
+html[data-theme='light'] #root .booking-wrapper .seat-map-zoom__btn {
+  color: #e5e7eb !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat-map-zoom__btn--fit {
+  color: #fca5a5 !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat-map-zoom__hint,
+html[data-theme='light'] #root .booking-wrapper .seat-map-zoom__tip {
+  color: #9ca3af !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat-map-zoom__tip strong {
+  color: #e5e7eb !important;
+}
+
+/* Booking Page Sidebar Confirm button in light theme */
+html[data-theme='light'] #root .booking-wrapper aside button {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.25) !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper aside button:hover {
+  background-color: #b91c1c !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper aside button * {
+  color: #ffffff !important;
+}
+
+/* Disabled/Pending state for booking sidebar button */
+html[data-theme='light'] #root .booking-wrapper aside button:disabled {
+  background-color: #e2e8f0 !important;
+  border: 1px solid var(--nf-border, #cbd5e1) !important;
+  color: var(--nf-text-muted, #94a3b8) !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper aside button:disabled * {
+  color: var(--nf-text-muted, #94a3b8) !important;
+}
+
+/* Maintain readable text and buttons in Orbit Group Booking page in light theme */
+html[data-theme='light'] #root .orbit-booking .orbit-booking__panel h2,
+html[data-theme='light'] #root .orbit-booking .orbit-booking__panel h3,
+html[data-theme='light'] #root .orbit-booking .orbit-booking__member-name {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .orbit-booking .orbit-booking__panel p,
+html[data-theme='light'] #root .orbit-booking .orbit-booking__panel span:not(.orbit-booking__member-dot):not(.text-red-500) {
+  color: #a1a1aa !important;
+}
+
+/* Chat send button in Orbit booking page */
+html[data-theme='light'] #root .orbit-booking form button[type="submit"],
+html[data-theme='light'] #root .booking-wrapper form button[type="submit"] {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+html[data-theme='light'] #root .orbit-booking form button[type="submit"]:hover,
+html[data-theme='light'] #root .booking-wrapper form button[type="submit"]:hover {
+  background-color: #b91c1c !important;
+}
+
+html[data-theme='light'] #root .orbit-booking form button[type="submit"] *,
+html[data-theme='light'] #root .booking-wrapper form button[type="submit"] * {
+  color: #ffffff !important;
+}
+
+/* Host/Member Orbit booking page checkout CTA */
+html[data-theme='light'] #root .orbit-booking__cta-host {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .orbit-booking__cta-host:hover:not(:disabled) {
+  background-color: #b91c1c !important;
+}
+
+html[data-theme='light'] #root .orbit-booking__cta-host * {
+  color: #ffffff !important;
+}
+
+/* Chat box texts, system messages, and other users message bubble overrides in light theme */
+html[data-theme='light'] #root .orbit-booking span.text-white,
+html[data-theme='light'] #root .booking-wrapper span.text-white {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #root .orbit-booking .text-zinc-400,
+html[data-theme='light'] #root .booking-wrapper .text-zinc-400 {
+  color: #a1a1aa !important;
+}
+
+html[data-theme='light'] #root .orbit-booking .bg-zinc-800\/80,
+html[data-theme='light'] #root .booking-wrapper .bg-zinc-800\/80 {
+  color: #f4f4f5 !important;
+}
+
+html[data-theme='light'] #root .orbit-booking form input[type="text"],
+html[data-theme='light'] #root .booking-wrapper form input[type="text"] {
+  color: #ffffff !important;
+}
+
+/* Orbit header page badge (ĐẶT VÉ NHÓM) contrast */
+html[data-theme='light'] #root .orbit-booking__hero-badge {
+  color: #fca5a5 !important;
+}
+
+/* Cinemas Page City Filter Buttons in Light Theme */
+html[data-theme='light'] .cinemas-city-btn {
+  background-color: #eef0f4 !important;
+  border: 1px solid var(--nf-border, rgba(15, 23, 42, 0.08)) !important;
+  color: var(--nf-text-muted, #475569) !important;
+  transition: all 0.2s ease !important;
+}
+
+html[data-theme='light'] .cinemas-city-btn:hover {
+  background-color: #e2e8f0 !important;
+  color: var(--nf-text, #0f172a) !important;
+  border-color: var(--nf-border-strong, rgba(15, 23, 42, 0.16)) !important;
+}
+
+html[data-theme='light'] .cinemas-city-btn.cinemas-city-btn-active {
+  background-color: #f3a092 !important;
+  border-color: #f3a092 !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 4px 12px rgba(243, 160, 146, 0.25) !important;
 }
