@@ -982,6 +982,11 @@ html[data-theme='light'] .global-search-icon {
   color: var(--nf-text-muted) !important;
 }
 
+/* The visible slider rail is rendered by the browser track pseudo-element. */
+html[data-theme='light'] .sys-config__range {
+  background: transparent !important;
+}
+
 /* Fix Hero Movie Detail text contrast in light mode */
 html[data-theme='light'] #root .hero-movie-detail__title {
   color: var(--nf-text-strong, #0a0a0a) !important;
