@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { CinemaAuthBackground } from './CinemaAuthBackground';
 import { useCosmosHomeTransition } from './CosmosHomeTransition.jsx';
+import ThemeToggle from '../../../shared/components/ThemeToggle';
 import nasaFilmLogo from '../../../shared/assets/NASAFILM.jpg';
 import './AuthLayout.css';
 
@@ -63,6 +64,10 @@ export const AuthLayout = ({
   return (
     <div className="auth-cinema">
       <CinemaAuthBackground />
+
+      <div className="auth-cinema__theme-toggle">
+        <ThemeToggle />
+      </div>
 
       {showHero ? (
         <div className="auth-cinema__screen-plane">

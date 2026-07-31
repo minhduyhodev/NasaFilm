@@ -1,0 +1,1545 @@
+/* Admin light surfaces — loaded last from AdminLayout so page CSS cannot keep dark cards */
+
+/* Portaled menus (body) inherit these when outside .admin-shell */
+html[data-theme='light'] {
+  --adm-bg-input: #f8fafc;
+  --adm-bg-panel-solid: #ffffff;
+  --adm-bg-elevated: #ffffff;
+  --adm-border: rgba(15, 23, 42, 0.1);
+  --adm-border-strong: rgba(15, 23, 42, 0.16);
+  --adm-text: #0a0a0a;
+  --adm-text-secondary: #1a1a1a;
+  --adm-text-muted: #2e2e2e;
+  --adm-text-dim: #4a4a4a;
+  --adm-nav-active-bg: rgba(15, 23, 42, 0.05);
+  --adm-shadow-panel: 0 0 0 1px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='light'] .admin-shell,
+html[data-theme='light'] .admin-light-theme {
+  --adm-bg-app: #f4f5f7;
+  --adm-bg-main: #eef0f4;
+  --adm-bg-sidebar: #ffffff;
+  --adm-bg-panel: rgba(255, 255, 255, 0.92);
+  --adm-bg-panel-solid: #ffffff;
+  --adm-bg-input: #f8fafc;
+  --adm-bg-elevated: #ffffff;
+  --adm-border: rgba(15, 23, 42, 0.1);
+  --adm-border-strong: rgba(15, 23, 42, 0.16);
+  --adm-text: #0a0a0a;
+  --adm-text-secondary: #1a1a1a;
+  --adm-text-muted: #2e2e2e;
+  --adm-text-dim: #4a4a4a;
+  --adm-nav-active-bg: rgba(15, 23, 42, 0.05);
+  --adm-nav-active-border: rgba(15, 23, 42, 0.08);
+  --adm-nav-active-text: #0a0a0a;
+  --adm-shadow-panel: 0 0 0 1px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+/* ---------- Shared cards / panels / forms ---------- */
+html[data-theme='light'] .adm-panel,
+html[data-theme='light'] .adm-card,
+html[data-theme='light'] .adm-table-wrap,
+html[data-theme='light'] .adm-list-panel,
+html[data-theme='light'] .adm-page,
+html[data-theme='light'] .bk-list-panel,
+html[data-theme='light'] .st-list-panel,
+html[data-theme='light'] .admin-table-card,
+html[data-theme='light'] .dashboard-unified-stats-panel {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .adm-input,
+html[data-theme='light'] .adm-select,
+html[data-theme='light'] .adm-textarea,
+html[data-theme='light'] .adm-select-trigger,
+html[data-theme='light'] .adm-dropdown,
+html[data-theme='light'] .adm-dropdown-portal,
+html[data-theme='light'] .adm-chip {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .adm-input,
+html[data-theme='light'] .adm-select,
+html[data-theme='light'] .adm-textarea,
+html[data-theme='light'] .adm-select-trigger {
+  background: #f8fafc !important;
+}
+
+html[data-theme='light'] .adm-label,
+html[data-theme='light'] .adm-panel__title,
+html[data-theme='light'] .adm-list-panel__title,
+html[data-theme='light'] .adm-page h1,
+html[data-theme='light'] .adm-page h2,
+html[data-theme='light'] .adm-page h3 {
+  color: #0a0a0a !important;
+}
+
+/* ---------- KPI cards (AdminKpiGrid !important) ---------- */
+html[data-theme='light'] .admin-kpi-grid .kpi-card,
+html[data-theme='light'] .admin-kpi-grid .adm-kpi-card,
+html[data-theme='light'] .adm-kpi-grid .kpi-card,
+html[data-theme='light'] .adm-kpi-grid .adm-kpi-card,
+html[data-theme='light'] .showtimes-kpi-grid .kpi-card,
+html[data-theme='light'] .showtimes-kpi-grid .adm-kpi-card {
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .kpi-card:hover,
+html[data-theme='light'] .admin-kpi-grid .adm-kpi-card:hover,
+html[data-theme='light'] .adm-kpi-grid .kpi-card:hover,
+html[data-theme='light'] .adm-kpi-grid .adm-kpi-card:hover {
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .adm-kpi-card__label,
+html[data-theme='light'] .adm-kpi-grid .adm-kpi-card__label,
+html[data-theme='light'] .admin-kpi-grid .adm-kpi-card__meta,
+html[data-theme='light'] .adm-kpi-grid .adm-kpi-card__meta {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .adm-kpi-card__value,
+html[data-theme='light'] .adm-kpi-grid .adm-kpi-card__value,
+html[data-theme='light'] .admin-kpi-grid .kpi-card .adm-kpi-card__value,
+html[data-theme='light'] .adm-kpi-grid .kpi-card .adm-kpi-card__value {
+  color: #0a0a0a !important;
+  text-shadow: none !important;
+}
+
+/* ---------- Dashboard revenue cards ---------- */
+html[data-theme='light'] .dash-panel,
+html[data-theme='light'] .dash-hero,
+html[data-theme='light'] .dash-kpi,
+html[data-theme='light'] .dash-series,
+html[data-theme='light'] .dash-ring,
+html[data-theme='light'] .dash-donut,
+html[data-theme='light'] .dash-bars__track {
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .dash-bars__track {
+  background: #f1f3f5 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .dash-hero__value,
+html[data-theme='light'] .dash-series__total,
+html[data-theme='light'] .dash-legend__name,
+html[data-theme='light'] .dash-legend__value,
+html[data-theme='light'] .dash-donut__center,
+html[data-theme='light'] .dash-ring__center {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .dash-hero__label,
+html[data-theme='light'] .dash-panel__meta,
+html[data-theme='light'] .dash-legend__pct,
+html[data-theme='light'] .dash-empty,
+html[data-theme='light'] .dash-ring__detail,
+html[data-theme='light'] .dash-ring__hint {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .dash-kpi span,
+html[data-theme='light'] .dash-panel__link,
+html[data-theme='light'] .dash-show-item__time,
+html[data-theme='light'] .dash-cinema-select .adm-select-trigger,
+html[data-theme='light'] .dash-hero__title svg {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .dash-kpi strong,
+html[data-theme='light'] .dash-hero__title,
+html[data-theme='light'] .dash-panel__title {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .dash-panel__count,
+html[data-theme='light'] .dash-show-item__poster {
+  background: #f1f3f5 !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .dash-show-item:hover {
+  background: rgba(15, 23, 42, 0.04) !important;
+}
+
+html[data-theme='light'] .dash-cinema-select .adm-select-trigger {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+/* ---------- Modals / popups / add buttons (portal-safe) ---------- */
+html[data-theme='light'] .admin-modal-panel {
+  --adm-bg-input: #f8fafc;
+  --adm-border: rgba(15, 23, 42, 0.1);
+  --adm-border-strong: rgba(15, 23, 42, 0.16);
+  --adm-text: #0a0a0a;
+  --adm-text-dim: #4a4a4a;
+  --adm-text-muted: #2e2e2e;
+  --adm-focus-ring: rgba(220, 38, 38, 0.4);
+  --adm-accent-soft: rgba(220, 38, 38, 0.1);
+  --adm-accent-border: rgba(220, 38, 38, 0.28);
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16) !important;
+}
+
+html[data-theme='light'] .admin-modal-header,
+html[data-theme='light'] .admin-modal-footer {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .admin-modal-title,
+html[data-theme='light'] .admin-modal-title.text-white {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .admin-modal-subtitle,
+html[data-theme='light'] .admin-modal-subtitle.text-gray-400 {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .admin-modal-close {
+  color: #4a4a4a !important;
+  background: transparent !important;
+}
+
+html[data-theme='light'] .admin-modal-close:hover {
+  color: #0a0a0a !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .admin-modal-body .adm-label {
+  color: #2e2e2e !important;
+}
+
+html[data-theme='light'] .admin-modal-body .adm-input,
+html[data-theme='light'] .admin-modal-body .adm-select,
+html[data-theme='light'] .admin-modal-body .adm-textarea,
+html[data-theme='light'] .admin-modal-body .adm-select-trigger {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .admin-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.2) !important;
+}
+
+html[data-theme='light'] .admin-modal-backdrop {
+  background: rgba(15, 23, 42, 0.35) !important;
+}
+
+/* Add / primary CTAs → neutral light (not red card look) */
+html[data-theme='light'] .adm-btn--primary,
+html[data-theme='light'] button.adm-btn--primary,
+html[data-theme='light'] .admin-add-btn,
+html[data-theme='light'] .btn-submit,
+html[data-theme='light'] .dashboard-action-btn,
+html[data-theme='light'] .movies-filter__add,
+html[data-theme='light'] .vouchers-page .adm-btn--primary,
+html[data-theme='light'] .voucher-form__submit,
+html[data-theme='light'] .mc-form__submit,
+html[data-theme='light'] .amf-actions .adm-btn-primary,
+html[data-theme='light'] .stcm-submit,
+html[data-theme='light'] button.bg-red-600,
+html[data-theme='light'] button.bg-red-500 {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #0a0a0a !important;
+  border: 1px solid rgba(15, 23, 42, 0.16) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .adm-btn--primary:hover:not(:disabled),
+html[data-theme='light'] button.adm-btn--primary:hover:not(:disabled),
+html[data-theme='light'] .admin-add-btn:hover,
+html[data-theme='light'] .btn-submit:hover,
+html[data-theme='light'] .movies-filter__add:hover,
+html[data-theme='light'] .vouchers-page .adm-btn--primary:hover:not(:disabled),
+html[data-theme='light'] .voucher-form__submit:hover,
+html[data-theme='light'] .mc-form__submit:hover,
+html[data-theme='light'] .stcm-submit:hover:not(:disabled) {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html[data-theme='light'] .adm-btn--ghost,
+html[data-theme='light'] .voucher-form__cancel,
+html[data-theme='light'] .mc-form__cancel {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+/* Form panels inside modal */
+html[data-theme='light'] .voucher-form__input,
+html[data-theme='light'] .voucher-form .adm-select-trigger,
+html[data-theme='light'] .voucher-form .admin-select-trigger,
+html[data-theme='light'] .voucher-form .adm-datepicker__trigger,
+html[data-theme='light'] .voucher-form .adm-datetime__time-input,
+html[data-theme='light'] .mc-form-static,
+html[data-theme='light'] .mc-form .adm-select-trigger,
+html[data-theme='light'] .mc-form .admin-select-trigger,
+html[data-theme='light'] .mc-form .adm-datepicker__trigger,
+html[data-theme='light'] .actor-form .adm-input,
+html[data-theme='light'] .actor-form .adm-select-trigger {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+/* Movie actor picker modal + showtimes portals/drawers */
+html[data-theme='light'] .amf-modal,
+html[data-theme='light'] .std-drawer,
+html[data-theme='light'] .stcm-modal,
+html[data-theme='light'] .st-auto-modal,
+html[data-theme='light'] .stcm-foot,
+html[data-theme='light'] .bg-\[\#090D1A\] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16) !important;
+}
+
+html[data-theme='light'] .amf-modal__title,
+html[data-theme='light'] .stcm-head,
+html[data-theme='light'] .std-head,
+html[data-theme='light'] .std-close {
+  color: #0a0a0a !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  background: transparent !important;
+}
+
+html[data-theme='light'] .stcm-movie-trigger,
+html[data-theme='light'] .stcm-preset,
+html[data-theme='light'] .stcm-daysched,
+html[data-theme='light'] .stcm-slot,
+html[data-theme='light'] .st-auto-input,
+html[data-theme='light'] .st-auto-check-grid,
+html[data-theme='light'] .st-auto-movie-grid,
+html[data-theme='light'] .st-auto-movie-picker__search,
+html[data-theme='light'] .st-auto-movie-picker__sort {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+/* Portaled date/time pickers */
+html[data-theme='light'] .adm-datepicker__panel,
+html[data-theme='light'] .adm-datepicker__panel--portal,
+html[data-theme='light'] .adm-timepicker__panel {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme='light'] .adm-cal-nav__title,
+html[data-theme='light'] .adm-datepicker__panel .adm-cal-nav__title {
+  color: #0a0a0a !important;
+}
+
+/* Staff welcome / search popup bits */
+html[data-theme='light'] .staff-control__welcome-card,
+html[data-theme='light'] .staff-control__welcome-details,
+html[data-theme='light'] .staff-control__search-results {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .bg-\[\#1c2333\],
+html[data-theme='light'] .admin-shell .bg-\[\#1c2333\] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+}
+
+/* ---------- Movie form (add/edit) ---------- */
+html[data-theme='light'] .amf-page,
+html[data-theme='light'] .amf-card,
+html[data-theme='light'] .amf-col-stack,
+html[data-theme='light'] .amf-tag-field,
+html[data-theme='light'] .amf-tag-field__menu,
+html[data-theme='light'] .amf-poster {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .amf-card__title,
+html[data-theme='light'] .amf-label {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .amf-input,
+html[data-theme='light'] .amf-input--line,
+html[data-theme='light'] .amf-input--box,
+html[data-theme='light'] .amf-textarea,
+html[data-theme='light'] .amf-tag-field__search {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .amf-tag-field__option,
+html[data-theme='light'] .amf-tag {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+/* ---------- Support / chat inbox ---------- */
+html[data-theme='light'] .support-page,
+html[data-theme='light'] .support-table-shell,
+html[data-theme='light'] .support-chat-panel,
+html[data-theme='light'] .support-compose,
+html[data-theme='light'] .support-customer-bar,
+html[data-theme='light'] .support-ticket-summary,
+html[data-theme='light'] .support-detail-top,
+html[data-theme='light'] .support-messages,
+html[data-theme='light'] .support-bubble,
+html[data-theme='light'] .support-search-input,
+html[data-theme='light'] .support-filter-select,
+html[data-theme='light'] .support-icon-btn,
+html[data-theme='light'] .support-closed-note {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .support-search-input,
+html[data-theme='light'] .support-compose textarea,
+html[data-theme='light'] .support-compose input {
+  background: #f8fafc !important;
+  color: #0a0a0a !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-theme='light'] .support-bubble-text,
+html[data-theme='light'] .support-bubble-sender,
+html[data-theme='light'] .support-state-title,
+html[data-theme='light'] .support-detail-code,
+html[data-theme='light'] .support-assignee__text strong {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .support-bubble-time,
+html[data-theme='light'] .support-state-desc,
+html[data-theme='light'] .support-detail-priority,
+html[data-theme='light'] .support-assignee__text small {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .support-table.adm-table tbody td,
+html[data-theme='light'] .support-table tbody td,
+.admin-light-theme .support-table tbody td {
+  background: #ffffff !important;
+}
+
+html[data-theme='light'] .support-table tbody tr.support-row--unread td,
+.admin-light-theme .support-table tbody tr.support-row--unread td {
+  background: #f8fafc !important;
+}
+
+html[data-theme='light'] .support-code-link {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .support-code-link:hover {
+  color: #1a1a1a !important;
+}
+
+html[data-theme='light'] .support-table tbody tr:hover td,
+.admin-light-theme .support-table tbody tr:hover td {
+  background: #f1f3f5 !important;
+}
+
+html[data-theme='light'] .support-assignee__avatar,
+html[data-theme='light'] .support-avatar,
+.admin-light-theme .support-avatar {
+  background: #e8eaed !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .support-avatar--staff,
+.admin-light-theme .support-avatar--staff {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+}
+
+/* Soften KPI icon glows on support (and light admin generally) */
+html[data-theme='light'] .admin-kpi-grid .adm-kpi-card,
+html[data-theme='light'] .adm-kpi-grid .adm-kpi-card,
+html[data-theme='light'] .admin-kpi-grid .kpi-card {
+  overflow: hidden !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .adm-kpi-card__icon,
+html[data-theme='light'] .admin-kpi-grid .kpi-card:hover .adm-kpi-card__icon,
+html[data-theme='light'] .admin-kpi-grid .adm-kpi-card:hover .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .kpi-card:hover .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .adm-kpi-card:hover .adm-kpi-card__icon {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .adm-kpi-card__icon-svg,
+html[data-theme='light'] .adm-kpi-grid .adm-kpi-card__icon-svg {
+  filter: none !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .kpi-active .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .kpi-active .adm-kpi-card__icon {
+  color: #0a0a0a !important;
+  background: #f1f3f5 !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .kpi-inactive .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .kpi-inactive .adm-kpi-card__icon,
+html[data-theme='light'] .admin-kpi-grid .kpi-showing .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .kpi-showing .adm-kpi-card__icon {
+  color: #b45309 !important;
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .kpi-upcoming .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .kpi-upcoming .adm-kpi-card__icon,
+html[data-theme='light'] .admin-kpi-grid .kpi-total .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .kpi-total .adm-kpi-card__icon {
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .kpi-upcoming .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .kpi-upcoming .adm-kpi-card__icon {
+  color: #059669 !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+html[data-theme='light'] .admin-kpi-grid .kpi-total .adm-kpi-card__icon,
+html[data-theme='light'] .adm-kpi-grid .kpi-total .adm-kpi-card__icon {
+  color: #475569 !important;
+  background: #f1f3f5 !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+/* ---------- Missions / vouchers / staff / matchmaker / media / HR / showtimes ---------- */
+html[data-theme='light'] .mc-form__input,
+html[data-theme='light'] .mc-form .adm-input,
+html[data-theme='light'] .mc-card,
+html[data-theme='light'] .mc-panel,
+html[data-theme='light'] .missions-page .adm-panel,
+html[data-theme='light'] .vouchers-page .kpi-card,
+html[data-theme='light'] .voucher-ticket,
+html[data-theme='light'] .voucher-card,
+html[data-theme='light'] .staff-control,
+html[data-theme='light'] .staff-control__panel,
+html[data-theme='light'] .staff-control__card,
+html[data-theme='light'] .matchmaker-analytics,
+html[data-theme='light'] .matchmaker-analytics .adm-panel,
+html[data-theme='light'] .matchmaker-analytics .adm-card,
+html[data-theme='light'] .media-catalog,
+html[data-theme='light'] .media-catalog__panel,
+html[data-theme='light'] .hr-page,
+html[data-theme='light'] .hr-card,
+html[data-theme='light'] .hr-panel,
+html[data-theme='light'] .st-card,
+html[data-theme='light'] .st-list-panel,
+html[data-theme='light'] .st-auto-input,
+html[data-theme='light'] .st-auto-check-grid,
+html[data-theme='light'] .st-auto-movie-grid,
+html[data-theme='light'] .st-auto-movie-picker__search,
+html[data-theme='light'] .st-auto-movie-picker__sort,
+html[data-theme='light'] .st-auto-summary > div,
+html[data-theme='light'] .st-auto-publish-option,
+html[data-theme='light'] .st-auto-preview-card,
+html[data-theme='light'] .stcm-daysched,
+html[data-theme='light'] .stcm-foot,
+html[data-theme='light'] .admin-calendar,
+html[data-theme='light'] .admin-calendar__panel,
+html[data-theme='light'] .voucher-form-panel {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .mc-form__input,
+html[data-theme='light'] .mc-form .adm-input,
+html[data-theme='light'] .st-auto-input {
+  background: #f8fafc !important;
+}
+
+/* Catch remaining dark hex utility cards inside admin */
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\],
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\]\/50,
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\]\/60,
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\]\/70,
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\]\/80,
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\]\/90,
+html[data-theme='light'] .admin-shell .bg-\[\#121826\],
+html[data-theme='light'] .admin-shell .bg-\[\#121826\]\/70,
+html[data-theme='light'] .admin-shell .bg-\[\#0F1322\],
+html[data-theme='light'] .admin-shell .bg-\[\#0F1322\]\/50,
+html[data-theme='light'] .admin-shell .bg-\[\#0F1322\]\/80,
+html[data-theme='light'] .admin-shell .bg-\[\#090D1A\],
+html[data-theme='light'] .admin-shell .bg-\[\#0B1020\],
+html[data-theme='light'] .admin-shell .bg-\[\#111113\],
+html[data-theme='light'] .admin-shell .bg-\[\#141418\],
+html[data-theme='light'] .admin-shell .bg-\[\#1a1a1f\],
+html[data-theme='light'] .admin-shell .bg-\[\#0f0f12\],
+html[data-theme='light'] .admin-shell .bg-\[\#050506\],
+html[data-theme='light'] .admin-shell .bg-\[\#0e0e12\],
+html[data-theme='light'] .admin-shell .bg-\[\#101014\],
+html[data-theme='light'] .admin-shell .bg-\[\#121215\],
+html[data-theme='light'] .admin-shell .bg-\[\#17171c\],
+html[data-theme='light'] .admin-shell .bg-\[\#1f1f24\] {
+  background-color: #ffffff !important;
+  color: #0a0a0a !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] .admin-shell .text-white,
+html[data-theme='light'] .admin-shell .text-slate-50,
+html[data-theme='light'] .admin-shell .text-slate-100,
+html[data-theme='light'] .admin-shell .text-slate-200,
+html[data-theme='light'] .admin-shell .text-zinc-100,
+html[data-theme='light'] .admin-shell .text-zinc-200,
+html[data-theme='light'] .admin-shell .text-zinc-300 {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .admin-shell .text-slate-300,
+html[data-theme='light'] .admin-shell .text-slate-400,
+html[data-theme='light'] .admin-shell .text-zinc-400,
+html[data-theme='light'] .admin-shell .text-gray-400 {
+  color: #4a4a4a !important;
+}
+
+/* Keep white text only on solid success greens (add/primary neutralized above) */
+html[data-theme='light'] .admin-shell .bg-emerald-500,
+html[data-theme='light'] .admin-shell .bg-emerald-600 {
+  color: #ffffff !important;
+}
+
+/* ========== Counter / POS ========== */
+html[data-theme='light'] .counter-pos,
+html[data-theme='light'] .staff-control {
+  --staff-panel: #ffffff;
+  --staff-panel-border: rgba(15, 23, 42, 0.1);
+  --staff-accent: #dc2626;
+  --staff-glow: rgba(220, 38, 38, 0.12);
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .counter-pos .staff-control__panel,
+html[data-theme='light'] .staff-control__panel,
+html[data-theme='light'] .counter-pos__map-panel,
+html[data-theme='light'] .counter-pos__map-empty,
+html[data-theme='light'] .counter-pos__daily-card,
+html[data-theme='light'] .counter-pos__daily-card-poster,
+html[data-theme='light'] .counter-pos__dropdown-trigger,
+html[data-theme='light'] .counter-header__dropdown-trigger,
+html[data-theme='light'] .counter-pos__slot,
+html[data-theme='light'] .staff-control__pill,
+html[data-theme='light'] .counter-pos__chip,
+html[data-theme='light'] .staff-control__payment-btn,
+html[data-theme='light'] .staff-control__ticket-stub,
+html[data-theme='light'] .staff-control__qr-zoom-card {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Daily shell stays flat; empty state uses solid border (dashed + radius = broken corners) */
+html[data-theme='light'] .counter-pos .counter-pos__daily {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .counter-pos__showtime-empty {
+  background: #f8fafc !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  color: #4a4a4a !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+html[data-theme='light'] .counter-pos__daily-card:hover {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+
+html[data-theme='light'] .counter-pos__daily-card--active {
+  background: #ffffff !important;
+  border-color: rgba(220, 38, 38, 0.45) !important;
+  box-shadow:
+    0 0 0 1px rgba(220, 38, 38, 0.18),
+    0 8px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .counter-pos__map-title,
+html[data-theme='light'] .counter-pos__map-empty-title,
+html[data-theme='light'] .counter-pos__daily-title,
+html[data-theme='light'] .counter-pos__daily-card-time,
+html[data-theme='light'] .counter-pos__daily-card-format,
+html[data-theme='light'] .counter-header__dropdown-trigger,
+html[data-theme='light'] .counter-pos__dropdown-trigger,
+html[data-theme='light'] .counter-pos__dropdown-value-text,
+html[data-theme='light'] .staff-control__panel-title,
+html[data-theme='light'] .staff-control__section-title {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .counter-pos__map-empty-desc,
+html[data-theme='light'] .counter-pos__showtime-count,
+html[data-theme='light'] .counter-pos__showtime-empty,
+html[data-theme='light'] .counter-header__dropdown-icon,
+html[data-theme='light'] .counter-pos__daily-card-poster-fallback {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .staff-control__pill,
+html[data-theme='light'] .counter-pos .counter-pos__pill {
+  background: #f1f3f5 !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .staff-control__pill--active,
+html[data-theme='light'] .counter-pos .counter-pos__pill--active,
+html[data-theme='light'] .counter-pos .counter-pos__chip--active,
+html[data-theme='light'] .counter-pos .staff-control__payment-btn--active {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .staff-control__pill--active .staff-control__pill-room {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .counter-pos .staff-control__btn--primary,
+html[data-theme='light'] .counter-pos .counter-pos__cta {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 1px solid rgba(15, 23, 42, 0.16) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .counter-seat--standard {
+  background: #f1f3f5 !important;
+  border-color: rgba(15, 23, 42, 0.16) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .seat-map-grid--booking .seat-cell,
+html[data-theme='light'] .seat-map-grid .seat-cell {
+  background: #f1f3f5 !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .counter-pos .bg-\[\#0B0F19\],
+html[data-theme='light'] .counter-pos .bg-\[\#0B0F19\]\/90,
+html[data-theme='light'] .counter-pos .bg-\[\#121827\],
+html[data-theme='light'] .counter-pos .bg-\[\#1A2235\],
+html[data-theme='light'] .counter-pos .bg-\[\#2A3441\],
+html[data-theme='light'] .admin-shell .bg-\[\#080B14\],
+html[data-theme='light'] .admin-shell .bg-\[\#0B0F19\]\/90 {
+  background-color: #ffffff !important;
+  color: #0a0a0a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Seat map empty / loading text */
+html[data-theme='light'] .counter-pos__map-panel .text-gray-400,
+html[data-theme='light'] .counter-pos__map-body .text-gray-400 {
+  color: #4a4a4a !important;
+}
+
+/* Qty buttons / stubs */
+html[data-theme='light'] .staff-control__qty-controls button,
+html[data-theme='light'] .staff-control__ticket-stub-notch {
+  background: #f1f3f5 !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .staff-control__qr-zoom {
+  background: rgba(15, 23, 42, 0.35) !important;
+}
+
+/* Filters — POS daily row + portaled menus + admin filter pills */
+html[data-theme='light'] .counter-pos__daily-filters .counter-header__dropdown-trigger,
+html[data-theme='light'] .staff-control__daily-filters .counter-header__dropdown-trigger,
+html[data-theme='light'] .counter-header__dropdown-trigger,
+html[data-theme='light'] .counter-pos__dropdown-trigger,
+html[data-theme='light'] .counter-pos__dropdown--filled .counter-pos__dropdown-trigger,
+.admin-light-theme .counter-pos__daily-filters .counter-header__dropdown-trigger,
+.admin-light-theme .staff-control__daily-filters .counter-header__dropdown-trigger,
+.admin-light-theme .counter-header__dropdown-trigger,
+.admin-light-theme .counter-pos__dropdown-trigger {
+  background: #f8fafc !important;
+  background-color: #f8fafc !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .counter-pos__daily-filters .counter-header__dropdown-value-text,
+html[data-theme='light'] .counter-header__dropdown-value-text,
+html[data-theme='light'] .counter-pos__dropdown-value-text,
+.admin-light-theme .counter-pos__daily-filters .counter-header__dropdown-value-text,
+.admin-light-theme .counter-header__dropdown-value-text {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .counter-pos__dropdown-menu,
+html[data-theme='light'] .counter-pos__dropdown-menu--portal,
+html[data-theme='light'] .adm-dropdown,
+html[data-theme='light'] .adm-dropdown-portal,
+.admin-light-theme .adm-dropdown,
+.admin-light-theme .adm-dropdown-portal {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .counter-pos__dropdown-item,
+html[data-theme='light'] .adm-dropdown__item,
+html[data-theme='light'] .adm-dropdown__search-input {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .counter-pos__dropdown-item:hover,
+html[data-theme='light'] .adm-dropdown__item:hover {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .counter-pos__dropdown-item--active,
+html[data-theme='light'] .adm-dropdown__item--active {
+  background: #eef0f4 !important;
+  color: #0a0a0a !important;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Filter tabs: inactive = white; active = brand red (same as dark) */
+html[data-theme='light'] .adm-filter-pill,
+html[data-theme='light'] .vouchers-page .adm-filter-pill,
+html[data-theme='light'] .dash-granularity .adm-filter-pill,
+html[data-theme='light'] .sys-config__workspace-toolbar .adm-filter-pill,
+.admin-light-theme .adm-filter-pill {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .adm-filter-pill:hover,
+html[data-theme='light'] .vouchers-page .adm-filter-pill:hover,
+.admin-light-theme .adm-filter-pill:hover {
+  background: #f8fafc !important;
+  color: #0a0a0a !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+}
+
+html[data-theme='light'] .adm-filter-pill--active,
+html[data-theme='light'] .vouchers-page .adm-filter-pill--active,
+html[data-theme='light'] .dash-granularity .adm-filter-pill--active,
+html[data-theme='light'] .sys-config__workspace-toolbar .adm-filter-pill--active,
+.admin-light-theme .adm-filter-pill--active {
+  background: #e11d48 !important;
+  border-color: #e11d48 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] .adm-filter-pill--active:hover,
+html[data-theme='light'] .vouchers-page .adm-filter-pill--active:hover,
+.admin-light-theme .adm-filter-pill--active:hover {
+  background: #be123c !important;
+  border-color: #be123c !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] .adm-filter-pill__count,
+.admin-light-theme .adm-filter-pill__count {
+  background: rgba(15, 23, 42, 0.06) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .adm-filter-pill--active .adm-filter-pill__count,
+.admin-light-theme .adm-filter-pill--active .adm-filter-pill__count {
+  background: rgba(0, 0, 0, 0.2) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] .bk-control,
+html[data-theme='light'] .bk-chip,
+html[data-theme='light'] .st-control,
+html[data-theme='light'] .st-chip,
+html[data-theme='light'] .dash-period__btn,
+html[data-theme='light'] .dash-period__pill {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .bk-chip--active,
+html[data-theme='light'] .st-chip--active.st-chip--danger {
+  background: #eef0f4 !important;
+  border-color: rgba(15, 23, 42, 0.2) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .adm-toolbar__search,
+html[data-theme='light'] .st-toolbar__search,
+html[data-theme='light'] .bk-toolbar__search,
+html[data-theme='light'] .mc-search,
+html[data-theme='light'] .support-search-wrap {
+  background: transparent !important;
+}
+
+html[data-theme='light'] .adm-toolbar__search .adm-input,
+html[data-theme='light'] .st-toolbar__search input,
+html[data-theme='light'] .bk-toolbar__search input,
+html[data-theme='light'] .support-search-input,
+html[data-theme='light'] .support-filter-select,
+html[data-theme='light'] .adm-filter-select,
+html[data-theme='light'] .mc-form .adm-input,
+html[data-theme='light'] .mc-form .adm-textarea,
+html[data-theme='light'] .mc-form .adm-select-trigger,
+html[data-theme='light'] .mc-form__input,
+html[data-theme='light'] .mc-form__textarea {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+/* ========== LIGHT SURFACES BATCH — child panels still dark ========== */
+
+/* Sidebar footer / logout contrast */
+html[data-theme='light'] .adm-sidebar__footer {
+  background: #f8fafc !important;
+  border-top-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+html[data-theme='light'] .adm-sidebar__user-name,
+html[data-theme='light'] .adm-sidebar__user-role {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .adm-sidebar__user-role {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .adm-sidebar__logout {
+  color: #b91c1c !important;
+}
+
+html[data-theme='light'] .adm-sidebar__avatar {
+  background: #e8eaed !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme='light'] .adm-nav-group-label,
+html[data-theme='light'] .adm-nav-section-title,
+html[data-theme='light'] .adm-sidebar .text-gray-400,
+html[data-theme='light'] .adm-sidebar .text-slate-400,
+html[data-theme='light'] .adm-sidebar .text-zinc-400 {
+  color: #4a4a4a !important;
+}
+
+/* Voucher tickets + form type cards */
+html[data-theme='light'] .voucher-ticket {
+  --ticket-bg: #ffffff;
+  --ticket-edge: #eef0f4;
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .voucher-ticket__stub,
+html[data-theme='light'] .voucher-ticket__panel {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .voucher-ticket__code,
+html[data-theme='light'] .voucher-ticket__label,
+html[data-theme='light'] .voucher-ticket__meta,
+html[data-theme='light'] .voucher-ticket__title {
+  color: #0a0a0a !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] .voucher-ticket__discount {
+  color: #b91c1c !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] .voucher-ticket:hover {
+  border-color: rgba(15, 23, 42, 0.2) !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1) !important;
+}
+
+html[data-theme='light'] .vouchers-search__input,
+html[data-theme='light'] .vouchers-dd__trigger,
+html[data-theme='light'] .vouchers-dd__menu {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1) !important;
+}
+
+html[data-theme='light'] .voucher-type-option {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .voucher-type-option:hover {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .voucher-type-option__icon {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .voucher-type-option__title,
+html[data-theme='light'] .voucher-type-option__desc,
+html[data-theme='light'] .voucher-form .adm-label,
+html[data-theme='light'] .voucher-form legend,
+html[data-theme='light'] .voucher-type-picker > legend {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .voucher-type-option--redeem.is-active,
+html[data-theme='light'] .voucher-type-option--direct.is-active {
+  background: #eef0f4 !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  box-shadow: none !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .voucher-type-option--redeem.is-active .voucher-type-option__title,
+html[data-theme='light'] .voucher-type-option--redeem.is-active .voucher-type-option__desc,
+html[data-theme='light'] .voucher-type-option--direct.is-active .voucher-type-option__title,
+html[data-theme='light'] .voucher-type-option--direct.is-active .voucher-type-option__desc {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .voucher-type-option--redeem.is-active .voucher-type-option__icon,
+html[data-theme='light'] .voucher-type-option--direct.is-active .voucher-type-option__icon {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.16) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+/* Missions modal sections */
+html[data-theme='light'] .mc-form-section {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .mc-form-section__title,
+html[data-theme='light'] .mc-form__label,
+html[data-theme='light'] .mc-form-stepper__label {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .mc-form-stepper__dot {
+  background: #e8eaed !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-theme='light'] .mc-card__media {
+  background: #f1f3f5 !important;
+}
+
+/* Matchmaker analytics + quiz config */
+html[data-theme='light'] .matchmaker-analytics__chart-panel,
+html[data-theme='light'] .matchmaker-analytics__highlight,
+html[data-theme='light'] .matchmaker-analytics__error-panel,
+html[data-theme='light'] .mma-manage__panel,
+html[data-theme='light'] .mma-manage__table-wrap {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .matchmaker-analytics__chart-panel *,
+html[data-theme='light'] .matchmaker-analytics__highlight,
+html[data-theme='light'] .mma-manage__panel,
+html[data-theme='light'] .mma-manage__panel h2,
+html[data-theme='light'] .mma-manage__panel h3,
+html[data-theme='light'] .mma-manage__panel p,
+html[data-theme='light'] .mma-manage__panel label,
+html[data-theme='light'] .mma-manage__table th,
+html[data-theme='light'] .mma-manage__table td {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .mma-manage__table th,
+html[data-theme='light'] .mma-manage__table-wrap thead,
+html[data-theme='light'] .mma-manage__settings-grid .adm-input,
+html[data-theme='light'] .mma-manage__settings-grid .adm-select-trigger,
+html[data-theme='light'] .mma-manage__movie-option {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .matchmaker-analytics__bar-track {
+  background: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Feedback reviews */
+html[data-theme='light'] .feedback-state,
+html[data-theme='light'] .feedback-table-wrap,
+html[data-theme='light'] .feedback-banned-panel {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .feedback-tab,
+html[data-theme='light'] .feedback-search,
+html[data-theme='light'] .feedback-select {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .feedback-state,
+html[data-theme='light'] .feedback-state * {
+  color: #0a0a0a !important;
+}
+
+/* Cinema cards */
+html[data-theme='light'] .cinema-card,
+html[data-theme='light'] .admin-shell .cinema-card {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .cinema-card .text-white,
+html[data-theme='light'] .cinema-card h3,
+html[data-theme='light'] .cinema-card p,
+html[data-theme='light'] .cinema-card span {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .cinema-card .text-red-400,
+html[data-theme='light'] .cinema-card .text-rose-400,
+html[data-theme='light'] .cinema-card button.text-red-400 {
+  color: #b91c1c !important;
+}
+
+/* Bookings toolbar */
+html[data-theme='light'] .bk-toolbar,
+html[data-theme='light'] .bk-filter-trigger {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .bk-toolbar,
+html[data-theme='light'] .bk-toolbar__summary,
+html[data-theme='light'] .bk-toolbar__summary strong,
+html[data-theme='light'] .bk-filter-trigger {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .bk-seat-tag {
+  background: #f1f3f5 !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+}
+
+/* Combo revenue charts */
+html[data-theme='light'] .combo-revenue-page .dashboard-chart-panel,
+html[data-theme='light'] .combo-revenue-page .dashboard-mini-panel,
+html[data-theme='light'] .dashboard-chart-panel,
+html[data-theme='light'] .dashboard-mini-panel {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .combo-revenue-page .dashboard-panel-title,
+html[data-theme='light'] .combo-revenue-page .dashboard-chart-panel *,
+html[data-theme='light'] .combo-revenue-page .dashboard-mini-panel * {
+  color: #0a0a0a !important;
+}
+
+/* HR — empty, KPIs, schedule, QR, tables */
+html[data-theme='light'] .hr-state,
+html[data-theme='light'] .hr-kpi-card,
+html[data-theme='light'] .hr-day,
+html[data-theme='light'] .hr-day-col,
+html[data-theme='light'] .hr-day-col--past,
+html[data-theme='light'] .hr-checkpoint-card,
+html[data-theme='light'] .hr-checkpoint-kiosk-steps,
+html[data-theme='light'] .hr-table-wrap,
+html[data-theme='light'] .hr-shift-card,
+html[data-theme='light'] .hr-period-card {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .hr-state,
+html[data-theme='light'] .hr-state *,
+html[data-theme='light'] .hr-kpi-card,
+html[data-theme='light'] .hr-kpi-card *,
+html[data-theme='light'] .hr-day,
+html[data-theme='light'] .hr-day *,
+html[data-theme='light'] .hr-day-col,
+html[data-theme='light'] .hr-day-col *,
+html[data-theme='light'] .hr-checkpoint-card,
+html[data-theme='light'] .hr-checkpoint-card *,
+html[data-theme='light'] .hr-checkpoint-kiosk-steps,
+html[data-theme='light'] .hr-checkpoint-kiosk-steps * {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .hr-day-col--past {
+  background: #f1f3f5 !important;
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .hr-seg,
+html[data-theme='light'] .hr-seg button,
+html[data-theme='light'] .hr-tabs button,
+html[data-theme='light'] .hr-filter-pill,
+html[data-theme='light'] .hr-chip {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .hr-seg button.is-active,
+html[data-theme='light'] .hr-tabs button.is-active,
+html[data-theme='light'] .hr-filter-pill.is-active,
+html[data-theme='light'] .hr-chip.is-active {
+  background: #e8eaed !important;
+  color: #0a0a0a !important;
+}
+
+/* System config */
+html[data-theme='light'] .sys-config {
+  --sc-frame-bg: #ffffff;
+  --sc-frame-inner: #f8fafc;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .sys-config__frame,
+html[data-theme='light'] .sys-config__workspace,
+html[data-theme='light'] .sys-config__section,
+html[data-theme='light'] .sys-config__workspace-toolbar,
+html[data-theme='light'] .sys-config__tabs,
+html[data-theme='light'] .sys-config__switches,
+html[data-theme='light'] .sys-config__table-wrap,
+html[data-theme='light'] .sys-config__bot-card,
+html[data-theme='light'] .sys-config__bot-preview {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .sys-config__section,
+html[data-theme='light'] .sys-config__workspace {
+  background: #f8fafc !important;
+}
+
+html[data-theme='light'] .sys-config__input,
+html[data-theme='light'] .sys-config__slider,
+html[data-theme='light'] .sys-config select,
+html[data-theme='light'] .sys-config input {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .sys-config__section label,
+html[data-theme='light'] .sys-config__section h3,
+html[data-theme='light'] .sys-config__section h4,
+html[data-theme='light'] .sys-config__section p,
+html[data-theme='light'] .sys-config__section span {
+  color: #0a0a0a !important;
+}
+
+/* Email templates */
+html[data-theme='light'] .et-page {
+  --et-frame-bg: #ffffff;
+  --et-frame-inner: #f8fafc;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .et-page__workspace,
+html[data-theme='light'] .et-page__section,
+html[data-theme='light'] .et-page__stats,
+html[data-theme='light'] .et-template-item,
+html[data-theme='light'] .et-preview,
+html[data-theme='light'] .et-vars,
+html[data-theme='light'] .etbe-toolbar,
+html[data-theme='light'] .etbe-canvas,
+html[data-theme='light'] .etbe-panel {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .et-page__section,
+html[data-theme='light'] .et-template-item {
+  background: #f8fafc !important;
+}
+
+html[data-theme='light'] .et-input,
+html[data-theme='light'] .et-select,
+html[data-theme='light'] .et-textarea {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .et-template-item,
+html[data-theme='light'] .et-template-item *,
+html[data-theme='light'] .et-preview,
+html[data-theme='light'] .et-preview *,
+html[data-theme='light'] .et-page__stats,
+html[data-theme='light'] .et-page__stats *,
+html[data-theme='light'] .et-empty {
+  color: #0a0a0a !important;
+}
+
+/* Generic empty / panel leftovers */
+html[data-theme='light'] .admin-shell .bg-\[\#0c0f1a\],
+html[data-theme='light'] .admin-shell .bg-\[\#0C0F1A\],
+html[data-theme='light'] .admin-shell .bg-\[\#1c2333\],
+html[data-theme='light'] .admin-shell .bg-\[\#1a1a1f\],
+html[data-theme='light'] .admin-shell .bg-\[\#1A1A1F\] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #0a0a0a !important;
+}
+
+/* ========== Movies page — dark styles were sticking in light ========== */
+html[data-theme='light'] .movies-page {
+  --mv-glass: #ffffff;
+  --mv-glass-strong: #ffffff;
+  --mv-border: rgba(15, 23, 42, 0.14);
+  --mv-text: #0a0a0a;
+  --mv-muted: #4a4a4a;
+  --mv-accent: #dc2626;
+  --mv-accent-soft: rgba(220, 38, 38, 0.1);
+  --mv-accent-glow: rgba(220, 38, 38, 0.12);
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .movies-page .adm-title {
+  color: #0a0a0a !important;
+  text-shadow: none !important;
+}
+
+html[data-theme='light'] .movies-page .adm-desc,
+html[data-theme='light'] .movies-page .adm-eyebrow {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .movies-filter {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .movies-filter__input,
+html[data-theme='light'] .movies-dd__trigger {
+  background: #f8fafc !important;
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+}
+
+html[data-theme='light'] .movies-filter__input::placeholder {
+  color: #6b7280 !important;
+}
+
+html[data-theme='light'] .movies-filter__search-icon,
+html[data-theme='light'] .movies-filter__clear {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .movies-filter__input:focus,
+html[data-theme='light'] .movies-dd__trigger:hover,
+html[data-theme='light'] .movies-dd__trigger:focus-visible,
+html[data-theme='light'] .movies-dd__trigger.is-open {
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+html[data-theme='light'] .movies-pill {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+  border-radius: 8px !important;
+}
+
+html[data-theme='light'] .movies-pill:hover {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+  border-color: rgba(15, 23, 42, 0.2) !important;
+}
+
+html[data-theme='light'] .movies-pill.is-active,
+html[data-theme='light'] .movies-pill.is-active:hover {
+  background: #e8eaed !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] .movies-dd__menu,
+html[data-theme='light'] .movies-dd__menu--portal {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+  backdrop-filter: none !important;
+}
+
+html[data-theme='light'] .movies-dd__search-input,
+html[data-theme='light'] .movies-dd__option {
+  background: transparent !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .movies-dd__option:hover {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .movies-dd__option.is-selected {
+  background: #eef0f4 !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .movies-dd__empty {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .movies-card__poster {
+  background: #e8eaed !important;
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+html[data-theme='light'] .movies-card:hover .movies-card__poster {
+  box-shadow:
+    0 14px 32px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-theme='light'] .movies-card__meta {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .movies-empty,
+html[data-theme='light'] .movies-empty__title,
+html[data-theme='light'] .movies-skeleton {
+  background: #f8fafc !important;
+  color: #0a0a0a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: none !important;
+}
+
+/* Keep poster overlay title readable on images */
+html[data-theme='light'] .movies-card__title {
+  color: #ffffff !important;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8) !important;
+}

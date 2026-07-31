@@ -28,7 +28,7 @@ const TOAST_STYLES = {
 };
 
 const LoadingSpinner = () => (
-  <div className="h-4 w-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+  <div className="toast-spinner h-4 w-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
 );
 
 const handleActionClick = (toast) => {
@@ -58,6 +58,10 @@ export const ToastViewport = () => {
             className={[
               'toast-card pointer-events-auto overflow-hidden rounded-2xl border border-white/10 bg-[#11131a] shadow-[0_20px_60px_rgba(0,0,0,0.35)]',
               isMessage ? 'toast-card--message' : '',
+              toast.type === 'error' ? 'toast-card--error' : '',
+              toast.type === 'success' ? 'toast-card--success' : '',
+              toast.type === 'warning' ? 'toast-card--warning' : '',
+              toast.type === 'info' ? 'toast-card--info' : '',
             ].filter(Boolean).join(' ')}
           >
             <div className={`h-1 w-full ${isMessage ? 'bg-rose-500' : style.accent}`} />

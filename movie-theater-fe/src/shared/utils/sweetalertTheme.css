@@ -101,3 +101,69 @@
 .swal2-container {
   z-index: 10000 !important;
 }
+
+/* Light theme confirm popups */
+html[data-theme='light'] .nasafilm-swal-popup {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16) !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-title {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-message,
+html[data-theme='light'] .nasafilm-swal-detail {
+  color: #4a4a4a !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-highlight {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-cancel {
+  background: #f8fafc !important;
+  color: #0a0a0a !important;
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-cancel:hover {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-confirm--default {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 1px solid rgba(15, 23, 42, 0.16) !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-confirm--default:hover {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-confirm--danger {
+  background: #ffffff !important;
+  color: #b91c1c !important;
+  border: 1px solid rgba(185, 28, 28, 0.35) !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-confirm--danger:hover {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-confirm--warning {
+  background: #ffffff !important;
+  color: #b45309 !important;
+  border: 1px solid rgba(180, 83, 9, 0.35) !important;
+}
+
+html[data-theme='light'] .nasafilm-swal-confirm--warning:hover {
+  background: #fffbeb !important;
+  color: #92400e !important;
+}

@@ -1,9 +1,9 @@
 .et-page {
   --et-accent: #ef4444;
-  --et-line: rgba(255, 255, 255, 0.08);
-  --et-frame: rgba(148, 163, 184, 0.14);
-  --et-frame-bg: rgba(12, 16, 28, 0.55);
-  --et-frame-inner: rgba(0, 0, 0, 0.22);
+  --et-line: var(--adm-border, rgba(255, 255, 255, 0.08));
+  --et-frame: var(--adm-border-strong, rgba(148, 163, 184, 0.14));
+  --et-frame-bg: var(--adm-bg-panel-solid, rgba(12, 16, 28, 0.55));
+  --et-frame-inner: var(--adm-bg-elevated, rgba(0, 0, 0, 0.22));
   --et-mono: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
   display: flex;
   flex-direction: column;

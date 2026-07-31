@@ -244,8 +244,8 @@
 .dash-panel,
 .dash-hero,
 .dash-kpi {
-  background: linear-gradient(180deg, #1a1a1f 0%, #16161a 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--adm-bg-panel-solid, #1a1a1f);
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
   box-shadow: none;
 }
@@ -264,13 +264,13 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--adm-text-muted, #94a3b8);
 }
 
 .dash-kpi strong {
   font-size: 1.45rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--adm-text, #f8fafc);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
@@ -291,7 +291,7 @@
   margin: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  color: #f3f4f6;
+  color: var(--adm-text, #f3f4f6);
 }
 
 .dash-hero__title svg {
@@ -309,7 +309,7 @@
   margin: 0;
   font-size: clamp(1.4rem, 2.4vw, 1.9rem);
   font-weight: 800;
-  color: #fff;
+  color: var(--adm-text, #fff);
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
 }
@@ -317,7 +317,7 @@
 .dash-hero__label {
   margin: 0.3rem 0 0;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--adm-text-muted, #94a3b8);
   font-weight: 600;
 }
 
@@ -438,7 +438,7 @@
   margin: 0;
   font-size: 0.92rem;
   font-weight: 800;
-  color: #f3f4f6;
+  color: var(--adm-text, #f3f4f6);
 }
 
 .dash-panel__count {
@@ -1013,8 +1013,8 @@ a.dash-show-item {
 }
 
 .combo-revenue-page .dashboard-chart-panel {
-  background: rgba(12, 16, 28, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--adm-bg-panel-solid, rgba(12, 16, 28, 0.75));
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.04));
   border-radius: 20px;
   padding: 24px 26px;
 }

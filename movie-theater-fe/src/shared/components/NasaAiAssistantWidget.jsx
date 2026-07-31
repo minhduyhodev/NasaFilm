@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Bot, Check, ChevronDown, ChevronRight, Clock, CreditCard, Crown, Gift, Headset, HelpCircle, ImagePlus, Minus, Send, ShieldCheck, Sparkles, Star, Ticket, User, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -201,12 +201,6 @@ const formatCountdown = (ms = 0) => {
 
 const formatTime = (value = new Date()) =>
   new Intl.DateTimeFormat('vi-VN', { hour: '2-digit', minute: '2-digit' }).format(value);
-
-const buildNasaBotWelcomeMessage = (user) => {
-  const firstName = user?.fullName?.trim().split(/\s+/).filter(Boolean).slice(-1)[0];
-  const hello = firstName ? `Chào bạn ${firstName}!` : 'Chào bạn!';
-  return `${hello} Mình đang ở chế độ Giải đáp AI — hỏi gì về NASAFilm cũng được (phim, rạp, đặt vé, hội viên, chính sách...).`;
-};
 
 const formatTicketStamp = (value) => {
   if (!value) return '';
@@ -521,9 +515,6 @@ const NasaAiAssistantWidget = () => {
   const [unreadStaffTicketCodes, setUnreadStaffTicketCodes] = useState([]);
   const [pendingImages, setPendingImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [sessionRestorePending, setSessionRestorePending] = useState(
-    () => Boolean(readStoredAiSession()),
-  );
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
 
   // Bot reply movie links → navigate in-app and tuck the widget away so the
@@ -541,7 +532,6 @@ const NasaAiAssistantWidget = () => {
   const activeTicketCodeRef = useRef('');
   const chatViewRef = useRef(CHAT_VIEW.BOT);
   const botRestoredRef = useRef(false);
-  const botGreetingSpokenRef = useRef(false);
   const prevUserKeyRef = useRef(undefined);
   const imageInputRef = useRef(null);
   const categoryPickerRef = useRef(null);
@@ -554,24 +544,6 @@ const NasaAiAssistantWidget = () => {
   useEffect(() => {
     openRef.current = open;
   }, [open]);
-
-  const pushBotWelcome = useCallback(() => {
-    if (botGreetingSpokenRef.current) return;
-    botGreetingSpokenRef.current = true;
-
-    const text = buildNasaBotWelcomeMessage(currentUser);
-    setMessages((prev) => {
-      if (prev.some((item) => item.id === 'welcome')) return prev;
-      if (prev.length > 0) return prev;
-      return [{
-        id: 'welcome',
-        role: 'bot',
-        type: 'text',
-        text,
-        time: formatTime(),
-      }];
-    });
-  }, [currentUser]);
 
   // FAB attention mỗi 5s (khi widget đóng): xoay đầu → báo đỏ.
   useEffect(() => {
@@ -679,19 +651,10 @@ const NasaAiAssistantWidget = () => {
 
   // On first load, restore the previous NASA BOT conversation from the server.
   useEffect(() => {
-    if (botRestoredRef.current) {
-      setSessionRestorePending(false);
-      return undefined;
-    }
-    if (!isLoggedInCustomer) {
-      setSessionRestorePending(false);
-      return undefined;
-    }
+    if (botRestoredRef.current) return undefined;
+    if (!isLoggedInCustomer) return undefined;
     const stored = readStoredAiSession();
-    if (!stored) {
-      setSessionRestorePending(false);
-      return undefined;
-    }
+    if (!stored) return undefined;
 
     let cancelled = false;
     (async () => {
@@ -741,8 +704,6 @@ const NasaAiAssistantWidget = () => {
       } catch {
         // Stale or forbidden session — drop it so a fresh one starts.
         if (!cancelled) setBotSessionId(null);
-      } finally {
-        if (!cancelled) setSessionRestorePending(false);
       }
     })();
 
@@ -750,15 +711,6 @@ const NasaAiAssistantWidget = () => {
       cancelled = true;
     };
   }, [isLoggedInCustomer]);
-
-  // Chào bằng text khi vào chế độ Giải đáp (chưa có lịch sử chat).
-  useEffect(() => {
-    if (!isLoggedInCustomer || sessionRestorePending) return undefined;
-    if (botIntent !== BOT_INTENT.ANSWER) return undefined;
-    if (messages.length > 0) return undefined;
-    pushBotWelcome();
-    return undefined;
-  }, [botIntent, isLoggedInCustomer, messages.length, sessionRestorePending, pushBotWelcome]);
 
   useEffect(() => {
     activeTicketCodeRef.current = activeTicketCode;
@@ -1334,10 +1286,6 @@ const NasaAiAssistantWidget = () => {
     setSelectedCategory(null);
     setShowTicketDrawer(false);
     setCategoryMenuOpen(false);
-    if (intent === BOT_INTENT.ANSWER) {
-      botGreetingSpokenRef.current = false;
-      pushBotWelcome();
-    }
   };
 
   const backToBotIntentPick = () => {
@@ -1370,8 +1318,6 @@ const NasaAiAssistantWidget = () => {
 
     clearNasaBotStorage();
     botRestoredRef.current = false;
-    botGreetingSpokenRef.current = false;
-    setSessionRestorePending(false);
     backToBotIntentPick();
     setOpen(false);
     setTicket(null);

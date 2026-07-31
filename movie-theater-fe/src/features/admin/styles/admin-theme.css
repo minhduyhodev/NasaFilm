@@ -337,9 +337,9 @@ select.adm-filter-select:focus {
   justify-content: space-between;
   gap: 8px;
   border-radius: 12px;
-  background: #0f0f12;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ededef;
+  background: var(--adm-bg-input);
+  border: 1px solid var(--adm-border-strong);
+  color: var(--adm-text);
   font-size: 13px;
   padding: 10px 12px;
   cursor: pointer;
@@ -347,8 +347,8 @@ select.adm-filter-select:focus {
 }
 
 .adm-select-trigger:hover {
-  border-color: rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--adm-border-strong);
+  background: var(--adm-bg-elevated);
 }
 
 .adm-dropdown {
@@ -358,12 +358,9 @@ select.adm-filter-select:focus {
   width: 100%;
   min-width: 160px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(18, 18, 22, 0.98), rgba(10, 10, 12, 0.98));
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 18px 48px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--adm-border);
+  background: var(--adm-bg-panel-solid);
+  box-shadow: var(--adm-shadow-panel);
   backdrop-filter: blur(16px);
   padding: 6px;
   animation: adm-dropdown-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
@@ -383,12 +380,9 @@ select.adm-filter-select:focus {
   overflow: hidden;
   overscroll-behavior: contain;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(18, 18, 22, 0.98), rgba(10, 10, 12, 0.98));
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 18px 48px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.08));
+  background: var(--adm-bg-panel-solid, #121216);
+  box-shadow: var(--adm-shadow-panel, 0 18px 48px rgba(0, 0, 0, 0.55));
   backdrop-filter: blur(16px);
   padding: 6px;
   animation: adm-dropdown-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
@@ -741,9 +735,9 @@ select.adm-filter-select:focus {
   gap: 6px;
   padding: 0.45rem 0.95rem;
   border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: transparent;
-  color: #e2e8f0;
+  border: 1px solid var(--adm-border-strong, rgba(148, 163, 184, 0.35));
+  background: var(--adm-bg-input, transparent);
+  color: var(--adm-text, #e2e8f0);
   font-size: 12px;
   font-weight: 600;
   font-family: var(--font-ui);
@@ -758,9 +752,9 @@ select.adm-filter-select:focus {
 }
 
 .adm-filter-pill:hover {
-  color: #fff;
-  border-color: rgba(226, 232, 240, 0.5);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--adm-text, #fff);
+  border-color: var(--adm-border-strong, rgba(226, 232, 240, 0.5));
+  background: var(--adm-surface-hover, rgba(255, 255, 255, 0.04));
 }
 
 .adm-filter-pill--active {
@@ -1157,8 +1151,8 @@ html:has(.admin-shell) #root {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #020203;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--adm-bg-sidebar);
+  border-right: 1px solid var(--adm-border);
   transition: width 0.3s ease, transform 0.3s ease;
 }
 
@@ -1336,7 +1330,7 @@ html:has(.admin-shell) #root {
 .adm-sidebar__footer {
   margin-top: auto;
   border-top: 1px solid var(--adm-border);
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--adm-nav-active-bg, rgba(0, 0, 0, 0.2));
   padding: 1rem;
 }
 

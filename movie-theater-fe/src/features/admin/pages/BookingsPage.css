@@ -17,8 +17,8 @@
 
 /* ---- Toolbar ---- */
 .bk-toolbar {
-  background: rgba(11, 15, 25, 0.75);
-  border: 1px solid #1a2238;
+  background: var(--adm-bg-panel-solid, rgba(11, 15, 25, 0.75));
+  border: 1px solid var(--adm-border-strong, #1a2238);
   border-radius: 14px;
   padding: 12px 14px;
   display: flex;

@@ -71,14 +71,12 @@
 .adm-kpi-grid .kpi-card,
 .adm-kpi-grid .adm-kpi-card {
   position: relative;
-  background: linear-gradient(160deg, #1c1c22 0%, #121216 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: var(--adm-bg-panel-solid, #1c1c22) !important;
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.07)) !important;
   border-radius: 14px;
   padding: 1.05rem 1.2rem;
   text-align: left;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 10px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--adm-shadow-panel, 0 0 0 1px rgba(255, 255, 255, 0.02), 0 10px 28px rgba(0, 0, 0, 0.45));
   overflow: visible;
   transition:
     transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
@@ -121,7 +119,7 @@
 .admin-kpi-grid .adm-kpi-card__label,
 .adm-kpi-grid .adm-kpi-card__label {
   display: block;
-  color: rgba(200, 205, 215, 0.58) !important;
+  color: var(--adm-text-muted, rgba(200, 205, 215, 0.58)) !important;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -137,8 +135,8 @@
   font-size: 1.85rem;
   font-weight: 800;
   line-height: 1.05;
-  color: #fff !important;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.12);
+  color: var(--adm-text, #fff) !important;
+  text-shadow: none;
   font-family: var(--font-heading, inherit);
   overflow: hidden;
   text-overflow: ellipsis;

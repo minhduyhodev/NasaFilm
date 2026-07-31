@@ -4,9 +4,8 @@
   position: relative;
   isolation: isolate;
   min-height: 100vh;
-  /* Cùng tone lạnh với cosmos phía trên — tránh dải ấm/tím ở dưới */
-  background: #080c12;
-  color: #fff;
+  background: var(--nf-space-bg);
+  color: var(--nf-text);
   /* Prevent child overflow from collapsing document scroll unexpectedly */
   overflow-x: clip;
 }
@@ -21,6 +20,11 @@
   width: 100vw;
   height: 100vh;
   height: 100dvh;
+}
+
+html[data-theme='light'] .home-page__backdrop {
+  opacity: 0.28;
+  filter: saturate(0.75) brightness(1.25);
 }
 
 .home-page__main {

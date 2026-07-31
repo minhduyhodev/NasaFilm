@@ -1,7 +1,8 @@
 .footer-wrapper {
-  @apply relative border-t border-white/[0.07] pb-7 pt-20 text-slate-400;
-  /* Match homepage cosmos base so scroll-to-bottom stays visually continuous */
-  background: rgba(5, 5, 8, 0.72);
+  @apply relative border-t pb-7 pt-20;
+  border-color: var(--nf-border);
+  color: var(--nf-text-muted);
+  background: color-mix(in srgb, var(--nf-footer-bg) 88%, transparent);
   backdrop-filter: blur(10px);
 }
 
@@ -34,7 +35,8 @@
 }
 
 .footer-brand-name {
-  @apply text-lg font-black tracking-[0.04em] text-white;
+  @apply text-lg font-black tracking-[0.04em];
+  color: var(--nf-text);
 }
 
 .footer-brand-name span {
