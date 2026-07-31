@@ -82,6 +82,11 @@ html[data-theme='light'] .navbar-logo-text {
   color: var(--nf-text);
 }
 
+html[data-theme='light'] .navbar-logo-text .text-transparent {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
 html[data-theme='light'] .navbar-nav-link {
   color: var(--nf-text);
   text-shadow: none;
@@ -360,16 +365,19 @@ html[data-theme='light'] #root .bg-rose-600 {
 
 /* Navbar MUA VÉ + red CTAs → light surface, black text */
 html[data-theme='light'] #root .navbar-cta-btn,
-html[data-theme='light'] #root .navbar-cta-btn *,
 html[data-theme='light'] #root .navbar-btn-book,
-html[data-theme='light'] #root .navbar-btn-book *,
-html[data-theme='light'] #root .navbar-cta,
-html[data-theme='light'] #root .navbar-cta * {
+html[data-theme='light'] #root .navbar-cta {
   background-image: none !important;
   background: #ffffff !important;
   color: #0a0a0a !important;
   border: 1px solid var(--nf-border-strong) !important;
   box-shadow: none !important;
+}
+
+html[data-theme='light'] #root .navbar-cta-btn *,
+html[data-theme='light'] #root .navbar-btn-book *,
+html[data-theme='light'] #root .navbar-cta * {
+  color: #0a0a0a !important;
 }
 
 /* Red cards → neutral surface + black text */
@@ -392,6 +400,13 @@ html[data-theme='light'] #root .guest-auth-promo-bar__cta:hover {
 html[data-theme='light'] #root .movie-card {
   background: #ffffff !important;
   border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] #root .movie-card--showcase,
+html[data-theme='light'] #root .movie-card--showcase:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 html[data-theme='light'] #root .movie-card:hover {

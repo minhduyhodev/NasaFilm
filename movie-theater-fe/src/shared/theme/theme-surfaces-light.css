@@ -140,6 +140,22 @@ html[data-theme='light'] .nasa-cat-picker__menu {
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06) !important;
 }
 
+html[data-theme='light'] .nasa-wizard-btn {
+  background: #ffffff !important;
+  border-color: var(--nf-border-strong) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .nasa-wizard-btn:hover:not(:disabled) {
+  background: var(--nf-surface-hover) !important;
+}
+
+html[data-theme='light'] .nasa-wizard-btn--primary {
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
 html[data-theme='light'] .nasa-mode-picker__option::before,
 html[data-theme='light'] .nasa-mode-picker__option--support::before,
 html[data-theme='light'] .nasa-mode-picker__option--answer::before {
@@ -539,12 +555,12 @@ html[data-theme='light'] .profile-page,
 html[data-theme='light'] .profile-wrapper,
 html[data-theme='light'] .account-utility-page,
 html[data-theme='light'] .search-results-page,
-html[data-theme='light'] .movie-detail-page,
+html[data-theme='light'] .movie-detail-wrapper,
 html[data-theme='light'] .ticket-activation-page,
 html[data-theme='light'] .watch-page,
 html[data-theme='light'] .pre-show-boarding,
 html[data-theme='light'] .home-premium {
-  background-color: var(--nf-bg-app) !important;
+  background: var(--nf-bg-app) !important;
   color: var(--nf-text) !important;
 }
 
@@ -566,13 +582,19 @@ html[data-theme='light'] .bg-\[\#111827\]\/90 {
 }
 
 /* Navbar / search dropdowns */
-html[data-theme='light'] .navbar-user-menu,
+html[data-theme='light'] .dropdown-menu-list,
 html[data-theme='light'] .global-search-dropdown,
 html[data-theme='light'] .navbar-booking-menu {
   background: #ffffff !important;
   border-color: var(--nf-border) !important;
   color: var(--nf-text) !important;
   box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] .dropdown-menu-list *,
+html[data-theme='light'] .global-search-dropdown *,
+html[data-theme='light'] .navbar-booking-menu * {
+  color: var(--nf-text) !important;
 }
 
 /* Red solid buttons that look like cards on forms → neutral + black */
@@ -589,13 +611,10 @@ html[data-theme='light'] #root .bg-red-700 {
 }
 
 /* Home widgets / glass panels */
-html[data-theme='light'] .home-space-zone,
-html[data-theme='light'] .home-spotlight,
-html[data-theme='light'] .home-spotlight__panel,
 html[data-theme='light'] .hero-detail-panel,
 html[data-theme='light'] .hero-movie-detail,
-html[data-theme='light'] .matchmaker-widget,
-html[data-theme='light'] .showtime-radar,
+html[data-theme='light'] .nsf-matchmaker-cta,
+html[data-theme='light'] .showtime-radar-widget,
 html[data-theme='light'] .orbit-join-bar,
 html[data-theme='light'] .mission-board,
 html[data-theme='light'] .guest-auth-promo__inner,
@@ -640,7 +659,7 @@ html[data-theme='light'] .st-auto-check-grid,
 html[data-theme='light'] .st-auto-movie-grid,
 html[data-theme='light'] .st-auto-movie-picker__search,
 html[data-theme='light'] .st-auto-movie-picker__sort,
-html[data-theme='light'] .st-auto-summary > div,
+html[data-theme='light'] .st-auto-summary>div,
 html[data-theme='light'] .st-auto-publish-option,
 html[data-theme='light'] .stcm-daysched,
 html[data-theme='light'] .stcm-foot {
@@ -672,4 +691,284 @@ html[data-theme='light'] input[type='datetime-local']::-webkit-calendar-picker-i
 html[data-theme='light'] input[type='time']::-webkit-calendar-picker-indicator {
   filter: none !important;
   opacity: 0.65;
+}
+
+/* ========== Page Wrapper CSS overrides ========== */
+html[data-theme='light'] .movies-page-wrapper,
+html[data-theme='light'] .cinemas-page-wrapper,
+html[data-theme='light'] .legal-page-wrapper,
+html[data-theme='light'] .online-page-wrapper,
+html[data-theme='light'] .catalog-browse-page,
+html[data-theme='light'] .online-page-container,
+html[data-theme='light'] .catalog-browse-container,
+html[data-theme='light'] .about-page-wrapper {
+  background-color: var(--nf-bg-app) !important;
+  color: var(--nf-text) !important;
+}
+
+/* About page specific sections */
+html[data-theme='light'] .about-capabilities-section,
+html[data-theme='light'] .about-principles-section,
+html[data-theme='light'] .about-principle,
+html[data-theme='light'] .bg-\[\#0b101b\] {
+  background-color: #ffffff !important;
+  border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .about-story-image-container {
+  background-color: #f1f5f9 !important;
+  border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .movie-filter-panel,
+html[data-theme='light'] .filter-actor-dropdown,
+html[data-theme='light'] .bg-\[\#11141e\]\/70,
+html[data-theme='light'] .bg-\[\#11141e\]\/50 {
+  background-color: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] .movie-title-search-input,
+html[data-theme='light'] .filter-actor-input,
+html[data-theme='light'] .filter-mini-search-input,
+html[data-theme='light'] .online-catalog-search-input,
+html[data-theme='light'] .catalog-browse-search-input,
+html[data-theme='light'] .cinemas-search-input {
+  background-color: #f4f5f7 !important;
+  border-color: var(--nf-border) !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .movie-title-search-input::placeholder,
+html[data-theme='light'] .filter-actor-input::placeholder,
+html[data-theme='light'] .filter-mini-search-input::placeholder,
+html[data-theme='light'] .online-catalog-search-input::placeholder,
+html[data-theme='light'] .catalog-browse-search-input::placeholder,
+html[data-theme='light'] .cinemas-search-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='light'] .movie-title-search-input:focus,
+html[data-theme='light'] .filter-actor-input:focus,
+html[data-theme='light'] .filter-mini-search-input:focus,
+html[data-theme='light'] .online-catalog-search-input:focus,
+html[data-theme='light'] .catalog-browse-search-input:focus,
+html[data-theme='light'] .cinemas-search-input:focus {
+  background-color: #eef0f4 !important;
+  border-color: var(--nf-border-strong) !important;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .movie-list-tabs,
+html[data-theme='light'] .movie-filter-footer,
+html[data-theme='light'] .movie-filter-applied-bar,
+html[data-theme='light'] .cinemas-city-tabs {
+  background-color: var(--nf-surface) !important;
+  border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .movie-list-tab-btn-active,
+html[data-theme='light'] .cinemas-city-btn-active {
+  background-color: #ffffff !important;
+  border-color: var(--nf-border-strong) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme='light'] .movie-list-tab-btn,
+html[data-theme='light'] .cinemas-city-btn,
+html[data-theme='light'] .filter-actor-option {
+  color: var(--nf-text-muted) !important;
+  background-color: transparent !important;
+}
+
+html[data-theme='light'] .movie-list-tab-btn:hover,
+html[data-theme='light'] .cinemas-city-btn:hover,
+html[data-theme='light'] .filter-actor-option:hover {
+  color: var(--nf-text);
+  background-color: var(--nf-surface-hover) !important;
+}
+
+html[data-theme='light'] .movie-filter-trigger-title,
+html[data-theme='light'] .filter-section-title,
+html[data-theme='light'] .movie-list-title,
+html[data-theme='light'] .section-heading,
+html[data-theme='light'] .catalog-browse-title,
+html[data-theme='light'] .cinema-card-title,
+html[data-theme='light'] .about-story-title,
+html[data-theme='light'] .about-section-title,
+html[data-theme='light'] .about-journey-list h3,
+html[data-theme='light'] .about-principle h3,
+html[data-theme='light'] .about-closing p {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] .movie-filter-trigger-sub,
+html[data-theme='light'] .movie-list-subtitle,
+html[data-theme='light'] .catalog-browse-subtitle,
+html[data-theme='light'] .cinema-card-detail-item,
+html[data-theme='light'] .about-story-text,
+html[data-theme='light'] .about-section-lead,
+html[data-theme='light'] .about-capability p,
+html[data-theme='light'] .about-journey-list p,
+html[data-theme='light'] .about-principle p {
+  color: var(--nf-text-muted) !important;
+}
+
+/* Ensure text on hero overlay sections stays white since the overlay is dark */
+html[data-theme='light'] #root .cinemas-hero-title,
+html[data-theme='light'] #root .cinemas-hero-sub,
+html[data-theme='light'] #root .about-hero-title,
+html[data-theme='light'] #root .about-hero-sub,
+html[data-theme='light'] #root .about-hero-link,
+html[data-theme='light'] #root .about-closing-link,
+html[data-theme='light'] #root .offers-hero-title,
+html[data-theme='light'] #root .offers-hero-sub,
+html[data-theme='light'] #root .legal-title,
+html[data-theme='light'] #root .legal-last-updated,
+html[data-theme='light'] #root .about-team-title,
+html[data-theme='light'] #root .about-team-card *,
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black * {
+  color: #ffffff !important;
+}
+
+/* Restore accent colors inside the movie detail dark hero */
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black .text-red-500,
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black .text-red-400,
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black .text-amber-300,
+html[data-theme='light'] #root .movie-detail-wrapper section.bg-black .text-amber-400 {
+  color: inherit !important;
+}
+
+html[data-theme='light'] .cinema-card {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .cinema-card:hover {
+  border-color: var(--nf-border-strong) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] .showtimes-expanded-area {
+  background: var(--nf-surface) !important;
+  border-color: var(--nf-border) !important;
+}
+
+/* ========== Navbar dropdown (nav-catalog-panel) ========== */
+html[data-theme='light'] .nav-catalog-panel {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-top-color: var(--nf-border) !important;
+  box-shadow: 0 28px 56px rgba(15, 23, 42, 0.15) !important;
+}
+
+html[data-theme='light'] .nav-catalog-link {
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .nav-catalog-link:hover {
+  background-color: var(--nf-surface-hover) !important;
+  color: var(--nf-accent) !important;
+}
+
+html[data-theme='light'] .nav-catalog-state {
+  color: var(--nf-text-muted) !important;
+}
+
+/* Let's make sure the text behind the menu stays somewhat hidden or at least the menu is less transparent to cover it */
+html[data-theme='light'] .nav-catalog-panel {
+  backdrop-filter: blur(24px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.2) !important;
+}
+
+/* Movie Detail lower section fixes */
+html[data-theme='light'] .movie-detail-date-tab:not(.is-active),
+html[data-theme='light'] .movie-detail-showtime-btn:not(.is-selected),
+html[data-theme='light'] .movie-detail-cast-card {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  color: var(--nf-text) !important;
+}
+html[data-theme='light'] .movie-detail-date-tab:not(.is-active):hover,
+html[data-theme='light'] .movie-detail-showtime-btn:not(.is-selected):hover:not(:disabled) {
+  background: var(--nf-bg-app) !important;
+}
+html[data-theme='light'] .movie-detail-section-title,
+html[data-theme='light'] .movie-detail-cinema-name,
+html[data-theme='light'] .movie-detail-cast-name,
+html[data-theme='light'] .movie-detail-showtime-room,
+html[data-theme='light'] .movie-detail-showtime-btn.is-sold-out {
+  color: var(--nf-text) !important;
+}
+html[data-theme='light'] .movie-detail-cinema-divider {
+  background: var(--nf-border) !important;
+}
+
+/* Home Personalize Panels */
+html[data-theme='light'] .home-personalize-duo__panel {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+/* Movie Reviews Section */
+html[data-theme='light'] .movie-reviews-section {
+  background: var(--nf-bg-app) !important;
+  border-top-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .movie-reviews-glass-card {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .movie-reviews-title,
+html[data-theme='light'] .movie-reviews-block-title,
+html[data-theme='light'] .movie-reviews-login-title,
+html[data-theme='light'] .movie-reviews-form-title,
+html[data-theme='light'] .movie-reviews-list-title,
+html[data-theme='light'] .movie-reviews-item-name-text,
+html[data-theme='light'] .movie-reviews-empty-title {
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .movie-reviews-item-comment {
+  color: var(--nf-text-muted) !important;
+}
+
+/* Fix MovieReminderButton active state (yellow button) */
+html[data-theme='light'] .bg-amber-500\/10 {
+  background-color: #fef3c7 !important;
+  border-color: #f59e0b !important;
+}
+html[data-theme='light'] .text-amber-200,
+html[data-theme='light'] .text-amber-300 {
+  color: #b45309 !important;
+}
+
+/* Fix FavoriteIconButton (Heart button on posters) */
+html[data-theme='light'] .movie-favorite-btn {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: var(--nf-text) !important;
+}
+html[data-theme='light'] .movie-favorite-btn:hover {
+  background: #ffffff !important;
+  border-color: rgba(239, 68, 68, 0.6) !important;
+}
+
+/* Fix GlobalSearchBar input (visible border) */
+html[data-theme='light'] .global-search-input {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: var(--nf-text) !important;
+  box-shadow: none !important;
+}
+html[data-theme='light'] .global-search-input:focus {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+}
+html[data-theme='light'] .global-search-icon {
+  color: var(--nf-text-muted) !important;
 }
