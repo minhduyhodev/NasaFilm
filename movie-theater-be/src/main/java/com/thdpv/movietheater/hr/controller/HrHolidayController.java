@@ -31,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/hr/admin/holidays")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN') or hasAuthority('HR_PAYROLL_MANAGE')")
+@PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('HR_HOLIDAY_MANAGE','HR_PAYROLL_MANAGE')")
 public class HrHolidayController {
 
     private final HolidayService holidayService;

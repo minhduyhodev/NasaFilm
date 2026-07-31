@@ -155,13 +155,15 @@ export const PrintTicketModal = ({ data, onClose }) => {
             </div>
           </div>
 
-          <div className="staff-control__ticket-customer">
-            <span className="staff-control__ticket-label">Khách hàng</span>
-            <div className="staff-control__ticket-value">{data.customerName || '—'}</div>
-            {data.customerEmail && (
-              <div className="staff-control__ticket-email">{data.customerEmail}</div>
-            )}
-          </div>
+          {data.customerEmail !== 'counter_guest@nasafilm.com' && data.customerName !== 'Khách vãng lai' && (
+            <div className="staff-control__ticket-customer">
+              <span className="staff-control__ticket-label">Khách hàng</span>
+              <div className="staff-control__ticket-value">{data.customerName || '—'}</div>
+              {data.customerEmail && (
+                <div className="staff-control__ticket-email">{data.customerEmail}</div>
+              )}
+            </div>
+          )}
 
           {data.combos ? (
             <div className="staff-control__ticket-combos">

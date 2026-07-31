@@ -81,7 +81,7 @@ public class BookingController {
     }
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('REPORT_VIEW')")
     public ResponseEntity<ApiResponse<Page<AdminBookingListResponse>>> getAdminBookings(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "status", required = false) String status,

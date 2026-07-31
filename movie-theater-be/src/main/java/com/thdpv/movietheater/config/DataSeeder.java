@@ -81,6 +81,13 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${app.seed.enabled:true}")
     private boolean seedEnabled;
 
+    /**
+     * Transitional compatibility switch. Keep existing STAFF accounts operational while
+     * administrators assign individual presets, then set false to enforce user-level permissions.
+     */
+    @Value("${app.authorization.legacy-staff-permissions-enabled:true}")
+    private boolean legacyStaffPermissionsEnabled;
+
     @Value("${app.auth.seed.admin-email}")
     private String adminEmail;
 
@@ -387,7 +394,14 @@ public class DataSeeder implements CommandLineRunner {
                 { "aaaaaaaa-0012-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.SUPPORT_MANAGE.name() },
                 { "aaaaaaaa-0013-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_SHIFT_MANAGE.name() },
                 { "aaaaaaaa-0014-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_ATTENDANCE_MANAGE.name() },
-                { "aaaaaaaa-0015-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_PAYROLL_MANAGE.name() }
+                { "aaaaaaaa-0015-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_PAYROLL_MANAGE.name() },
+                { "aaaaaaaa-0016-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.CINEMA_WRITE.name() },
+                { "aaaaaaaa-0017-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.MISSION_MANAGE.name() },
+                { "aaaaaaaa-0018-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.DISCOVER_MANAGE.name() },
+                { "aaaaaaaa-0019-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.REPORT_VIEW.name() },
+                { "aaaaaaaa-0020-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_VIEW.name() },
+                { "aaaaaaaa-0021-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_PROFILE_MANAGE.name() },
+                { "aaaaaaaa-0022-aaaa-aaaa-aaaaaaaaaaaa", PermissionName.HR_HOLIDAY_MANAGE.name() }
         };
 
         for (String[] def : permissionDefs) {
@@ -422,9 +436,14 @@ public class DataSeeder implements CommandLineRunner {
             if (adminRole != null) {
                 seedRolePermissionIfNotExists(adminRole.getId(), permission.getId());
             }
-            if (staffRole != null) {
+            if (legacyStaffPermissionsEnabled && staffRole != null) {
                 seedRolePermissionIfNotExists(staffRole.getId(), permission.getId());
             }
+        }
+
+        if (!legacyStaffPermissionsEnabled && staffRole != null) {
+            rolePermissionRepository.deleteByRoleId(staffRole.getId());
+            logger.warn("Legacy STAFF role permissions are disabled: STAFF access now requires per-user permissions.");
         }
     }
 

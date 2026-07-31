@@ -40,14 +40,14 @@ public class CinemaController {
     private final CinemaService cinemaService;
 
     @PostMapping("/admin/cinemas")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CINEMA_WRITE')")
     public ResponseEntity<ApiResponse<CinemaResponse>> createCinema(@Valid @RequestBody CinemaRequest request) {
         CinemaResponse response = cinemaService.createCinema(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(response));
     }
 
     @PutMapping("/admin/cinemas/{cinemaUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CINEMA_WRITE')")
     public ResponseEntity<ApiResponse<CinemaResponse>> updateCinema(
             @PathVariable UUID cinemaUuid,
             @Valid @RequestBody CinemaRequest request) {
@@ -56,7 +56,7 @@ public class CinemaController {
     }
 
     @PostMapping("/admin/cinemas/upload")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CINEMA_WRITE')")
     public ResponseEntity<ApiResponse<String>> uploadCinemaImage(@RequestParam("file") MultipartFile file) {
         String imageUrl = cinemaService.uploadImage(file);
         return ResponseEntity.ok(ApiResponse.success(imageUrl));
@@ -87,7 +87,7 @@ public class CinemaController {
     }
 
     @PostMapping("/admin/cinemas/{cinemaUuid}/rooms")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CINEMA_WRITE')")
     public ResponseEntity<ApiResponse<CinemaRoomResponse>> createRoom(
             @PathVariable UUID cinemaUuid,
             @Valid @RequestBody CinemaRoomRequest request) {
@@ -96,7 +96,7 @@ public class CinemaController {
     }
 
     @PutMapping("/admin/rooms/{roomUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CINEMA_WRITE')")
     public ResponseEntity<ApiResponse<CinemaRoomResponse>> updateRoom(
             @PathVariable UUID roomUuid,
             @Valid @RequestBody CinemaRoomRequest request) {
@@ -105,14 +105,14 @@ public class CinemaController {
     }
 
     @DeleteMapping("/admin/rooms/{roomUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CINEMA_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteRoom(@PathVariable UUID roomUuid) {
         cinemaService.deleteRoom(roomUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xoa phong chieu thanh cong"));
     }
 
     @DeleteMapping("/admin/cinemas/{cinemaUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CINEMA_WRITE')")
     public ResponseEntity<ApiResponse<Void>> deleteCinema(@PathVariable UUID cinemaUuid) {
         cinemaService.deleteCinema(cinemaUuid);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa rạp chiếu thành công"));
@@ -125,7 +125,7 @@ public class CinemaController {
     }
 
     @PostMapping("/admin/rooms/{roomUuid}/seats/generate")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CINEMA_WRITE')")
     public ResponseEntity<ApiResponse<Void>> generateSeats(
             @PathVariable UUID roomUuid,
             @RequestBody(required = false) GenerateSeatMapRequest request) {
@@ -134,7 +134,7 @@ public class CinemaController {
     }
 
     @PutMapping("/admin/seats/{seatUuid}")
-    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('CINEMA_WRITE')")
     public ResponseEntity<ApiResponse<SeatResponse>> updateSeat(
             @PathVariable UUID seatUuid,
             @Valid @RequestBody UpdateSeatRequest request) {

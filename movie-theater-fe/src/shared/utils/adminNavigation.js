@@ -17,12 +17,15 @@ export const isAdminOrStaffUser = (user) => {
 
 /** Thứ tự ưu tiên trang mặc định sau đăng nhập (staff không phải admin). */
 const STAFF_LANDING_CANDIDATES = [
-  { path: '/admin', permission: PERMISSIONS.USER_VIEW },
+  { path: '/admin', permission: PERMISSIONS.REPORT_VIEW },
   { path: '/admin/pos', permission: PERMISSIONS.COUNTER_BOOKING_CREATE },
   { path: '/admin/staff-control', permission: PERMISSIONS.TICKET_CHECKIN },
-  { path: '/admin/bookings', permission: PERMISSIONS.USER_VIEW },
+  { path: '/admin/bookings', permission: PERMISSIONS.REPORT_VIEW },
   { path: '/admin/refunds', permission: PERMISSIONS.COUNTER_REFUND_PROCESS },
+  { path: '/admin/cinemas', permission: PERMISSIONS.CINEMA_WRITE },
   { path: '/admin/showtimes', permission: PERMISSIONS.SHOWTIME_WRITE },
+  { path: '/admin/missions', permission: PERMISSIONS.MISSION_MANAGE },
+  { path: '/admin/matchmaker-analytics', permission: PERMISSIONS.DISCOVER_MANAGE },
   { path: '/admin/combos', permission: PERMISSIONS.COMBO_WRITE },
   { path: '/admin/support', permission: PERMISSIONS.SUPPORT_MANAGE },
   { path: '/admin/hr/schedule', permission: PERMISSIONS.HR_SHIFT_MANAGE },
@@ -31,7 +34,7 @@ const STAFF_LANDING_CANDIDATES = [
 ];
 
 export const canAccessAdminDashboard = (user) =>
-  isAdmin(user) || hasPermission(user, PERMISSIONS.USER_VIEW);
+  isAdmin(user) || hasPermission(user, PERMISSIONS.REPORT_VIEW);
 
 export const getDefaultAdminPath = (user) => {
   if (!user) return '/login';

@@ -23,6 +23,7 @@ export default function AdminDatePicker({
   onChange,
   label,
   placeholder = 'Chọn ngày',
+  displayValue,
   min,
   max,
   disabled = false,
@@ -115,7 +116,7 @@ export default function AdminDatePicker({
       >
         <Calendar className="adm-datepicker__icon" />
         <span className={`adm-datepicker__value${value ? '' : ' adm-datepicker__value--empty'}`}>
-          {value ? formatDisplayDate(value) : placeholder}
+          {displayValue || (value ? formatDisplayDate(value) : placeholder)}
         </span>
         {clearable && value && !disabled ? (
           <span

@@ -555,6 +555,143 @@
   text-align: center;
 }
 
+.adm-month-selector {
+  position: relative;
+}
+
+.adm-month-selector__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 140px;
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--adm-text, #f8fafc);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.adm-month-selector__trigger svg {
+  width: 15px;
+  height: 15px;
+  color: var(--adm-text-dim, #64748b);
+}
+
+.adm-month-selector__trigger:hover,
+.adm-month-selector__trigger.is-open {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.adm-month-selector__trigger:focus-visible,
+.adm-month-selector__nav-btn:focus-visible,
+.adm-month-selector__chip:focus-visible {
+  outline: 2px solid rgba(239, 68, 68, 0.75);
+  outline-offset: 2px;
+}
+
+.adm-month-selector__backdrop {
+  position: fixed;
+  inset: 0;
+}
+
+.adm-month-selector__panel {
+  padding: 0.85rem;
+  border: 1px solid var(--adm-border-strong, #242d42);
+  border-radius: 12px;
+  background: var(--adm-bg-panel-solid, #0f1322);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), var(--adm-shadow-panel, none);
+  overflow-y: auto;
+}
+
+.adm-month-selector__year-nav {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+  text-align: center;
+}
+
+.adm-month-selector__year-nav strong {
+  color: var(--adm-text, #f8fafc);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.adm-month-selector__nav-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--adm-text-muted, #94a3b8);
+  cursor: pointer;
+}
+
+.adm-month-selector__nav-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--adm-text, #f8fafc);
+}
+
+.adm-month-selector__nav-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.adm-month-selector__years,
+.adm-month-selector__months {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.adm-month-selector__chip {
+  min-height: 2rem;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--adm-text-muted, #94a3b8);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.adm-month-selector__chip:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--adm-text, #f8fafc);
+}
+
+.adm-month-selector__chip.is-selected {
+  border-color: rgba(239, 68, 68, 0.48);
+  background: rgba(239, 68, 68, 0.18);
+  color: #fecdd3;
+}
+
+.adm-month-selector__divider {
+  height: 1px;
+  margin: 0.8rem 0 0.65rem;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.adm-month-selector__label {
+  margin: 0 0 0.45rem;
+  color: var(--adm-text-muted, #94a3b8);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .adm-month-cal__legend {
   display: flex;
   flex-wrap: wrap;

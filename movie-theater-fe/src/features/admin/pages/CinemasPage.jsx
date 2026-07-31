@@ -9,6 +9,8 @@ import AdminModal from '../components/AdminModal';
 import CinemaFormPanel from '../components/panels/CinemaFormPanel';
 import CinemaRoomFormPanel from '../components/panels/CinemaRoomFormPanel';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import { useAuthContext } from '../../auth/hooks/useAuthContext';
+import { hasPermission, PERMISSIONS } from '../../../shared/utils/permissions';
 import './CinemasPage.css';
 
 const cinemaStatusVariant = (status) => {
@@ -33,6 +35,8 @@ const CinemasPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const confirm = useConfirm();
+  const { user } = useAuthContext();
+  const canManageCinema = hasPermission(user, PERMISSIONS.CINEMA_WRITE);
 
   const [cinemas, setCinemas] = useState([]);
   const [selectedCinema, setSelectedCinema] = useState(null);
@@ -271,11 +275,11 @@ const CinemasPage = () => {
         title="Kiến trúc rạp chiếu"
         description="Chọn chi nhánh rạp, sau đó chọn phòng chiếu để quản lý sơ đồ ghế."
         variant="display"
-        primaryAction={{
+        primaryAction={canManageCinema ? {
           label: 'Thêm rạp mới',
           onClick: handleAddCinemaClick,
           icon: <Plus className="w-4 h-4" />,
-        }}
+        } : undefined}
       />
 
       <AdminKpiGrid items={cinemaKpis} />
@@ -344,22 +348,24 @@ const CinemasPage = () => {
                     <span>{cStats.totalRoomsCount} phòng chiếu</span>
                     <span>{cStats.capacity} ghế</span>
                   </div>
-                  <div className="mt-2.5 pt-2 border-t border-[var(--adm-border)] flex justify-between items-center">
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteCinemaClick(cinema, e)}
-                      className="text-[10px] text-red-500 hover:text-red-400 uppercase font-bold bg-transparent border-none cursor-pointer p-0"
-                    >
-                      Xóa rạp
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleEditCinemaClick(cinema, e)}
-                      className="text-[10px] text-[var(--adm-text-dim)] hover:text-white uppercase font-bold bg-transparent border-none cursor-pointer p-0"
-                    >
-                      Chỉnh sửa rạp
-                    </button>
-                  </div>
+                  {canManageCinema && (
+                    <div className="mt-2.5 pt-2 border-t border-[var(--adm-border)] flex justify-between items-center">
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteCinemaClick(cinema, e)}
+                        className="text-[10px] text-red-500 hover:text-red-400 uppercase font-bold bg-transparent border-none cursor-pointer p-0"
+                      >
+                        Xóa rạp
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleEditCinemaClick(cinema, e)}
+                        className="text-[10px] text-[var(--adm-text-dim)] hover:text-white uppercase font-bold bg-transparent border-none cursor-pointer p-0"
+                      >
+                        Chỉnh sửa rạp
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -385,10 +391,12 @@ const CinemasPage = () => {
                 Chi nhánh: <span className="text-[var(--adm-text-secondary)] font-semibold">{selectedCinema.name}</span>
               </p>
             </div>
-            <PrimaryButton type="button" onClick={handleAddRoomClick}>
-              <Plus className="w-3.5 h-3.5" />
-              Thêm phòng
-            </PrimaryButton>
+            {canManageCinema && (
+              <PrimaryButton type="button" onClick={handleAddRoomClick}>
+                <Plus className="w-3.5 h-3.5" />
+                Thêm phòng
+              </PrimaryButton>
+            )}
           </div>
           <div className="adm-panel__body">
 
@@ -407,14 +415,16 @@ const CinemasPage = () => {
                   >
                     {room.name} ({room.roomType})
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handleDeleteRoom(room, e)}
-                    className="adm-btn adm-btn--ghost p-2"
-                    title="Xóa phòng"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {canManageCinema && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteRoom(room, e)}
+                      className="adm-btn adm-btn--ghost p-2"
+                      title="Xóa phòng"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

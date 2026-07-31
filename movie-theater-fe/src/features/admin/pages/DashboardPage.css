@@ -160,8 +160,15 @@
 
 .dash-period {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
+}
+
+.dashboard-period-datepicker {
+  width: auto;
+  min-width: 9.5rem;
 }
 
 .dash-period__btn {
@@ -973,6 +980,15 @@ a.dash-show-item {
 
   .dash-header__right {
     justify-self: start;
+  }
+
+  .dash-period {
+    max-width: 100%;
+  }
+
+  .dashboard-period-datepicker {
+    flex: 1 1 9.5rem;
+    max-width: 12rem;
   }
 
   .dashboard-page--revenue .dashboard-view-transition__stage,
