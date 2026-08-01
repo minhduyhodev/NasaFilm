@@ -50,7 +50,7 @@ export const ToastViewport = () => {
       {toasts.map((toast) => {
         const style = TOAST_STYLES[toast.type] ?? TOAST_STYLES.info;
         const isMessage = toast.variant === 'message';
-        const title = toast.title || style.title;
+        const title = toast.title; // Only use explicit title, no fallback
 
         return (
           <div
@@ -78,8 +78,8 @@ export const ToastViewport = () => {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white">{title}</p>
-                <p className="mt-1 break-words text-sm text-slate-300">{toast.message}</p>
+                {title && <p className="text-sm font-semibold text-white">{title}</p>}
+                <p className={`break-words text-sm text-slate-300 ${title ? 'mt-1' : ''}`}>{toast.message}</p>
                 {toast.actionLabel && toast.actionPath ? (
                   <Link
                     to={toast.actionPath}
