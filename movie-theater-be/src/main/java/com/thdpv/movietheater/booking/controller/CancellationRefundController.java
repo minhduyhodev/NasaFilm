@@ -72,27 +72,27 @@ public class CancellationRefundController {
     }
 
     @GetMapping("/admin/refunds")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COUNTER_REFUND_PROCESS')")
     public ResponseEntity<ApiResponse<Page<AdminRefundListItemResponse>>> listPendingRefunds(
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.listPendingRefunds(pageable)));
     }
 
     @GetMapping("/admin/refunds/history")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COUNTER_REFUND_PROCESS')")
     public ResponseEntity<ApiResponse<Page<AdminRefundListItemResponse>>> listRefundHistory(
             @PageableDefault(size = 10, sort = "completedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.listRefundHistory(pageable)));
     }
 
     @GetMapping("/admin/refunds/pending-count")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COUNTER_REFUND_PROCESS')")
     public ResponseEntity<ApiResponse<Long>> countPendingRefunds() {
         return ResponseEntity.ok(ApiResponse.success(cancellationRefundService.countPendingRefunds()));
     }
 
     @PostMapping("/admin/refunds/{id}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COUNTER_REFUND_PROCESS')")
     public ResponseEntity<ApiResponse<Void>> approveRefund(
             @PathVariable("id") UUID refundUuid,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -107,9 +107,11 @@ public class CancellationRefundController {
         }
         User user = userRepository.findByEmailIgnoreCase(userDetails.getUsername()).orElse(null);
         UUID userUuid = user != null ? user.getId() : null;
+        // Customer endpoints must never turn a normal STAFF account into an ownership bypass.
+        // Counter refunds require an explicit staff workflow; only ADMIN can override booking ownership here.
         boolean adminOverride = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch(a -> a.equals("ROLE_ADMIN") || a.equals("ROLE_STAFF"));
+                .anyMatch(a -> a.equals("ROLE_ADMIN"));
         String role = adminOverride ? "ADMIN" : "CUSTOMER";
         return new ActorContext(userUuid, role, adminOverride);
     }

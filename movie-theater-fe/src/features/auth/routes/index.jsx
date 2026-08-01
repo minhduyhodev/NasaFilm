@@ -3,6 +3,7 @@ import { PublicRoute } from '../components/PublicRoute';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 import ActivateAccountPage from '../pages/ActivateAccountPage';
+import NotFoundPage from '../../../app/components/NotFoundPage';
 
 export const AuthRoutes = ({ mode }) => {
   if (mode === 'forgot-password') {
@@ -47,6 +48,7 @@ export const AuthRoutes = ({ mode }) => {
         path="reset-password"
         element={<Navigate to="/reset-password" replace />}
       />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };

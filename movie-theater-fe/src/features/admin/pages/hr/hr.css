@@ -73,9 +73,9 @@
 /* Table */
 .hr-table-wrap {
   overflow-x: auto;
-  border: 1px solid #1a2238;
+  border: 1px solid var(--adm-border-strong, #1a2238);
   border-radius: 12px;
-  background: #0f1322;
+  background: var(--adm-bg-panel-solid, #0f1322);
 }
 .hr-table {
   width: 100%;
@@ -127,11 +127,11 @@
   justify-content: center;
   gap: 12px;
   padding: 56px 20px;
-  color: #94a3b8;
+  color: var(--adm-text-muted, #94a3b8);
   text-align: center;
-  border: 1px dashed #1a2238;
+  border: 1px dashed var(--adm-border-strong, #1a2238);
   border-radius: 12px;
-  background: rgba(15, 19, 34, 0.5);
+  background: var(--adm-bg-panel, rgba(15, 19, 34, 0.5));
 }
 
 /* Filter bar */
@@ -338,9 +338,9 @@
   /* min-width:0 để mọi cột co đúng 1/7 bề rộng grid (tránh cột nội dung dài bị tràn rộng hơn). */
   min-width: 0;
   box-sizing: border-box;
-  border: 1px solid #1a2238;
+  border: 1px solid var(--adm-border-strong, #1a2238);
   border-radius: 12px;
-  background: #0f1322;
+  background: var(--adm-bg-panel-solid, #0f1322);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -350,7 +350,7 @@
   border-color: rgba(239, 68, 68, 0.45);
 }
 .hr-day-col--past {
-  background: #0c0f1a;
+  background: var(--adm-bg-elevated, #0c0f1a);
   opacity: 0.7;
   transition: opacity 0.15s ease;
 }
@@ -870,9 +870,9 @@
 }
 
 .hr-kpi-card {
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.06));
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(24, 28, 42, 0.95), rgba(15, 19, 34, 0.92));
+  background: var(--adm-bg-panel-solid, #181c2a);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -904,7 +904,7 @@
 .hr-kpi-card__value {
   font-size: 22px;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--adm-text, #f8fafc);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
@@ -1300,9 +1300,9 @@
 }
 
 .hr-checkpoint-card {
-  border: 1px solid rgba(249, 115, 22, 0.25);
+  border: 1px solid var(--adm-border-strong, rgba(249, 115, 22, 0.25));
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(249, 115, 22, 0.08), rgba(15, 19, 34, 0.5));
+  background: var(--adm-bg-panel-solid, rgba(15, 19, 34, 0.5));
   padding: 20px;
 }
 
@@ -1370,16 +1370,16 @@
 }
 
 .hr-checkpoint-kiosk-steps {
-  border: 1px solid rgba(249, 115, 22, 0.25);
+  border: 1px solid var(--adm-border-strong, rgba(249, 115, 22, 0.25));
   border-radius: 16px;
-  background: rgba(15, 19, 34, 0.88);
+  background: var(--adm-bg-panel-solid, rgba(15, 19, 34, 0.88));
   padding: 20px;
 }
 
 .hr-checkpoint-kiosk-steps ol {
   margin: 10px 0 0;
   padding-left: 18px;
-  color: #cbd5e1;
+  color: var(--adm-text-secondary, #cbd5e1);
   font-size: 14px;
   line-height: 1.6;
 }

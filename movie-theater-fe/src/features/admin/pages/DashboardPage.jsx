@@ -3,7 +3,6 @@ import { logger } from '../../../shared/utils/logger';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   CircleHelp,
@@ -23,7 +22,7 @@ import {
 } from 'lucide-react';
 import { adminDashboardService } from '../api/adminDashboardService';
 import { adminMissionService } from '../api/adminMissionService';
-import { AdminPage, FilterPills } from '../components';
+import { AdminPage, FilterPills, AdminDatePicker } from '../components';
 import AdminSelectDropdown from '../components/AdminSelectDropdown';
 import DashboardViewTransition from '../../../shared/components/DashboardViewTransition';
 import PosterImage from '../../../shared/components/PosterImage';
@@ -855,10 +854,16 @@ const DashboardPage = () => {
               >
                 <ChevronLeft size={16} />
               </button>
-              <div className="dash-period__pill">
-                <CalendarDays size={15} aria-hidden />
-                <span>{revenueSeries?.periodLabel || 'Kỳ hiện tại'}</span>
-              </div>
+              <AdminDatePicker
+                value={revenueSeries?.periodStartDate || revenueAnchor}
+                onChange={(value) => value && setRevenueAnchor(value)}
+                max={todayYmd()}
+                clearable={false}
+                size="sm"
+                className="dashboard-period-datepicker"
+                placeholder="Chọn ngày"
+                displayValue={revenueSeries?.periodLabel}
+              />
               <button
                 type="button"
                 className="dash-period__btn"

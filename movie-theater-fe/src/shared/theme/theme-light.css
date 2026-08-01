@@ -1,0 +1,462 @@
+/* Light-mode surface remaps for pages that still use dark hex / white text */
+
+html[data-theme='light'] body {
+  color: var(--nf-text);
+}
+
+/* Force light text utilities → black (keep white on red / accent CTAs) */
+html[data-theme='light'] .text-white,
+html[data-theme='light'] .text-white\/95,
+html[data-theme='light'] .text-white\/90,
+html[data-theme='light'] .text-white\/85,
+html[data-theme='light'] .text-white\/80,
+html[data-theme='light'] .text-white\/70,
+html[data-theme='light'] .text-white\/60,
+html[data-theme='light'] .text-white\/50,
+html[data-theme='light'] .text-white\/40,
+html[data-theme='light'] .text-zinc-50,
+html[data-theme='light'] .text-zinc-100,
+html[data-theme='light'] .text-zinc-200,
+html[data-theme='light'] .text-zinc-300,
+html[data-theme='light'] .text-zinc-400,
+html[data-theme='light'] .text-zinc-500,
+html[data-theme='light'] .text-slate-50,
+html[data-theme='light'] .text-slate-100,
+html[data-theme='light'] .text-slate-200,
+html[data-theme='light'] .text-slate-300,
+html[data-theme='light'] .text-slate-400,
+html[data-theme='light'] .text-slate-500,
+html[data-theme='light'] .text-gray-50,
+html[data-theme='light'] .text-gray-100,
+html[data-theme='light'] .text-gray-200,
+html[data-theme='light'] .text-gray-300,
+html[data-theme='light'] .text-gray-400,
+html[data-theme='light'] .text-gray-500,
+html[data-theme='light'] .text-neutral-50,
+html[data-theme='light'] .text-neutral-100,
+html[data-theme='light'] .text-neutral-200,
+html[data-theme='light'] .text-neutral-300,
+html[data-theme='light'] .text-neutral-400 {
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .btn-primary,
+html[data-theme='light'] .btn-primary *,
+html[data-theme='light'] .navbar-btn-book,
+html[data-theme='light'] .navbar-btn-book *,
+html[data-theme='light'] a.bg-red-600,
+html[data-theme='light'] a.bg-red-600 *,
+html[data-theme='light'] button.bg-red-600,
+html[data-theme='light'] button.bg-red-600 *,
+html[data-theme='light'] .bg-red-500,
+html[data-theme='light'] .bg-red-500 *,
+html[data-theme='light'] .bg-red-600,
+html[data-theme='light'] .bg-red-600 *,
+html[data-theme='light'] .bg-rose-500,
+html[data-theme='light'] .bg-rose-500 *,
+html[data-theme='light'] .bg-rose-600,
+html[data-theme='light'] .bg-rose-600 *,
+html[data-theme='light'] .from-red-600,
+html[data-theme='light'] .from-red-600 * {
+  color: #fff !important;
+}
+
+html[data-theme='light'] .navbar-cta-btn,
+html[data-theme='light'] .navbar-cta-btn * {
+  color: #0a0a0a !important;
+}
+
+/* Navbar */
+html[data-theme='light'] .navbar-header {
+  border-bottom-color: var(--nf-navbar-border);
+  background: var(--nf-navbar-bg);
+}
+
+html[data-theme='light'] .navbar-header--menu-open {
+  border-bottom-color: var(--nf-border-strong);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+html[data-theme='light'] .navbar-logo-text {
+  text-shadow: none;
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .navbar-logo-text .text-transparent {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+html[data-theme='light'] .navbar-nav-link {
+  color: var(--nf-text);
+  text-shadow: none;
+}
+
+html[data-theme='light'] .navbar-nav-link:hover {
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .navbar-btn-menu,
+html[data-theme='light'] .navbar-btn-notif {
+  color: var(--nf-text);
+  border-color: var(--nf-border);
+  background: var(--nf-surface);
+}
+
+html[data-theme='light'] .navbar-booking-menu {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: var(--nf-border) !important;
+  box-shadow: var(--nf-shadow);
+}
+
+html[data-theme='light'] .navbar-booking-option {
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .navbar-booking-option:hover {
+  background: var(--nf-surface-hover);
+}
+
+/* Home / space */
+html[data-theme='light'] .home-page {
+  background: var(--nf-space-bg) !important;
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .home-space-zone,
+html[data-theme='light'] .home-page__main {
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .home-movie-carousel__title,
+html[data-theme='light'] .home-spotlight__heading,
+html[data-theme='light'] .home-spotlight__title,
+html[data-theme='light'] .home-section-shell__title {
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .home-movie-carousel__subtitle,
+html[data-theme='light'] .home-spotlight__subtitle,
+html[data-theme='light'] .home-section-shell__subtitle,
+html[data-theme='light'] .home-spotlight__desc,
+html[data-theme='light'] .home-spotlight__meta {
+  color: var(--nf-text-muted) !important;
+}
+
+html[data-theme='light'] .home-spotlight__btn--ghost {
+  border-color: var(--nf-border-strong);
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .home-spotlight__btn--ghost:hover {
+  background: var(--nf-surface-hover);
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .home-section-shell--glass {
+  background:
+    linear-gradient(145deg, rgba(220, 38, 38, 0.05), rgba(255, 255, 255, 0.7)),
+    rgba(255, 255, 255, 0.75);
+  border-color: var(--nf-border);
+  box-shadow: var(--nf-shadow);
+}
+
+html[data-theme='light'] .movie-card,
+html[data-theme='light'] .movie-card__body {
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .movie-card__title {
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .movie-card__meta,
+html[data-theme='light'] .movie-card__genres {
+  color: var(--nf-text-muted) !important;
+}
+
+/* Footer */
+html[data-theme='light'] .site-footer,
+html[data-theme='light'] footer.footer,
+html[data-theme='light'] .footer {
+  background: var(--nf-footer-bg) !important;
+  color: var(--nf-text-secondary);
+  border-color: var(--nf-border);
+}
+
+html[data-theme='light'] .footer a,
+html[data-theme='light'] .site-footer a {
+  color: var(--nf-text-secondary);
+}
+
+html[data-theme='light'] .footer a:hover,
+html[data-theme='light'] .site-footer a:hover {
+  color: var(--nf-accent);
+}
+
+/* Glass / checkout / common dark panels */
+html[data-theme='light'] .glass-panel,
+html[data-theme='light'] .glass-effect {
+  background: var(--nf-glass) !important;
+  border-color: var(--nf-glass-border) !important;
+  color: var(--nf-text);
+  box-shadow: var(--nf-shadow);
+}
+
+html[data-theme='light'] .checkout-wrapper {
+  background-color: var(--nf-bg-app) !important;
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] .checkout-wrapper .glass-panel--payment {
+  background: var(--nf-bg-panel-solid) !important;
+}
+
+/* Auth / utility pages with hard dark bg */
+html[data-theme='light'] .min-h-screen.bg-\[\#0b0f19\],
+html[data-theme='light'] .min-h-screen.bg-\[\#0f121d\],
+html[data-theme='light'] .min-h-screen.bg-\[\#0A0A0C\] {
+  background-color: var(--nf-bg-app) !important;
+  color: var(--nf-text);
+}
+
+/* Forms */
+html[data-theme='light'] .input-auth,
+html[data-theme='light'] input[type='text'],
+html[data-theme='light'] input[type='email'],
+html[data-theme='light'] input[type='password'],
+html[data-theme='light'] input[type='search'],
+html[data-theme='light'] textarea,
+html[data-theme='light'] select {
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .btn-secondary {
+  background: var(--nf-surface);
+  border-color: var(--nf-border);
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .btn-secondary:hover {
+  background: var(--nf-surface-hover);
+  border-color: var(--nf-border-strong);
+}
+
+/* Hero loading */
+html[data-theme='light'] .hero-dome-loading__label {
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .hero-dome-loading {
+  background:
+    radial-gradient(ellipse 55% 45% at 50% 48%, rgba(220, 38, 38, 0.08), transparent 70%),
+    radial-gradient(ellipse 70% 60% at 50% 50%, rgba(244, 245, 247, 0.5), transparent 75%);
+}
+
+/* NASA Bot panel */
+html[data-theme='light'] .nasa-assistant-panel {
+  background: var(--nf-bg-panel-solid) !important;
+  color: var(--nf-text) !important;
+  border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .nasa-assistant-header,
+html[data-theme='light'] .nasa-assistant-bubble--bot {
+  color: var(--nf-text);
+}
+
+html[data-theme='light'] .nasa-assistant-bubble--bot {
+  background: var(--nf-surface) !important;
+  border-color: var(--nf-border) !important;
+}
+
+/* Admin shell tokens under light theme */
+html[data-theme='light'] .admin-shell {
+  --adm-bg-app: #f4f5f7;
+  --adm-bg-main: #eef0f4;
+  --adm-bg-sidebar: #ffffff;
+  --adm-bg-panel: rgba(255, 255, 255, 0.92);
+  --adm-bg-panel-solid: #ffffff;
+  --adm-bg-input: #f8fafc;
+  --adm-bg-elevated: #ffffff;
+  --adm-border: rgba(15, 23, 42, 0.1);
+  --adm-border-strong: rgba(15, 23, 42, 0.16);
+  --adm-text: #0a0a0a;
+  --adm-text-secondary: #1a1a1a;
+  --adm-text-muted: #2e2e2e;
+  --adm-text-dim: #4a4a4a;
+  --adm-accent: #dc2626;
+  --adm-accent-hover: #ef4444;
+  --adm-accent-soft: rgba(220, 38, 38, 0.1);
+  --adm-accent-border: rgba(220, 38, 38, 0.28);
+  --adm-focus-ring: rgba(220, 38, 38, 0.4);
+  --adm-nav-active-bg: rgba(15, 23, 42, 0.05);
+  --adm-nav-active-border: rgba(15, 23, 42, 0.08);
+  --adm-nav-active-text: #0a0a0a;
+  --adm-shadow-panel: 0 0 0 1px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #f4f5f7 0%, #eef0f4 100%);
+  color: var(--adm-text);
+}
+
+/* Counter / staff */
+html[data-theme='light'] .counter-shell,
+html[data-theme='light'] .staff-mission-shell {
+  color: var(--nf-text);
+  background: var(--nf-bg-app);
+}
+
+/* Soften pure white text utility islands on light pages — covered by global remap above */
+
+html[data-theme='light'] .home-page .border-white\/5,
+html[data-theme='light'] .home-page .border-white\/10,
+html[data-theme='light'] .checkout-wrapper .border-white\/5,
+html[data-theme='light'] .checkout-wrapper .border-white\/10 {
+  border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] .home-page .bg-white\/5,
+html[data-theme='light'] .checkout-wrapper .bg-white\/5 {
+  background-color: var(--nf-surface) !important;
+}
+
+/* Keep CTA / brand reds readable on light */
+html[data-theme='light'] .text-red-500,
+html[data-theme='light'] .text-rose-500 {
+  color: #dc2626 !important;
+}
+
+html[data-theme='light'] select {
+  color-scheme: light;
+}
+
+html[data-theme='dark'] select {
+  color-scheme: dark;
+}
+
+html[data-theme='light'] .adm-topbar {
+  border-bottom-color: var(--adm-border);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Nuclear: force black text in light mode (overrides hardcoded #fff in component CSS) */
+html[data-theme='light'] #root,
+html[data-theme='light'] #root *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon),
+html[data-theme='light'] .nasa-assistant-root,
+html[data-theme='light'] .nasa-assistant-root *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon),
+html[data-theme='light'] .nasa-assistant-panel,
+html[data-theme='light'] .nasa-assistant-panel *:not(svg):not(path):not(circle):not(rect):not(line):not(polyline):not(polygon) {
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] #root svg {
+  color: inherit;
+}
+
+/* Keep white text only on solid primary CTAs (not soft red cards / navbar MUA VÉ) */
+html[data-theme='light'] #root .btn-primary,
+html[data-theme='light'] #root .btn-primary *,
+html[data-theme='light'] #root .bg-red-500,
+html[data-theme='light'] #root .bg-red-600,
+html[data-theme='light'] #root .bg-red-700,
+html[data-theme='light'] #root .bg-rose-500,
+html[data-theme='light'] #root .bg-rose-600 {
+  color: #fff !important;
+}
+
+/* Navbar MUA VÉ + red CTAs → light surface, black text */
+html[data-theme='light'] #root .navbar-cta-btn,
+html[data-theme='light'] #root .navbar-btn-book,
+html[data-theme='light'] #root .navbar-cta {
+  background-image: none !important;
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 1px solid var(--nf-border-strong) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] #root .navbar-cta-btn *,
+html[data-theme='light'] #root .navbar-btn-book *,
+html[data-theme='light'] #root .navbar-cta * {
+  color: #0a0a0a !important;
+}
+
+/* Red cards → neutral surface + black text */
+html[data-theme='light'] #root .movie-card__cta,
+html[data-theme='light'] #root .movie-card--showcase .movie-card__hover-cta,
+html[data-theme='light'] #root .guest-auth-promo-bar__cta {
+  background: #ffffff !important;
+  color: #0a0a0a !important;
+  border: 1px solid var(--nf-border-strong) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] #root .movie-card__cta:hover,
+html[data-theme='light'] #root .movie-card--showcase .movie-card__hover-cta:hover,
+html[data-theme='light'] #root .guest-auth-promo-bar__cta:hover {
+  background: #f1f3f5 !important;
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] #root .movie-card {
+  background: #ffffff !important;
+  border-color: var(--nf-border) !important;
+}
+
+html[data-theme='light'] #root .movie-card--showcase,
+html[data-theme='light'] #root .movie-card--showcase:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='light'] #root .movie-card:hover {
+  border-color: var(--nf-border-strong) !important;
+  box-shadow: var(--nf-shadow) !important;
+}
+
+html[data-theme='light'] #root .movie-card__title,
+html[data-theme='light'] #root .movie-card:hover .movie-card__title {
+  color: #0a0a0a !important;
+}
+
+html[data-theme='light'] #root .movie-card__status--hot {
+  background: #e8eaed !important;
+  color: #0a0a0a !important;
+}
+
+/* Soft red tint panels → light surface, black text */
+html[data-theme='light'] #root .bg-red-500\/5,
+html[data-theme='light'] #root .bg-red-500\/10,
+html[data-theme='light'] #root .bg-red-500\/20,
+html[data-theme='light'] #root .bg-red-600\/5,
+html[data-theme='light'] #root .bg-red-600\/10,
+html[data-theme='light'] #root .bg-red-600\/20,
+html[data-theme='light'] #root .bg-rose-500\/10,
+html[data-theme='light'] #root .bg-rose-500\/20 {
+  background-color: var(--nf-surface) !important;
+  color: var(--nf-text) !important;
+}
+
+html[data-theme='light'] #root .border-red-500\/20,
+html[data-theme='light'] #root .border-red-500\/25,
+html[data-theme='light'] #root .border-red-500\/30,
+html[data-theme='light'] #root .border-red-500\/40,
+html[data-theme='light'] #root .border-red-500\/50,
+html[data-theme='light'] #root .border-red-600\/50 {
+  border-color: var(--nf-border) !important;
+}
+
+/* Accent / status colors stay tinted (not forced black) */
+html[data-theme='light'] #root .text-red-500,
+html[data-theme='light'] #root .text-rose-500,
+html[data-theme='light'] #root .text-red-400,
+html[data-theme='light'] #root .text-rose-400 {
+  color: #dc2626 !important;
+}
+
+html[data-theme='light'] #root .text-amber-400,
+html[data-theme='light'] #root .text-amber-500,
+html[data-theme='light'] #root .text-yellow-400,
+html[data-theme='light'] #root .text-yellow-500 {
+  color: #b45309 !important;
+}

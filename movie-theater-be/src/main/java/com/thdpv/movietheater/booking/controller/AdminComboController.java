@@ -30,18 +30,19 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/combos")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','STAFF')")
 public class AdminComboController {
 
     private final ComboService comboService;
     private final ComboRevenueService comboRevenueService;
 
     @GetMapping("/revenue/stats")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('REPORT_VIEW')")
     public ResponseEntity<ApiResponse<ComboRevenueResponse>> getRevenueStats() {
         return ResponseEntity.ok(ApiResponse.success(comboRevenueService.getRevenueStats()));
     }
 
     @GetMapping("/revenue/series")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('REPORT_VIEW')")
     public ResponseEntity<ApiResponse<RevenueSeriesResponse>> getRevenueSeries(
             @RequestParam(defaultValue = "day") String granularity,
             @RequestParam(defaultValue = "0") int offset,
@@ -51,6 +52,7 @@ public class AdminComboController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('COMBO_WRITE')")
     public ResponseEntity<ApiResponse<List<Combo>>> getAllCombos() {
         List<Combo> combos = comboService.getAllCombos();
         return ResponseEntity.ok(ApiResponse.success(combos));

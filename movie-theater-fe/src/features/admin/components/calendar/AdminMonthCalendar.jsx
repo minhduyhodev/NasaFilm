@@ -3,12 +3,12 @@ import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   WEEKDAY_FULL,
   formatDisplayDate,
-  formatMonthYear,
   getMonthGrid,
   parseIsoDate,
   shiftMonth,
   todayIso,
 } from './dateUtils';
+import AdminMonthSelector from './AdminMonthSelector';
 import './AdminCalendar.css';
 
 /**
@@ -78,7 +78,7 @@ export default function AdminMonthCalendar({
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="adm-cal-nav__title">{formatMonthYear(year, monthIndex)}</span>
+            <AdminMonthSelector year={year} monthIndex={monthIndex} onChange={setMonth} />
             <button
               type="button"
               className="adm-cal-nav__btn"

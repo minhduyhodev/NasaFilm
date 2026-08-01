@@ -1,4 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { notificationService } from '../../../shared/services/notificationService';
 import { useAuthContext } from '../hooks/useAuthContext';
 import { hasAnyPermission } from '../../../shared/utils/permissions';
 import { getDefaultAdminPath, isAdminOrStaffUser } from '../../../shared/utils/adminNavigation';
@@ -11,6 +13,14 @@ export const ProtectedRoute = ({
 }) => {
   const { isAuthenticated, loading, user } = useAuthContext();
   const location = useLocation();
+  const hasNotifiedRef = useRef(false);
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated && !hasNotifiedRef.current) {
+      hasNotifiedRef.current = true;
+      notificationService.info('Vui lòng đăng nhập để sử dụng tính năng này.');
+    }
+  }, [loading, isAuthenticated]);
 
   // Hiển thị spinner khi đang load auth state
   if (loading) {

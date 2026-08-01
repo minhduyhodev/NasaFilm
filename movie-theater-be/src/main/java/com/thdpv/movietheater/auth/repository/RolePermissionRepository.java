@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.thdpv.movietheater.user.entity.RolePermission;
 
@@ -18,4 +20,9 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
             where rp.role_id in (:roleIds)
             """, nativeQuery = true)
     List<String> findPermissionNamesByRoleIds(@Param("roleIds") List<UUID> roleIds);
+
+    @Transactional
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM RolePermission rp WHERE rp.roleId = :roleId")
+    void deleteByRoleId(@Param("roleId") UUID roleId);
 }

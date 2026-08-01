@@ -37,7 +37,6 @@ public class SeatGapValidationService {
             boolean selectedByUser = selectedSeatUuidSet.contains(state.seatUuid());
             boolean unavailable = selectedByUser
                     || state.booked()
-                    || state.locked()
                     || (state.seatStatus() != null && !"ACTIVE".equalsIgnoreCase(state.seatStatus()));
             GapSeat gapSeat = new GapSeat(state.rowName(), state.seatNumber(), unavailable, selectedByUser);
             seatsByRow.computeIfAbsent(gapSeat.rowName(), ignored -> new ArrayList<>()).add(gapSeat);

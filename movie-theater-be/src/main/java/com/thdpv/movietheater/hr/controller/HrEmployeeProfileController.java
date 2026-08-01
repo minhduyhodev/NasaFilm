@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/hr/admin/employee-profiles")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN') or hasAuthority('HR_PAYROLL_MANAGE')")
+@PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('HR_PROFILE_MANAGE','HR_PAYROLL_MANAGE')")
 public class HrEmployeeProfileController {
 
     private final EmployeeProfileService employeeProfileService;

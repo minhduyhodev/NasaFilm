@@ -11,9 +11,10 @@ import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
 import { logger } from '../../../shared/utils/logger';
 import { useMovieFilterOptions } from '../../../shared/hooks/queries/useMovieQueries';
 import { prefetchOnlinePage, getCachedOnlineMovies } from '../utils/onlineMoviesCache';
-import './Navbar.css';
 import GlobalSearchBar from './GlobalSearchBar';
 import OrbitJoinInput from './OrbitJoinInput';
+import ThemeToggle from '../../../shared/components/ThemeToggle';
+import './Navbar.css';
 
 const CATALOG_MENUS = {
   genre: {
@@ -362,6 +363,8 @@ const Navbar = () => {
               </>
             )}
           </div>
+
+          <ThemeToggle className="navbar-theme-toggle" />
 
           <NotificationBell />
 

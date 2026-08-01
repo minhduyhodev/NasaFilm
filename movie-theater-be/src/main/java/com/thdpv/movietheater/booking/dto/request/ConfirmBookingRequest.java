@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 
 public class ConfirmBookingRequest {
@@ -22,7 +24,9 @@ public class ConfirmBookingRequest {
 
     private String promotionCode;
 
-    /** wallet | card | apple | momo — mapped by PaymentService when provider=mock */
+    /** Customer checkout methods only; counter methods use the staff-only API. */
+    @NotBlank(message = "Phương thức thanh toán không được để trống")
+    @Pattern(regexp = "(?i)^(wallet|card|vietqr)$", message = "Phương thức thanh toán không hợp lệ")
     private String paymentMethod;
 
     /** Present when checkout originates from an Orbit group room (host pays all). */

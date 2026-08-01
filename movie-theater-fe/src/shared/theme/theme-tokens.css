@@ -1,0 +1,109 @@
+/* ===== NASAFilm theme tokens ===== */
+:root,
+html[data-theme='dark'] {
+  color-scheme: dark;
+
+  --nf-bg-deep: #020203;
+  --nf-bg-app: #060608;
+  --nf-bg-elevated: #0a0a0c;
+  --nf-bg-panel: rgba(255, 255, 255, 0.04);
+  --nf-bg-panel-solid: #111215;
+  --nf-bg-input: rgba(255, 255, 255, 0.05);
+  --nf-surface: rgba(255, 255, 255, 0.05);
+  --nf-surface-hover: rgba(255, 255, 255, 0.08);
+
+  --nf-text: #ededef;
+  --nf-text-secondary: #c8c5ca;
+  --nf-text-muted: #8a8f98;
+  --nf-text-dim: #6b7078;
+  --nf-text-inverse: #0b0d12;
+
+  --nf-border: rgba(255, 255, 255, 0.08);
+  --nf-border-strong: rgba(255, 255, 255, 0.14);
+
+  --nf-accent: #e11d48;
+  --nf-accent-bright: #f43f5e;
+  --nf-accent-soft: rgba(225, 29, 72, 0.14);
+  --nf-accent-glow: rgba(225, 29, 72, 0.25);
+
+  --nf-success: #34d399;
+  --nf-warning: #fbbf24;
+  --nf-danger: #f43f5e;
+  --nf-info: #38bdf8;
+
+  --nf-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  --nf-glass: rgba(8, 8, 12, 0.72);
+  --nf-glass-border: rgba(255, 255, 255, 0.08);
+
+  --nf-body-bg:
+    radial-gradient(circle at 50% 0%, rgba(220, 38, 38, 0.12) 0%, #060608 75%) no-repeat,
+    #060608;
+  --nf-navbar-bg: linear-gradient(
+    180deg,
+    rgba(5, 5, 8, 0.72) 0%,
+    rgba(5, 5, 8, 0.48) 70%,
+    rgba(5, 5, 8, 0.22) 100%
+  );
+  --nf-navbar-border: rgba(255, 255, 255, 0.06);
+  --nf-footer-bg: #050508;
+  --nf-space-bg: #080c12;
+  --nf-card-bg: rgba(12, 12, 16, 0.92);
+  --nf-hero-veil: rgba(8, 12, 20, 0.35);
+  --nf-scrollbar: rgba(220, 38, 38, 0.45);
+  --nf-scrollbar-hover: rgba(220, 38, 38, 0.7);
+  --nf-selection-fg: #ffffff;
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+
+  --nf-bg-deep: #eef0f4;
+  --nf-bg-app: #f4f5f7;
+  --nf-bg-elevated: #ffffff;
+  --nf-bg-panel: rgba(255, 255, 255, 0.86);
+  --nf-bg-panel-solid: #ffffff;
+  --nf-bg-input: rgba(15, 23, 42, 0.04);
+  --nf-surface: rgba(15, 23, 42, 0.04);
+  --nf-surface-hover: rgba(15, 23, 42, 0.07);
+
+  --nf-text: #0a0a0a;
+  --nf-text-secondary: #1a1a1a;
+  --nf-text-muted: #2e2e2e;
+  --nf-text-dim: #4a4a4a;
+  --nf-text-inverse: #ffffff;
+
+  --nf-border: rgba(15, 23, 42, 0.1);
+  --nf-border-strong: rgba(15, 23, 42, 0.16);
+
+  --nf-accent: #dc2626;
+  --nf-accent-bright: #ef4444;
+  --nf-accent-soft: rgba(220, 38, 38, 0.1);
+  --nf-accent-glow: rgba(220, 38, 38, 0.18);
+
+  --nf-success: #059669;
+  --nf-warning: #d97706;
+  --nf-danger: #e11d48;
+  --nf-info: #0284c7;
+
+  --nf-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+  --nf-glass: rgba(255, 255, 255, 0.82);
+  --nf-glass-border: rgba(15, 23, 42, 0.1);
+
+  --nf-body-bg:
+    radial-gradient(circle at 50% 0%, rgba(220, 38, 38, 0.08) 0%, #f4f5f7 72%) no-repeat,
+    #f4f5f7;
+  --nf-navbar-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.78) 70%,
+    rgba(255, 255, 255, 0.55) 100%
+  );
+  --nf-navbar-border: rgba(15, 23, 42, 0.08);
+  --nf-footer-bg: #eceef2;
+  --nf-space-bg: #eef1f6;
+  --nf-card-bg: #ffffff;
+  --nf-hero-veil: rgba(244, 245, 247, 0.35);
+  --nf-scrollbar: rgba(220, 38, 38, 0.4);
+  --nf-scrollbar-hover: rgba(220, 38, 38, 0.65);
+  --nf-selection-fg: #ffffff;
+}

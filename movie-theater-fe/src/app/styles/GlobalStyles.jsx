@@ -13,8 +13,9 @@ export const GlobalStyles = () => {
 
       body {
         font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        background: #0f0f0f;
-        color: #ffffff;
+        background: var(--nf-body-bg);
+        background-attachment: fixed;
+        color: var(--nf-text);
         overflow-x: hidden;
       }
 
@@ -29,18 +30,18 @@ export const GlobalStyles = () => {
       }
 
       ::-webkit-scrollbar-thumb {
-        background: rgba(220, 38, 38, 0.45);
+        background: var(--nf-scrollbar);
         border-radius: 4px;
       }
 
       ::-webkit-scrollbar-thumb:hover {
-        background: rgba(220, 38, 38, 0.7);
+        background: var(--nf-scrollbar-hover);
       }
 
       /* Selection styling */
       ::selection {
         background-color: rgba(220, 38, 38, 0.3);
-        color: #ffffff;
+        color: var(--nf-selection-fg);
       }
 
       /* Animation utilities */
@@ -66,7 +67,7 @@ export const GlobalStyles = () => {
 
       /* Input placeholder styling */
       input::placeholder {
-        color: rgba(107, 114, 128, 0.7);
+        color: var(--nf-text-dim);
       }
 
       input::-webkit-outer-spin-button,
@@ -77,6 +78,12 @@ export const GlobalStyles = () => {
 
       input[type=number] {
         -moz-appearance: textfield;
+      }
+
+      html[data-theme='light'] input[type="date"]::-webkit-calendar-picker-indicator,
+      html[data-theme='light'] input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+      html[data-theme='light'] input[type="time"]::-webkit-calendar-picker-indicator {
+        filter: none;
       }
     `}</style>
   );

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/jpeg" href="/NASAFILM.jpg" />
@@ -9,6 +9,21 @@
     <meta name="description" content="NASAFILM — Đặt vé xem phim và xem phim trực tuyến" />
     <link rel="apple-touch-icon" href="/NASAFILM.jpg" />
     <title>NASAFILM</title>
+    <script>
+      (function () {
+        try {
+          var key = 'nasafilm-theme';
+          var stored = localStorage.getItem(key);
+          var theme = stored === 'light' || stored === 'dark'
+            ? stored
+            : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f5f7' : '#0f172a');
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Cormorant+Garamond:wght@600;700&family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">

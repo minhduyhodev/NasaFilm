@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/admin/dashboard")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('REPORT_VIEW')")
 public class AdminDashboardController {
 
     private final AdminDashboardService adminDashboardService;

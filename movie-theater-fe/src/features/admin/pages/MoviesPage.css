@@ -29,7 +29,7 @@
   font-size: clamp(1.75rem, 2.5vw, 2.35rem);
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: #fff;
+  color: var(--mv-text, #fff);
   text-shadow:
     0 0 24px rgba(255, 255, 255, 0.18),
     0 0 48px rgba(225, 29, 72, 0.12);
@@ -96,9 +96,9 @@
   height: 40px;
   padding: 0 2.5rem 0 2.5rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(4, 8, 16, 0.65);
-  color: #fff;
+  border: 1px solid var(--mv-border, rgba(255, 255, 255, 0.1));
+  background: var(--mv-glass, rgba(4, 8, 16, 0.65));
+  color: var(--mv-text, #fff);
   font-size: 13px;
   outline: none;
   transition:
@@ -145,9 +145,9 @@
   height: 34px;
   padding: 0 0.95rem;
   border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--mv-border, rgba(148, 163, 184, 0.35));
   background: transparent;
-  color: #e2e8f0;
+  color: var(--mv-text, #e2e8f0);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -192,9 +192,9 @@
   height: 44px;
   padding: 0 0.9rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(4, 8, 16, 0.65);
-  color: #fff;
+  border: 1px solid var(--mv-border, rgba(255, 255, 255, 0.1));
+  background: var(--mv-glass, rgba(4, 8, 16, 0.65));
+  color: var(--mv-text, #fff);
   font-size: 12.5px;
   cursor: pointer;
   transition:
@@ -214,8 +214,8 @@
   z-index: 80;
   padding: 0.4rem;
   border-radius: 14px;
-  border: 1px solid rgba(225, 29, 72, 0.22);
-  background: rgba(8, 12, 22, 0.96);
+  border: 1px solid var(--mv-border, rgba(225, 29, 72, 0.22));
+  background: var(--mv-glass-strong, rgba(8, 12, 22, 0.96));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   box-shadow:

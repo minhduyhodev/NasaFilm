@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/hr/admin/staff-directory")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN') or hasAnyAuthority('HR_SHIFT_MANAGE','HR_ATTENDANCE_MANAGE','HR_PAYROLL_MANAGE')")
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('HR_VIEW') or hasAnyAuthority('HR_SHIFT_MANAGE','HR_ATTENDANCE_MANAGE','HR_PAYROLL_MANAGE')")
 public class HrDirectoryController {
 
     private final HrDirectory directory;

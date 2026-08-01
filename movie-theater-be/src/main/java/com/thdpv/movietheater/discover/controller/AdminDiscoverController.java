@@ -31,7 +31,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/discover")
-@PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+@PreAuthorize("hasRole('ADMIN') or hasAuthority('DISCOVER_MANAGE')")
 public class AdminDiscoverController {
 
     private final DiscoverHistoryService discoverHistoryService;

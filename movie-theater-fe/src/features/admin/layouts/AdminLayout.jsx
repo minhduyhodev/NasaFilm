@@ -9,13 +9,17 @@ import nasaLogo from "../../../shared/assets/NASAFILM.jpg";
 import PageTransition from "../../../shared/components/PageTransition";
 import { isCounterOpsPath } from "../../../shared/utils/adminNavigation";
 import SupportAdminMessageAlerts from "../components/SupportAdminMessageAlerts";
+import ThemeToggle from "../../../shared/components/ThemeToggle";
+import { useTheme } from "../../../shared/theme/ThemeProvider";
 import "./AdminLayout.css";
 import "../styles/admin-theme.css";
 import "../../counter/styles/counter-staff-theme.css";
+import "../styles/admin-light-surfaces.css";
 
 const AdminSidebar = lazy(() => import("./AdminSidebar"));
 
 const AdminLayout = ({ children }) => {
+  const { isLight } = useTheme();
   const [isSidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const location = useLocation();
   const mainRef = useRef(null);
@@ -42,7 +46,7 @@ const AdminLayout = ({ children }) => {
   }, [location.pathname]);
 
   return (
-    <div className="admin-shell adm-app antialiased relative">
+    <div className={`admin-shell adm-app antialiased relative${isLight ? ' admin-light-theme' : ''}`}>
       <SupportAdminMessageAlerts />
       <Suspense
         fallback={
@@ -99,6 +103,7 @@ const AdminLayout = ({ children }) => {
               </span>
             </Link>
           </div>
+          <ThemeToggle className="adm-theme-toggle" />
         </div>
 
         <div className={`adm-main-pad ${isWidePage ? "adm-main-pad--wide" : ""}`}>

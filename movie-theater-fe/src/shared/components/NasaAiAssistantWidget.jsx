@@ -19,7 +19,6 @@ import { parseSupportStickerMessage } from '../constants/supportStickers';
 import SupportStickerBubble from './SupportStickerBubble';
 import SupportMessageImages from './SupportMessageImages';
 import NasaBotMovieCards from './NasaBotMovieCards';
-import { playNasaBotTing } from '../utils/nasaBotTing';
 import './NasaAiAssistantWidget.css';
 import './NasaAiAssistantWidget.theme.css';
 
@@ -339,15 +338,7 @@ const readStoredUiState = () => {
 
 const initialMessages = (intent = BOT_INTENT.SUPPORT) => {
   if (intent === BOT_INTENT.ANSWER) {
-    return [
-      {
-        id: 'welcome',
-        role: 'bot',
-        type: 'text',
-        text: 'Chào bạn! Mình đang ở chế độ Giải đáp AI — hỏi gì về NASAFilm cũng được (phim, rạp, đặt vé, hội viên, chính sách...).',
-        time: formatTime(),
-      },
-    ];
+    return [];
   }
 
   return [
@@ -554,34 +545,7 @@ const NasaAiAssistantWidget = () => {
     openRef.current = open;
   }, [open]);
 
-  // Unlock Web Audio after first gesture so the "ting" can play.
-  useEffect(() => {
-    let unlocked = false;
-    const unlock = () => {
-      if (unlocked) return;
-      unlocked = true;
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        ctx.resume?.().finally(() => {
-          ctx.close().catch(() => { });
-        });
-      } catch {
-        // ignore
-      }
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-    };
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
-    return () => {
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-    };
-  }, []);
-
-  // FAB attention mỗi 5s (khi widget đóng): xoay đầu → ting → báo đỏ.
+  // FAB attention mỗi 5s (khi widget đóng): xoay đầu → báo đỏ.
   useEffect(() => {
     if (open) {
       setFabHeadWiggle(false);
@@ -602,7 +566,6 @@ const NasaAiAssistantWidget = () => {
       fabAttentionBusyRef.current = true;
 
       if (reducedMotion) {
-        playNasaBotTing();
         setFabAttentionPing(true);
         fabWiggleTimerRef.current = window.setTimeout(() => {
           setFabAttentionPing(false);
@@ -634,7 +597,6 @@ const NasaAiAssistantWidget = () => {
       fabAttentionBusyRef.current = false;
       return;
     }
-    playNasaBotTing();
     setFabAttentionPing(true);
     if (fabWiggleTimerRef.current) window.clearTimeout(fabWiggleTimerRef.current);
     fabWiggleTimerRef.current = window.setTimeout(() => {

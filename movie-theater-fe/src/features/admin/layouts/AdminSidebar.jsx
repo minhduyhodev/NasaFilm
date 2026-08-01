@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { useAuthContext } from '../../auth/hooks/useAuthContext';
 import { useConfirm } from '../../../shared/context/ConfirmDialogContext';
+import ThemeToggle from '../../../shared/components/ThemeToggle';
 import { bookingService } from '../../../shared/services/bookingService';
 import { adminReviewService } from '../../../shared/services/adminReviewService';
 import { supportService } from '../../../shared/services/supportService';
@@ -331,7 +332,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
         )}
 
         {/* Content Group (Collapsible) */}
-        {hasAnyPermission(user, [PERMISSIONS.MOVIE_WRITE, PERMISSIONS.PROMOTION_WRITE, PERMISSIONS.SUPPORT_MANAGE, PERMISSIONS.USER_VIEW]) && (
+        {hasAnyPermission(user, [PERMISSIONS.MOVIE_WRITE, PERMISSIONS.PROMOTION_WRITE, PERMISSIONS.MISSION_MANAGE, PERMISSIONS.DISCOVER_MANAGE, PERMISSIONS.SUPPORT_MANAGE]) && (
         <div className="space-y-1 text-left">
           {renderGroupHeader("Quản lý nội dung", "content", Film)}
           {(!isOpen || openGroups.content) && (
@@ -364,14 +365,14 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Rocket,
                 "Quản lý nhiệm vụ",
                 "text-sky-400",
-                { permission: PERMISSIONS.SUPPORT_MANAGE }
+                { permission: PERMISSIONS.MISSION_MANAGE }
               )}
               {renderLink(
                 "/admin/matchmaker-analytics",
                 Sparkles,
                 "Gợi ý phim",
                 "text-orange-400",
-                { permission: PERMISSIONS.USER_VIEW }
+                { permission: PERMISSIONS.DISCOVER_MANAGE }
               )}
               {renderLink(
                 "/admin/feedback-reviews",
@@ -393,7 +394,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
         )}
 
         {/* Facility Group (Collapsible) */}
-        {hasAnyPermission(user, [PERMISSIONS.SHOWTIME_WRITE]) && (
+        {hasAnyPermission(user, [PERMISSIONS.CINEMA_WRITE, PERMISSIONS.SHOWTIME_WRITE]) && (
         <div className="space-y-1 text-left">
           {renderGroupHeader("Quản lý cơ sở", "facility", Tv)}
           {(!isOpen || openGroups.facility) && (
@@ -405,7 +406,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Tv,
                 "Cụm rạp & Phòng chiếu",
                 "text-emerald-400",
-                { permission: PERMISSIONS.SHOWTIME_WRITE }
+                { permission: PERMISSIONS.CINEMA_WRITE }
               )}
               {renderLink(
                 "/admin/showtimes",
@@ -420,7 +421,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
         )}
 
         {/* Business Group (Collapsible) */}
-        {hasAnyPermission(user, [PERMISSIONS.USER_VIEW, PERMISSIONS.COUNTER_REFUND_PROCESS, PERMISSIONS.COMBO_WRITE]) && (
+        {hasAnyPermission(user, [PERMISSIONS.REPORT_VIEW, PERMISSIONS.COUNTER_REFUND_PROCESS, PERMISSIONS.COMBO_WRITE]) && (
         <div className="space-y-1 text-left">
           {renderGroupHeader("Vận hành kinh doanh", "business", Ticket)}
           {(!isOpen || openGroups.business) && (
@@ -432,7 +433,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 Ticket,
                 "Quản lý vé bán",
                 "text-orange-400",
-                { permission: PERMISSIONS.USER_VIEW }
+                { permission: PERMISSIONS.REPORT_VIEW }
               )}
               {renderLink(
                 "/admin/refunds",
@@ -446,7 +447,7 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
                 TrendingUp,
                 "Doanh thu bắp nước",
                 "text-emerald-500",
-                { permission: PERMISSIONS.COMBO_WRITE }
+                { permission: PERMISSIONS.REPORT_VIEW }
               )}
               {renderLink(
                 "/admin/combos",
@@ -578,7 +579,8 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
         </div>
 
         {isOpen && (
-          <div className="flex items-center justify-center border-t border-[var(--adm-border)] pt-3">
+          <div className="flex items-center justify-between gap-2 border-t border-[var(--adm-border)] pt-3">
+            <ThemeToggle className="adm-theme-toggle" />
             <button
               type="button"
               onClick={handleLogout}
@@ -588,6 +590,11 @@ const AdminSidebar = ({ isOpen, onToggle, onClose }) => {
               <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Đăng xuất</span>
             </button>
+          </div>
+        )}
+        {!isOpen && (
+          <div className="flex justify-center border-t border-[var(--adm-border)] pt-3">
+            <ThemeToggle className="adm-theme-toggle" />
           </div>
         )}
       </div>

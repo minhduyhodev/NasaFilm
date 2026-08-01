@@ -299,6 +299,13 @@ const MovieDetailPage = () => {
 
   const handleProceedToBooking = () => {
     if (!selectedShowtime) return;
+
+    if (!isAuthenticated) {
+      notificationService.info("Vui lòng đăng nhập để tiếp tục đặt vé.");
+      navigate("/login", { state: { from: `/movie/${id}` } });
+      return;
+    }
+
     const theater = `${selectedShowtime.cinemaName} - ${selectedShowtime.cinemaRoomName}`;
     const dateText = dateMap[activeDateTab];
     const showtimeText = new Date(

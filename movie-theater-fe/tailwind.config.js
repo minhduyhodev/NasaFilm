@@ -14,34 +14,34 @@ export default {
       },
       colors: {
         background: {
-          deep: "#020203",
-          base: "#050506",
-          elevated: "#0a0a0c",
+          deep: "var(--nf-bg-deep)",
+          base: "var(--nf-bg-app)",
+          elevated: "var(--nf-bg-elevated)",
         },
         surface: {
-          DEFAULT: "rgba(255, 255, 255, 0.05)",
-          hover: "rgba(255, 255, 255, 0.08)",
+          DEFAULT: "var(--nf-surface)",
+          hover: "var(--nf-surface-hover)",
         },
         foreground: {
-          DEFAULT: "#EDEDEF",
-          muted: "#8A8F98",
-          subtle: "#6B7078",
+          DEFAULT: "var(--nf-text)",
+          muted: "var(--nf-text-muted)",
+          subtle: "var(--nf-text-dim)",
         },
         accent: {
-          DEFAULT: "#E11D48",
-          bright: "#F43F5E",
-          glow: "rgba(225, 29, 72, 0.25)",
+          DEFAULT: "var(--nf-accent)",
+          bright: "var(--nf-accent-bright)",
+          glow: "var(--nf-accent-glow)",
         },
       },
       boxShadow: {
         "linear-card":
-          "0 0 0 1px rgba(255,255,255,0.06), 0 2px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)",
+          "0 0 0 1px var(--nf-border), 0 2px 20px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.06)",
         "linear-card-hover":
-          "0 0 0 1px rgba(255,255,255,0.1), 0 8px 28px rgba(0,0,0,0.5), 0 0 24px rgba(225,29,72,0.08), inset 0 1px 0 rgba(255,255,255,0.08)",
+          "0 0 0 1px var(--nf-border-strong), 0 8px 28px rgba(0,0,0,0.22), 0 0 24px var(--nf-accent-glow), inset 0 1px 0 rgba(255,255,255,0.08)",
         "linear-btn":
-          "inset 0 1px 0 rgba(255,255,255,0.22), 0 0 0 1px rgba(225,29,72,0.35), 0 0 12px rgba(225,29,72,0.25)",
+          "inset 0 1px 0 rgba(255,255,255,0.22), 0 0 0 1px rgba(225,29,72,0.35), 0 0 12px var(--nf-accent-glow)",
         "linear-btn-hover":
-          "inset 0 1px 0 rgba(255,255,255,0.28), 0 4px 18px rgba(225,29,72,0.35)",
+          "inset 0 1px 0 rgba(255,255,255,0.28), 0 4px 18px var(--nf-accent-glow)",
       },
       transitionTimingFunction: {
         "expo-out": "cubic-bezier(0.16, 1, 0.3, 1)",

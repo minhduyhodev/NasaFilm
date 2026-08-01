@@ -161,9 +161,9 @@
 .vouchers-page .adm-filter-pill {
   padding: 0.45rem 0.95rem;
   border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: transparent;
-  color: #e2e8f0;
+  border: 1px solid var(--adm-border-strong, rgba(148, 163, 184, 0.35));
+  background: var(--adm-bg-input, transparent);
+  color: var(--adm-text, #e2e8f0);
   font-size: 12px;
   font-weight: 600;
   box-shadow: none;
@@ -176,9 +176,9 @@
 
 .vouchers-page .adm-filter-pill:hover {
   transform: none;
-  color: #fff;
-  border-color: rgba(226, 232, 240, 0.5);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--adm-text, #fff);
+  border-color: var(--adm-border-strong, rgba(226, 232, 240, 0.5));
+  background: var(--adm-nav-active-bg, rgba(255, 255, 255, 0.04));
 }
 
 .vouchers-page .adm-filter-pill--active {
@@ -215,7 +215,7 @@
 }
 
 .voucher-ticket {
-  --ticket-bg: #141418;
+  --ticket-bg: var(--adm-bg-panel-solid, #141418);
   --ticket-edge: var(--adm-bg-main, #020203);
   position: relative;
   display: grid;
@@ -223,11 +223,8 @@
   min-height: 210px;
   border-radius: 18px;
   background: var(--ticket-bg);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 14px 36px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.07));
+  box-shadow: var(--adm-shadow-panel, 0 14px 36px rgba(0, 0, 0, 0.45));
   overflow: hidden;
   isolation: isolate;
   transition:
@@ -254,9 +251,7 @@
   gap: 0.55rem;
   padding: 1.15rem 0.85rem 1.1rem;
   text-align: center;
-  background:
-    radial-gradient(120% 80% at 30% 20%, rgba(255, 45, 85, 0.1), transparent 55%),
-    linear-gradient(180deg, #1a1a20 0%, #121216 100%);
+  background: var(--adm-bg-elevated, #1a1a20);
   min-width: 0;
 }
 
@@ -267,7 +262,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #fff;
+  color: var(--adm-text, #fff);
   line-height: 1.15;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -280,7 +275,7 @@
   font-weight: 900;
   letter-spacing: -0.04em;
   line-height: 1;
-  color: #ff2d55;
+  color: var(--adm-accent, #ff2d55);
   text-shadow:
     0 0 10px rgba(255, 45, 85, 0.95),
     0 0 28px rgba(255, 45, 85, 0.65),
@@ -401,7 +396,7 @@
   gap: 0.45rem;
   padding: 1rem 1.05rem 1rem 0.85rem;
   min-width: 0;
-  background: linear-gradient(180deg, #17171c 0%, #101014 100%);
+  background: var(--adm-bg-elevated, #17171c);
 }
 
 .voucher-ticket__tag {

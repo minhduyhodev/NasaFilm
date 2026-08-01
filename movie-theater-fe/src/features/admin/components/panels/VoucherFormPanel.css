@@ -51,9 +51,9 @@
   height: 42px;
   padding: 0 0.85rem;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #0f0f12;
-  color: #f8fafc;
+  border: 1px solid var(--adm-border, rgba(255, 255, 255, 0.1));
+  background: var(--adm-bg-input, #0f0f12);
+  color: var(--adm-text, #f8fafc);
   font-size: 13px;
   font-family: inherit;
   outline: none;
@@ -88,8 +88,9 @@
   min-height: 42px;
   height: 42px;
   border-radius: 10px;
-  background: #0f0f12;
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--adm-bg-input, #0f0f12);
+  border-color: var(--adm-border, rgba(255, 255, 255, 0.1));
+  color: var(--adm-text, #f8fafc);
 }
 
 .voucher-form .adm-select-trigger:hover,

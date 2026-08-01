@@ -80,12 +80,10 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.4) 0%,
-    rgba(11, 15, 25, 0.72) 55%,
-    #0b0f19 100%
-  );
+  background: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.4) 0%,
+      rgba(11, 15, 25, 0.72) 55%,
+      #0b0f19 100%);
 }
 
 .online-hero__content--centered {
@@ -129,6 +127,10 @@
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
   word-break: break-word;
   text-wrap: balance;
+}
+
+html[data-theme='light'] #root .online-hero__title {
+  color: #ffffff !important;
 }
 
 .online-hero__title--medium {
@@ -179,6 +181,10 @@
   max-width: 40rem;
   margin-left: auto;
   margin-right: auto;
+}
+
+html[data-theme='light'] #root .online-hero__sub {
+  color: #e5e7eb !important;
 }
 
 @media (min-width: 768px) {
@@ -331,6 +337,7 @@
   from {
     transform: scale(1.05);
   }
+
   to {
     transform: scale(1.14);
   }
@@ -347,12 +354,10 @@
 .online-hero__skeleton-sub,
 .online-hero__skeleton-cta {
   border-radius: 0.5rem;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.18) 50%,
-    rgba(255, 255, 255, 0.08) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.18) 50%,
+      rgba(255, 255, 255, 0.08) 100%);
   background-size: 200% 100%;
   animation: online-hero-skeleton-shimmer 1.4s ease-in-out infinite;
 }
@@ -378,6 +383,7 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
