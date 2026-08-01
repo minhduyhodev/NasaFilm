@@ -111,6 +111,7 @@ class MovieTheaterBackendApplicationTests {
 			com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest req = 
 				new com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest();
 			req.setShowtimeUuid(showtimeUuid);
+			req.setPaymentMethod("wallet");
 			req.setSeatUuids(java.util.List.of(seatUuid));
 			req.setCombos(java.util.List.of());
 

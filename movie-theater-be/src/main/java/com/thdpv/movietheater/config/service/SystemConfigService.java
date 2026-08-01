@@ -18,6 +18,8 @@ import com.thdpv.movietheater.config.entity.SystemConfigEntry;
 import com.thdpv.movietheater.config.repository.SystemConfigRepository;
 import com.thdpv.movietheater.config.cache.CacheNames;
 import com.thdpv.movietheater.config.cache.CatalogCacheEvictor;
+import com.thdpv.movietheater.common.exception.AppException;
+import com.thdpv.movietheater.common.exception.ErrorCode;
 
 @Service
 public class SystemConfigService {
@@ -63,6 +65,8 @@ public class SystemConfigService {
     @Transactional
     public Map<String, Object> saveConfig(Map<String, Object> incoming) {
         Map<String, Object> merged = mergeWithDefaults(incoming);
+        merged.put("maxSeatsPerBooking", requireIntegerInRange(
+                merged.get("maxSeatsPerBooking"), "Số ghế tối đa / lần đặt", 1, 20));
         SystemConfigEntry entry = systemConfigRepository.findById(CONFIG_KEY).orElseGet(() -> {
             SystemConfigEntry created = new SystemConfigEntry();
             created.setConfigKey(CONFIG_KEY);
@@ -462,6 +466,34 @@ public class SystemConfigService {
             return fallback;
         }
         return Math.max(min, Math.min(max, parsed));
+    }
+
+    private int requireIntegerInRange(Object value, String fieldLabel, int min, int max) {
+        final int parsed;
+        if (value instanceof Number number) {
+            double numericValue = number.doubleValue();
+            if (!Double.isFinite(numericValue) || numericValue != Math.rint(numericValue)) {
+                throw invalidRange(fieldLabel, min, max);
+            }
+            parsed = number.intValue();
+        } else if (value instanceof String text && !text.isBlank()) {
+            try {
+                parsed = Integer.parseInt(text.trim());
+            } catch (NumberFormatException ignored) {
+                throw invalidRange(fieldLabel, min, max);
+            }
+        } else {
+            throw invalidRange(fieldLabel, min, max);
+        }
+        if (parsed < min || parsed > max) {
+            throw invalidRange(fieldLabel, min, max);
+        }
+        return parsed;
+    }
+
+    private AppException invalidRange(String fieldLabel, int min, int max) {
+        return new AppException(ErrorCode.BAD_REQUEST,
+                fieldLabel + " phải là số nguyên từ " + min + " đến " + max);
     }
 
     private double readDouble(Object value, double fallback, double min, double max) {

@@ -306,6 +306,12 @@ const ConfigPage = () => {
   }, []);
 
   const handleSave = async () => {
+    const maxSeats = Number(config.maxSeatsPerBooking);
+    if (!Number.isInteger(maxSeats) || maxSeats < 1 || maxSeats > 20) {
+      notificationService.error('Số ghế tối đa mỗi lần đặt phải là số nguyên từ 1 đến 20.');
+      return;
+    }
+
     const ok = await confirm({
       title: 'Lưu cấu hình hệ thống',
       message: 'Xác nhận lưu các thay đổi cấu hình? Thay đổi sẽ có hiệu lực ngay trên toàn hệ thống.',

@@ -2,9 +2,14 @@ package com.thdpv.movietheater.booking.dto.request;
 
 import java.util.UUID;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
 public class ConfirmOnlineBookingRequest {
     private UUID movieUuid;
     private String promotionCode;
+    @NotBlank(message = "Phương thức thanh toán không được để trống")
+    @Pattern(regexp = "(?i)^(wallet|card|vietqr)$", message = "Phương thức thanh toán không hợp lệ")
     private String paymentMethod;
     private String paymentIntentId;
 

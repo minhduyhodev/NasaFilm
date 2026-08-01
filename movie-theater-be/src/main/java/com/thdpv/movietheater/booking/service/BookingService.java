@@ -272,6 +272,7 @@ public class BookingService {
 
     @Transactional
     public BookingResponse confirmOnlineBooking(String currentUserEmail, ConfirmOnlineBookingRequest request) {
+        assertCustomerPaymentMethod(request.getPaymentMethod());
         if (request.getMovieUuid() == null) {
             throw new AppException(ErrorCode.BAD_REQUEST, "ID phim không được để trống");
         }
@@ -386,6 +387,7 @@ public class BookingService {
 
     @Transactional
     public BookingResponse confirmBooking(String currentUserEmail, ConfirmBookingRequest request) {
+        assertCustomerPaymentMethod(request.getPaymentMethod());
         bookingRepository.ensureShowtimeExists(request.getShowtimeUuid());
         UUID userUuid = resolveRequiredUserUuid(currentUserEmail);
         OffsetDateTime now = OffsetDateTime.now();
@@ -801,6 +803,20 @@ public class BookingService {
         return "COUNTER_CASH".equals(normalized)
                 || "COUNTER_CARD".equals(normalized)
                 || "COUNTER_VIETQR".equals(normalized);
+    }
+
+    private void assertCustomerPaymentMethod(String paymentMethod) {
+        // Bean validation protects the HTTP boundary. Keep this service-level check as
+        // defense in depth so staff-only methods cannot enter a customer checkout path.
+        if (paymentMethod == null || paymentMethod.isBlank()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phương thức thanh toán không được để trống");
+        }
+        String normalized = paymentMethod.trim().toUpperCase();
+        if (!"WALLET".equals(normalized)
+                && !"CARD".equals(normalized)
+                && !"VIETQR".equals(normalized)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Phương thức thanh toán không hợp lệ");
+        }
     }
 
     private void assertShowtimeValidForBooking(UUID showtimeUuid, OffsetDateTime now) {

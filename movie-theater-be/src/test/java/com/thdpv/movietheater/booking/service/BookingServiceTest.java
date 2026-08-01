@@ -27,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.thdpv.movietheater.booking.dto.request.ConfirmBookingRequest;
+import com.thdpv.movietheater.booking.dto.request.ConfirmOnlineBookingRequest;
 import com.thdpv.movietheater.booking.entity.Booking;
 import com.thdpv.movietheater.booking.entity.Showtime;
 import com.thdpv.movietheater.booking.enums.ShowtimeStatus;
@@ -146,6 +147,7 @@ class BookingServiceTest {
             seatUuids.add(UUID.randomUUID());
         }
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
+        request.setPaymentMethod("wallet");
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
@@ -158,10 +160,36 @@ class BookingServiceTest {
     }
 
     @Test
+    void confirmBookingShouldRejectCounterPaymentMethodFromCustomer() {
+        ConfirmBookingRequest request = new ConfirmBookingRequest(
+                showtimeUuid, List.of(UUID.randomUUID()), List.of(), null);
+        request.setPaymentMethod("COUNTER_CASH");
+
+        AppException exception = assertThrows(AppException.class,
+                () -> bookingService.confirmBooking("customer@example.com", request));
+
+        assertEquals(ErrorCode.BAD_REQUEST, exception.getErrorCode());
+        assertEquals("Phương thức thanh toán không hợp lệ", exception.getMessage());
+    }
+
+    @Test
+    void confirmOnlineBookingShouldRejectCounterPaymentMethodFromCustomer() {
+        ConfirmOnlineBookingRequest request = new ConfirmOnlineBookingRequest(UUID.randomUUID(), null);
+        request.setPaymentMethod("counter_card");
+
+        AppException exception = assertThrows(AppException.class,
+                () -> bookingService.confirmOnlineBooking("customer@example.com", request));
+
+        assertEquals(ErrorCode.BAD_REQUEST, exception.getErrorCode());
+        assertEquals("Phương thức thanh toán không hợp lệ", exception.getMessage());
+    }
+
+    @Test
     void confirmBookingShouldFailIfComboQuantityIsZeroOrNegative() {
         List<UUID> seatUuids = List.of(UUID.randomUUID());
         ConfirmBookingRequest.ComboItem invalidCombo = new ConfirmBookingRequest.ComboItem(UUID.randomUUID(), 0);
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(invalidCombo), null);
+        request.setPaymentMethod("wallet");
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
@@ -177,6 +205,7 @@ class BookingServiceTest {
     void confirmBookingShouldFailIfShowtimeInPast() {
         List<UUID> seatUuids = List.of(UUID.randomUUID());
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
+        request.setPaymentMethod("wallet");
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
@@ -201,6 +230,7 @@ class BookingServiceTest {
         UUID seat3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat1), List.of(), null);
+        request.setPaymentMethod("wallet");
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
@@ -235,6 +265,7 @@ class BookingServiceTest {
         UUID seat3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, List.of(seat2), List.of(), null);
+        request.setPaymentMethod("wallet");
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));
 
@@ -269,6 +300,7 @@ class BookingServiceTest {
         List<UUID> seatUuids = List.of(seatUuid);
 
         ConfirmBookingRequest request = new ConfirmBookingRequest(showtimeUuid, seatUuids, List.of(), null);
+        request.setPaymentMethod("wallet");
         request.setOrbitRoomUuid(orbitRoomUuid);
 
         when(userRepository.findByEmailIgnoreCase("customer@example.com")).thenReturn(Optional.of(mockUser));

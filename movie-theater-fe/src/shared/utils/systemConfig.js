@@ -105,7 +105,9 @@ export function resolveMovieOnlinePrice(movie, config = readCachedSystemConfig()
 
 export function getMaxSeatsPerBooking(config = readCachedSystemConfig()) {
   const max = Number(config.maxSeatsPerBooking);
-  return Number.isFinite(max) && max >= 1 ? max : DEFAULT_SYSTEM_CONFIG.maxSeatsPerBooking;
+  return Number.isInteger(max) && max >= 1 && max <= 20
+    ? max
+    : DEFAULT_SYSTEM_CONFIG.maxSeatsPerBooking;
 }
 
 export function getEnabledRoomTypes(config = readCachedSystemConfig()) {
