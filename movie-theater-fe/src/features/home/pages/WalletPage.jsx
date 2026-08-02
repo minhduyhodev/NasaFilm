@@ -45,7 +45,6 @@ const TX_FILTERS = [
   { id: 'TOP_UP',   label: 'Nạp' },
   { id: 'PAYMENT',  label: 'Thanh toán' },
   { id: 'REFUND',   label: 'Hoàn' },
-  { id: 'WITHDRAW', label: 'Rút' },
 ];
 
 /* ─── Stripe form ─── */
@@ -121,24 +120,20 @@ function MethodCard({ id, icon: Icon, iconColor, title, subtitle, selected, onCl
     <button
       type="button"
       onClick={() => onClick(id)}
-      className={`relative w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer ${
-        selected
-          ? 'border-red-500/60 bg-red-500/10 shadow-lg shadow-red-500/10'
-          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'
+      className={`wallet-method-card relative w-full text-left rounded-2xl border p-4 transition-all duration-200 cursor-pointer ${
+        selected ? 'is-selected' : ''
       }`}
     >
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-          selected ? 'bg-red-500/20' : 'bg-white/5'
-        }`}>
-          <Icon className={`w-5 h-5 ${selected ? 'text-red-400' : iconColor}`} />
+        <div className="wallet-method-card__icon">
+          <Icon className={`w-5 h-5 ${selected ? 'text-red-500' : iconColor}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-bold ${selected ? 'text-white' : 'text-gray-300'}`}>{title}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+          <p className="wallet-method-card__title">{title}</p>
+          <p className="wallet-method-card__subtitle">{subtitle}</p>
         </div>
         {selected && (
-          <CheckCircle2 className="w-5 h-5 text-red-400 shrink-0" />
+          <CheckCircle2 className="w-5 h-5 text-red-500 shrink-0" />
         )}
       </div>
     </button>
@@ -184,7 +179,7 @@ const WalletPage = () => {
   const quickAmounts = summary?.quickAmounts?.length
     ? summary.quickAmounts.map(Number)
     : FALLBACK_QUICK_AMOUNTS;
-  const mockMode    = summary?.mockMode !== false;
+  const mockMode    = summary?.mockMode === true;
 
   // Set default amount on load
   useEffect(() => {
@@ -275,24 +270,7 @@ const WalletPage = () => {
     notificationService.success(`Nạp ${formatMoney(pendingAmount)} vào ví NASA thành công`);
   };
 
-  const handleWithdraw = async () => {
-    if (!mockMode) {
-      notificationService.warning('Rút tiền mô phỏng chỉ khả dụng ở chế độ mock');
-      return;
-    }
-    const value = Number(amount);
-    if (!validateAmount(value)) return;
-    setIsSubmitting(true);
-    try {
-      await walletService.withdraw(value);
-      await invalidateWallet();
-      notificationService.success(`Rút ${formatMoney(value)} từ ví NASA thành công`);
-    } catch (err) {
-      notificationService.error(err?.message || 'Rút tiền thất bại');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
 
   const transactions = txData?.content || [];
   const totalTransactions = Number(txData?.totalElements || 0);
@@ -413,17 +391,6 @@ const WalletPage = () => {
                       {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownCircle className="h-4 w-4" />}
                       {selectedMethod === 'vietqr' ? 'Tạo mã QR' : 'Nạp tiền'}
                     </button>
-                    {mockMode && (
-                      <button
-                        type="button"
-                        disabled={isSubmitting}
-                        onClick={handleWithdraw}
-                        className="account-action account-action--secondary"
-                      >
-                        <ArrowUpCircle className="h-4 w-4" />
-                        Rút tiền (Mock)
-                      </button>
-                    )}
                   </div>
                 </>
               )}

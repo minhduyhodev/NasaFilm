@@ -191,37 +191,7 @@ export default function WalletVietQRModal({ amount, onSuccess, onClose }) {
                 Đang tự động kiểm tra thanh toán...
               </div>
 
-              {import.meta.env.DEV && (
-                <button
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/v1/webhooks/vietqr`, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          Authorization: 'nasafilm-secret-webhook-token',
-                        },
-                        body: JSON.stringify({
-                          gateway: 'MockBank_Local',
-                          amount: qrData.amount,
-                          content: qrData.transferContent,
-                          referenceCode: qrData.transferCode,
-                        }),
-                      });
-                      if (res.ok) {
-                        notificationService.success('Đã gửi Webhook giả lập! Chờ ~3s để auto-polling xác nhận.');
-                      } else {
-                        notificationService.error('Gửi webhook thất bại: ' + res.status);
-                      }
-                    } catch (e) {
-                      notificationService.error('Lỗi: ' + e.message);
-                    }
-                  }}
-                  className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 transition-colors rounded-lg text-white text-xs font-bold w-full shadow-lg shadow-purple-500/20"
-                >
-                  🚀 [DEV] Giả lập Webhook (Đã chuyển tiền)
-                </button>
-              )}
+
             </div>
 
             {/* Right: Bank info */}

@@ -430,3 +430,135 @@
     flex: 1;
   }
 }
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES
+   ========================================================================== */
+[data-theme='light'] .amd-page {
+  background: #f8fafc;
+}
+
+[data-theme='light'] .amd-bg-scrim {
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.6) 0%,
+    rgba(248, 250, 252, 0.8) 40%,
+    rgba(248, 250, 252, 0.92) 75%,
+    rgba(248, 250, 252, 1) 100%
+  );
+}
+
+[data-theme='light'] .amd-breadcrumb {
+  color: #64748b;
+}
+
+[data-theme='light'] .amd-breadcrumb__link {
+  color: #475569;
+}
+
+[data-theme='light'] .amd-breadcrumb__link:hover {
+  color: #0f172a;
+}
+
+[data-theme='light'] .amd-breadcrumb__sep {
+  color: #cbd5e1;
+}
+
+[data-theme='light'] .amd-breadcrumb__current {
+  color: #0f172a;
+}
+
+[data-theme='light'] .amd-title {
+  color: #0f172a;
+  text-shadow: none;
+}
+
+[data-theme='light'] .amd-poster {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.05),
+    0 18px 40px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='light'] .amd-poster--empty {
+  background: rgba(241, 245, 249, 0.85);
+  color: #94a3b8;
+}
+
+[data-theme='light'] .amd-glass {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='light'] .amd-glass__title,
+[data-theme='light'] .amd-meta__item dt,
+[data-theme='light'] .amd-classify__item dt,
+[data-theme='light'] .amd-cast-block__label {
+  color: #64748b;
+}
+
+[data-theme='light'] .amd-meta__value {
+  color: #0f172a;
+}
+
+[data-theme='light'] .amd-meta__value--status {
+  color: #e11d48;
+}
+
+[data-theme='light'] .amd-meta__value--age {
+  color: #16a34a;
+}
+
+[data-theme='light'] .amd-meta__value--price {
+  color: #d97706;
+}
+
+[data-theme='light'] .amd-desc {
+  color: #334155;
+}
+
+[data-theme='light'] .amd-desc--muted {
+  color: #64748b;
+}
+
+[data-theme='light'] .amd-tag {
+  color: #334155;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='light'] .amd-cast__item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='light'] .amd-cast__avatar {
+  background: #f1f5f9;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: #94a3b8;
+}
+
+[data-theme='light'] .amd-cast__name {
+  color: #0f172a;
+}
+
+[data-theme='light'] .amd-cast__main {
+  color: #64748b;
+}
+
+[data-theme='light'] .amd-cast__role {
+  color: #64748b;
+}
+
+[data-theme='light'] .amd-btn-delete {
+  color: #64748b !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] .amd-btn-delete:hover:not(:disabled) {
+  border-color: #fca5a5 !important;
+  color: #ef4444 !important;
+  background: #fef2f2 !important;
+}

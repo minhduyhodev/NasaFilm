@@ -1406,3 +1406,80 @@
   font-size: 0.68rem;
   font-weight: 700;
 }
+
+/* LIGHT THEME OVERRIDES */
+html[data-theme='light'] .movie-reviews-glass-card {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+html[data-theme='light'] .movie-reviews-score-box {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+html[data-theme='light'] .movie-reviews-score-label,
+html[data-theme='light'] .movie-reviews-score-number {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .movie-reviews-bar-track {
+  background: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .movie-reviews-bar-label {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .movie-reviews-textarea {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .movie-reviews-textarea:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.2) !important;
+}
+
+html[data-theme='light'] .movie-reviews-textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html[data-theme='light'] .movie-reviews-sort-trigger {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .movie-reviews-sort-trigger:hover {
+  background: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .movie-reviews-sort-dropdown {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+html[data-theme='light'] .movie-reviews-sort-option {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .movie-reviews-sort-option:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .movie-reviews-submit-btn:disabled {
+  background: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] .movie-reviews-vibe-chip-count {
+  background: #e2e8f0 !important;
+  color: #475569 !important;
+}
