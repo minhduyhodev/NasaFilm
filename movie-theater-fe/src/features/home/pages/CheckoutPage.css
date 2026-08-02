@@ -137,3 +137,56 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* =========================================
+   LIGHT THEME OVERRIDES FOR CHECKOUT
+   ========================================= */
+html[data-theme='light'] .checkout-wrapper button.bg-red-600,
+html[data-theme='light'] .checkout-wrapper button.bg-red-600.text-white {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+html[data-theme='light'] .checkout-wrapper button.bg-red-600:hover:not(:disabled) {
+  background-color: #b91c1c !important;
+}
+
+html[data-theme='light'] .checkout-wrapper button.bg-red-600 * {
+  color: #ffffff !important;
+}
+
+/* Fix "Áp dụng" button which uses bg-white/10 */
+html[data-theme='light'] .checkout-wrapper button.bg-white\/10 {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+html[data-theme='light'] .checkout-wrapper button.bg-white\/10:hover {
+  background-color: #cbd5e1 !important;
+}
+
+/* Text colors */
+html[data-theme='light'] .checkout-wrapper .text-gray-400,
+html[data-theme='light'] .checkout-wrapper .text-gray-500 {
+  color: #475569 !important;
+}
+
+/* Input fields */
+html[data-theme='light'] .checkout-wrapper input.bg-white\/5 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme='light'] .checkout-wrapper input.bg-white\/5::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Fix disabled pay button */
+html[data-theme='light'] .checkout-wrapper .checkout-pay-btn--disabled {
+  background: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  border-color: #cbd5e1 !important;
+}

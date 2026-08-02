@@ -126,30 +126,7 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
     }
   }, []);
 
-  const handleDevMockPayment = async () => {
-    if (!qrData) return;
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL || ''}/v1/webhooks/vietqr`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': 'nasafilm-secret-webhook-token'
-        },
-        body: JSON.stringify({
-          gateway: "MockBank_POS",
-          transactionDate: new Date().toISOString(),
-          accountNumber: "POS_MOCK",
-          transferAmount: qrData.amount,
-          content: qrData.transferContent,
-          transferType: "in",
-          referenceCode: qrData.transferCode
-        })
-      });
-      notificationService.success("[DEV] Đã gửi giả lập Webhook thành công!");
-    } catch (error) {
-      notificationService.error("[DEV] Lỗi giả lập webhook: " + error.message);
-    }
-  };
+
 
   if (!isOpen) return null;
 
@@ -229,16 +206,7 @@ export default function VietQRPOSModal({ isOpen, onClose, onPaymentSuccess, amou
                   </div>
                 </div>
 
-                {import.meta.env.DEV && (
-                  <button
-                    type="button"
-                    onClick={handleDevMockPayment}
-                    className="w-full flex items-center justify-center gap-2 bg-red-500/15 text-red-300 hover:bg-red-500/25 py-3 rounded-xl border border-red-500/30 transition-all font-medium text-sm"
-                  >
-                    <QrCode className="w-4 h-4" />
-                    🚀 [DEV] Giả lập Khách chuyển khoản thành công
-                  </button>
-                )}
+
                 
                 <div className="flex items-center justify-center gap-2 text-slate-400">
                   <Clock className="w-4 h-4" />

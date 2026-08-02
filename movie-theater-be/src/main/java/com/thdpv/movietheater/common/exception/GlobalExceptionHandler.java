@@ -91,6 +91,20 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ec, ex.getReason()));
     }
 
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<?>> handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        log.warn("[MethodArgumentTypeMismatchException] param={} value={}", ex.getName(), ex.getValue());
+        return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ErrorCode.NOT_FOUND, "Không tìm thấy dữ liệu (Định dạng tham số không hợp lệ)"));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<?>> handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("[IllegalArgumentException] msg={}", ex.getMessage());
+        return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ErrorCode.NOT_FOUND, "Không tìm thấy dữ liệu (Tham số không hợp lệ)"));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleAll(Exception ex) {
         log.error("[UnexpectedException]", ex);

@@ -19,6 +19,7 @@ import { useRealtimeTopic } from '../../../shared/hooks/useRealtimeTopic';
 import { REALTIME_TOPICS } from '../../../shared/constants/realtimeTopics';
 import { sameUuid } from '../../../shared/utils/orbitUtils';
 import comboFallbackImg from '../../../shared/assets/offer_family_combo.webp';
+import './BookingPage.css';
 
 function getComboImageUrl(combo) {
   const raw = combo?.imageUrl?.trim();
@@ -367,7 +368,7 @@ const ConcessionsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0f121d] flex flex-col items-center justify-center text-white">
+      <div className="booking-wrapper min-h-screen bg-[#0f121d] flex flex-col items-center justify-center text-white">
         <Loader2 className="h-10 w-10 animate-spin text-red-500 mb-4" />
         <p className="text-xl font-bold animate-pulse">Đang tải menu bắp nước...</p>
       </div>
@@ -375,7 +376,7 @@ const ConcessionsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f121d] text-white flex flex-col">
+    <div className="booking-wrapper min-h-screen bg-[#0f121d] text-white flex flex-col">
 
       <main className="flex-grow py-24 px-4 md:px-12 lg:px-20 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
         

@@ -265,18 +265,18 @@
 
 .account-action {
   display: inline-flex;
-  min-height: 2.65rem;
+  min-height: 3rem;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.7rem 1.1rem;
+  padding: 0.75rem 1.5rem;
   border: 1px solid transparent;
-  border-radius: var(--nsf-radius-sm);
-  font-size: 0.7rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
 }
 
 .account-action:hover {
@@ -288,8 +288,12 @@
 }
 
 .account-action:disabled {
-  opacity: 0.5;
-  cursor: wait;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  cursor: not-allowed;
+  opacity: 1;
+  box-shadow: none;
 }
 
 .account-action--primary {
@@ -1060,4 +1064,214 @@
   .reminder-card__poster img {
     transition: none;
   }
+}
+
+/* â”€â”€â”€ Method Card â”€â”€â”€ */
+.wallet-method-card {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+.wallet-method-card:hover:not(.is-selected) {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+}
+.wallet-method-card.is-selected {
+  border-color: rgba(239, 68, 68, 0.6);
+  background: rgba(239, 68, 68, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.1);
+}
+
+.wallet-method-card__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+}
+.wallet-method-card.is-selected .wallet-method-card__icon {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.wallet-method-card__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #d1d5db; /* gray-300 */
+}
+.wallet-method-card.is-selected .wallet-method-card__title {
+  color: #ffffff;
+}
+
+.wallet-method-card__subtitle {
+  font-size: 0.75rem;
+  color: #6b7280; /* gray-500 */
+  margin-top: 0.125rem;
+}
+
+/* =========================================
+   LIGHT THEME OVERRIDES FOR ACCOUNT PAGES
+   ========================================= */
+
+html[data-theme='light'] .account-page {
+  background: var(--nf-bg-app, #f8fafc) !important;
+}
+
+html[data-theme='light'] .wallet-method-card {
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+html[data-theme='light'] .wallet-method-card:hover:not(.is-selected) {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+html[data-theme='light'] .wallet-method-card__icon {
+  background: #f1f5f9;
+}
+html[data-theme='light'] .wallet-method-card__title {
+  color: #334155;
+}
+html[data-theme='light'] .wallet-method-card.is-selected .wallet-method-card__title {
+  color: #0f172a;
+}
+html[data-theme='light'] .wallet-method-card__subtitle {
+  color: #64748b;
+}
+
+/* Fix .wallet-balance in light mode */
+html[data-theme='light'] .wallet-balance {
+  border-color: rgba(229, 9, 20, 0.3);
+  background: linear-gradient(145deg, rgba(229, 9, 20, 0.05), transparent 48%), #ffffff;
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.05);
+}
+html[data-theme='light'] .wallet-balance::after {
+  border-color: rgba(229, 9, 20, 0.1);
+  box-shadow: 0 0 0 2.5rem rgba(229, 9, 20, 0.02);
+}
+html[data-theme='light'] .wallet-balance__label {
+  color: #475569;
+}
+html[data-theme='light'] .wallet-balance__value {
+  color: #0f172a;
+}
+html[data-theme='light'] .wallet-balance__provider {
+  color: #64748b;
+}
+
+/* Fix .account-chip */
+html[data-theme='light'] .account-chip {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+html[data-theme='light'] .account-chip:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+html[data-theme='light'] .account-chip.is-active {
+  background: rgba(229, 9, 20, 0.05);
+  border-color: rgba(229, 9, 20, 0.3);
+  color: #dc2626;
+}
+
+/* Fix .account-input */
+html[data-theme='light'] .account-input {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+html[data-theme='light'] .account-input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
+}
+
+/* Fix account panel */
+html[data-theme='light'] .account-panel {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+html[data-theme='light'] .account-panel__heading {
+  color: #0f172a;
+}
+html[data-theme='light'] .account-panel__copy {
+  color: #475569;
+}
+html[data-theme='light'] .account-page__eyebrow {
+  color: #dc2626;
+}
+html[data-theme='light'] .account-page__intro {
+  color: #475569;
+}
+html[data-theme='light'] .account-icon-button {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+html[data-theme='light'] .account-icon-button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+html[data-theme='light'] .account-action {
+  border-color: #cbd5e1;
+}
+html[data-theme='light'] .account-action--primary {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+}
+html[data-theme='light'] .account-action:disabled {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border-color: #e2e8f0 !important;
+  opacity: 1 !important;
+}
+html[data-theme='light'] .account-action--secondary {
+  background: #ffffff !important;
+  color: #334155 !important;
+}
+html[data-theme='light'] .account-action--secondary:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+html[data-theme='light'] .account-action--danger {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+html[data-theme='light'] .account-action--danger:hover:not(:disabled) {
+  background: #fecaca !important;
+}
+
+/* Fix transaction history table text */
+html[data-theme='light'] .wallet-history__head {
+  border-bottom-color: #e2e8f0;
+}
+html[data-theme='light'] .wallet-date-filter {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+html[data-theme='light'] .wallet-tx-filters__btn {
+  color: #64748b;
+}
+html[data-theme='light'] .wallet-tx-filters__btn--active {
+  color: #0f172a;
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+html[data-theme='light'] .wallet-table th {
+  color: #64748b;
+}
+html[data-theme='light'] .wallet-table td {
+  color: #334155;
+  border-bottom-color: #e2e8f0;
+}
+html[data-theme='light'] .wallet-table__amount--pos {
+  color: #16a34a;
+}
+html[data-theme='light'] .wallet-table__amount--neg {
+  color: #0f172a;
 }

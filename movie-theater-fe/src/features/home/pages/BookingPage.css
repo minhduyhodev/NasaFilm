@@ -136,3 +136,165 @@
 .animate-fade-in {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ==========================================================================
+   LIGHT THEME OVERRIDES
+   ========================================================================== */
+html[data-theme='light'] .booking-wrapper {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .booking-wrapper .bg-\[\#111215\]\/30,
+html[data-theme='light'] .booking-wrapper .bg-\[\#111215\]\/40,
+html[data-theme='light'] .booking-wrapper .bg-\[\#121215\]\/50 {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+html[data-theme='light'] .booking-wrapper .bg-\[\#0f121d\] {
+  background-color: #f8fafc !important;
+}
+
+html[data-theme='light'] .booking-wrapper .text-white {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .booking-wrapper .text-gray-400,
+html[data-theme='light'] .booking-wrapper .text-gray-500,
+html[data-theme='light'] .booking-wrapper .text-gray-300,
+html[data-theme='light'] .booking-wrapper .text-zinc-300,
+html[data-theme='light'] .booking-wrapper .text-zinc-500 {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .booking-wrapper .bg-white\/5 {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-theme='light'] .booking-wrapper .border-white\/5,
+html[data-theme='light'] .booking-wrapper .border-white\/10,
+html[data-theme='light'] .booking-wrapper .border-white\/25 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html[data-theme='light'] .booking-wrapper .hover\:border-white\/10:hover {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+html[data-theme='light'] .glass-panel {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Fix seat map backgrounds and text in light mode */
+html[data-theme='light'] .seat.standard {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #475569;
+  background: #ffffff;
+}
+
+html[data-theme='light'] .seat.standard:hover:not(.occupied) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .seat.vip {
+  border-color: rgba(217, 119, 6, 0.4);
+  color: #d97706;
+  background: #fffbeb;
+}
+
+/* Seat map backgrounds and text */
+html[data-theme='light'] #root .booking-wrapper .seat {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.vip {
+  border-color: #f59e0b !important;
+  color: #b45309 !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.couple {
+  border-color: #ec4899 !important;
+  color: #be185d !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.selected {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+html[data-theme='light'] #root .booking-wrapper .seat.sold {
+  background-color: #94a3b8 !important;
+  color: #ffffff !important;
+  border-color: #94a3b8 !important;
+}
+
+html[data-theme='light'] .seat.vip:hover:not(.occupied) {
+  background: #fef3c7;
+  border-color: #d97706;
+  color: #b45309;
+}
+
+html[data-theme='light'] .seat.couple {
+  border-color: rgba(192, 38, 211, 0.4);
+  color: #c026d3;
+  background: #fdf4ff;
+}
+
+html[data-theme='light'] .seat.couple:hover:not(.occupied) {
+  background: #fae8ff;
+  border-color: #c026d3;
+  color: #a21caf;
+}
+
+html[data-theme='light'] .seat.selected {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.3) !important;
+}
+
+html[data-theme='light'] .seat.occupied {
+  background: #f1f5f9 !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: rgba(0, 0, 0, 0.25) !important;
+}
+
+html[data-theme='light'] .seat-couple-invalid-ghost {
+  color: #b45309 !important;
+}
+
+html[data-theme='light'] .screen-glow {
+  box-shadow: 0 -15px 45px -5px rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme='light'] .screen-curve {
+  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.15), transparent) !important;
+}
+
+html[data-theme='light'] .booking-wrapper button.bg-red-600 {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+html[data-theme='light'] .booking-wrapper button.bg-red-600:hover:not(:disabled) {
+  background-color: #b91c1c !important;
+}
+
+html[data-theme='light'] .booking-wrapper button.bg-red-600 * {
+  color: #ffffff !important;
+}
+
+/* Fix "Ghế đã chọn" faint white text */
+html[data-theme='light'] #root .booking-wrapper .max-h-60 .bg-white\/5 span.text-white {
+  color: #0f172a !important;
+}

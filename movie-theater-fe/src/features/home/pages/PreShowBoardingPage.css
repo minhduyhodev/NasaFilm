@@ -1014,3 +1014,198 @@
     print-color-adjust: exact;
   }
 }
+
+/* =========================================
+   LIGHT THEME OVERRIDES FOR BOARDING PASS
+   ========================================= */
+
+html[data-theme='light'] .pre-show-page__cosmos {
+  background: var(--nf-bg-app, #f8fafc) !important;
+}
+
+html[data-theme='light'] .pre-show-page__cosmos::after {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px) !important;
+}
+
+html[data-theme='light'] .pre-show-page__back,
+html[data-theme='light'] .pre-show-page__close {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .pre-show-page__back:hover,
+html[data-theme='light'] .pre-show-page__close:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .cine-ticket {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.02) !important;
+}
+
+html[data-theme='light'] .cine-ticket__notch {
+  background: var(--nf-bg-app, #f8fafc) !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .cine-ticket__ribbon {
+  background: linear-gradient(90deg, #f1f5f9, #f8fafc 55%, #f1f5f9) !important;
+  border-bottom-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .cine-ticket__ribbon-right {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .cine-ticket__header {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .cine-ticket__brand {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .cine-ticket__mission {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .cine-ticket__serial {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .cine-ticket__cinema {
+  background: #f8fafc !important;
+  border-right-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .cine-ticket__format {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme='light'] .cine-ticket__countdown {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .cine-ticket__countdown-label {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .cine-ticket__countdown-value {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .cine-ticket__title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .cine-ticket__cell--highlight {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .cine-ticket__label {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .cine-ticket__value {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .cine-ticket__value--gold {
+  color: #b45309 !important;
+}
+
+html[data-theme='light'] .cine-ticket__entrance {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .cine-ticket__entrance p {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .cine-ticket__stub {
+  background: linear-gradient(90deg, #f8fafc, transparent 30%), #ffffff !important;
+  border-left-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .cine-ticket__stub-notch {
+  background: var(--nf-bg-app, #f8fafc) !important;
+  border-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .cine-ticket__stub-label {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .cine-ticket__qr {
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-theme='light'] .cine-ticket__qr-tap-hint {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .cine-ticket__code {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .cine-ticket__reveal-code {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .cine-ticket__scan-tip {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .cine-ticket__actions {
+  background: #f8fafc !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+html[data-theme='light'] .cine-ticket__btn--primary {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25) !important;
+}
+
+html[data-theme='light'] .cine-ticket__btn--primary:hover {
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35) !important;
+}
+
+html[data-theme='light'] .cine-ticket__btn--ghost {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme='light'] .cine-ticket__btn--ghost:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .pre-show-page__success {
+  background: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1) !important;
+}
+
+html[data-theme='light'] .pre-show-page__success-eyebrow {
+  color: #16a34a !important;
+}
+
+html[data-theme='light'] .pre-show-page__success-title {
+  color: #15803d !important;
+}
+
+html[data-theme='light'] .pre-show-page__success-copy {
+  color: #166534 !important;
+}
