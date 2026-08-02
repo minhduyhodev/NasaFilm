@@ -96,6 +96,13 @@ class AuthService {
           requestUrl.includes('/api/register');
 
         if (error.response?.status === 401 && !isAuthRequest && originalRequest && !originalRequest._retry) {
+          // Chỉ thử refresh khi user thực sự đang có token (đã từng đăng nhập).
+          // Khách mới chưa có token → không cần refresh, không redirect về /login.
+          const currentToken = tokenService.getToken();
+          if (!currentToken) {
+            return Promise.reject(error);
+          }
+
           if (isRefreshing) {
             return new Promise((resolve) => {
               subscribeTokenRefresh((token) => {
@@ -127,8 +134,9 @@ class AuthService {
         }
 
         if (error.response?.status === 401 && !isAuthRequest) {
+          const hadToken = !!tokenService.getToken();
           tokenService.clear();
-          if (!isPublicApiRequest(requestUrl)) {
+          if (!isPublicApiRequest(requestUrl) && hadToken) {
             sessionStorage.setItem('auth_expired', 'true');
             window.location.href = '/login';
           }
