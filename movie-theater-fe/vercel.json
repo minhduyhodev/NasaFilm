@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://api.nasafilm.site/api/:path*" },
+    { "source": "/stomp/:path*", "destination": "https://api.nasafilm.site/stomp/:path*" },
+    { "source": "/ws/:path*", "destination": "https://api.nasafilm.site/ws/:path*" },
+    { "source": "/((?!api|stomp|ws).*)", "destination": "/index.html" }
+  ]
+}
