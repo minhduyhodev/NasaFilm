@@ -181,18 +181,9 @@ export const resolvePlayableMediaUrl = async (url) => {
     return '';
   }
   const trimmed = url.trim();
-  // Prefer cookie-authenticated stream URL without query token leakage.
+  // Keep token in URL for cross-subdomain auth (Vercel proxy cannot forward cookies).
   if (isStreamMediaUrl(trimmed)) {
-    try {
-      const parsed = trimmed.startsWith('http')
-        ? new URL(trimmed)
-        : new URL(trimmed, 'http://localhost');
-      parsed.searchParams.delete('token');
-      const path = `${parsed.pathname}${parsed.search}`;
-      return trimmed.startsWith('http') ? parsed.toString() : path;
-    } catch {
-      return trimmed;
-    }
+    return trimmed;
   }
   const key = unwrapMediaUrl(trimmed);
   if (key.toLowerCase().startsWith('movie/')) {
