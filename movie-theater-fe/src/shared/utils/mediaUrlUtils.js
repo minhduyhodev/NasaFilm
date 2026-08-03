@@ -57,7 +57,8 @@ export const isAwsS3Key = (url) => {
   return !trimmed.includes('://') && S3_KEY_PREFIX_RE.test(trimmed);
 };
 
-const apiBaseUrl = import.meta.env.VITE_API_URL || '';
+// Always use relative path so Vercel proxies it. This is REQUIRED so the browser sends the same-origin vod_stream cookie to the proxy.
+const apiBaseUrl = '';
 
 const toBorderFromKey = (key) =>
   `${apiBaseUrl}/api/media/border?key=${encodeURIComponent(key.replace(/^\/+/, ''))}`;
@@ -236,8 +237,7 @@ export const handlePosterError = (event) => {
     }
 
     if (attempt === 1) {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      img.src = `${apiBase}/api/media/proxy?url=${encodeURIComponent(originalUrl)}`;
+      img.src = `/api/media/proxy?url=${encodeURIComponent(originalUrl)}`;
       return;
     }
   }
