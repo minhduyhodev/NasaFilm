@@ -57,11 +57,13 @@ export const isAwsS3Key = (url) => {
   return !trimmed.includes('://') && S3_KEY_PREFIX_RE.test(trimmed);
 };
 
+const apiBaseUrl = import.meta.env.VITE_API_URL || '';
+
 const toBorderFromKey = (key) =>
-  `/api/media/border?key=${encodeURIComponent(key.replace(/^\/+/, ''))}`;
+  `${apiBaseUrl}/api/media/border?key=${encodeURIComponent(key.replace(/^\/+/, ''))}`;
 
 const toStreamFromKey = (key, token = null) => {
-  let path = `/api/media/stream?key=${encodeURIComponent(key.replace(/^\/+/, ''))}`;
+  let path = `${apiBaseUrl}/api/media/stream?key=${encodeURIComponent(key.replace(/^\/+/, ''))}`;
   if (token) {
     path += `&token=${encodeURIComponent(token)}`;
   }
