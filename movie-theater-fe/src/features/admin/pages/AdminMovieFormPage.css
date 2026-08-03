@@ -57,8 +57,7 @@
 }
 
 .amf-col-stack > .amf-card {
-  flex: 1 1 0;
-  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .amf-col-stack > .amf-card:first-child {
@@ -592,10 +591,6 @@
   flex-direction: column;
   gap: 0.5rem;
   flex: 1;
-  min-height: 0;
-  max-height: none;
-  overflow-y: auto;
-  padding-right: 2px;
 }
 
 .amf-cast-empty {
