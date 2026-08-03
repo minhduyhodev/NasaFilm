@@ -124,10 +124,11 @@ public final class S3MediaBorderUtils {
             if (host == null || !host.equalsIgnoreCase(allowedHost)) {
                 return null;
             }
-            String path = uri.getPath();
-            if (path == null || path.isBlank() || "/".equals(path)) {
+            String rawPath = uri.getRawPath();
+            if (rawPath == null || rawPath.isBlank() || "/".equals(rawPath)) {
                 return null;
             }
+            String path = java.net.URLDecoder.decode(rawPath, StandardCharsets.UTF_8);
             String key = path.startsWith("/") ? path.substring(1) : path;
             return sanitizeKey(key);
         } catch (Exception ex) {

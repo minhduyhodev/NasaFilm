@@ -6,6 +6,7 @@ import { useBoardingPass } from '../../../shared/hooks/queries/usePreShowQueries
 import { notificationService } from '../../../shared/services/notificationService';
 import { formatCountdown, getMovieGlowClass } from '../utils/preShowUtils';
 import { maskTicketCode } from '../utils/movieUtils';
+import { resolveSafePosterUrl, handlePosterError } from '../../../shared/utils/mediaUrlUtils';
 import './PreShowBoardingPage.css';
 
 const QR_OPTIONS = {
@@ -187,7 +188,12 @@ const PreShowBoardingPage = () => {
           <div className="cine-ticket__body">
             <section className="cine-ticket__cinema">
               {pass.posterUrl ? (
-                <img src={pass.posterUrl} alt={pass.movieTitle} className="cine-ticket__poster" />
+                <img
+                  src={resolveSafePosterUrl(pass.posterUrl)}
+                  alt={pass.movieTitle}
+                  className="cine-ticket__poster"
+                  onError={handlePosterError}
+                />
               ) : (
                 <div className="cine-ticket__poster cine-ticket__poster--fallback" />
               )}
@@ -324,7 +330,12 @@ const PreShowBoardingPage = () => {
         <article className="pre-show-boarding__print-ticket" aria-hidden="true">
           <div className="print-ticket">
             {pass.posterUrl ? (
-              <img src={pass.posterUrl} alt="" className="print-ticket__poster" />
+              <img
+                src={resolveSafePosterUrl(pass.posterUrl)}
+                alt=""
+                className="print-ticket__poster"
+                onError={handlePosterError}
+              />
             ) : (
               <div className="print-ticket__poster print-ticket__poster--fallback" />
             )}

@@ -276,7 +276,7 @@ const Navbar = () => {
               className={`navbar-nav-link ${isLinkActive('/offers') ? 'navbar-nav-link--active' : ''}`}
               onClick={(e) => handleLinkClick(e, '/offers')}
             >
-              Bắp Nước
+              Dịch Vụ
             </Link>
             <Link
               to="/about"
