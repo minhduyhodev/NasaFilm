@@ -360,7 +360,7 @@ const WatchPage = () => {
       });
       if (duration > 0) params.set('durationSeconds', String(Math.floor(duration)));
       const token = tokenService.getToken();
-      fetch(`${import.meta.env.VITE_API_URL || ''}/api/vod/heartbeat/${movieRef}?${params.toString()}`, {
+      fetch(`/api/vod/heartbeat/${movieRef}?${params.toString()}`, {
         method: 'POST',
         keepalive: true,
         headers: {

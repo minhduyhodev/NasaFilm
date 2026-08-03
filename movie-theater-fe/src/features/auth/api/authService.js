@@ -3,7 +3,8 @@ import tokenService from '../utils/tokenService';
 import { resolveAvatarUrl } from '../../../shared/utils/avatarUrl';
 import { logger } from '../../../shared/utils/logger';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+// Always use relative path to force Vercel proxy. This solves cross-origin cookie Domain issues.
+const API_BASE_URL = '';
 
 /** Các API công khai — không redirect /login khi token hết hạn. */
 const PUBLIC_API_PREFIXES = [
