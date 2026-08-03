@@ -17,6 +17,10 @@ public final class VodStreamCookieSupport {
     }
 
     public static ResponseCookie create(String rawToken, OffsetDateTime expiresAt, boolean secure, String sameSite) {
+        return create(rawToken, expiresAt, secure, sameSite, null);
+    }
+
+    public static ResponseCookie create(String rawToken, OffsetDateTime expiresAt, boolean secure, String sameSite, String domain) {
         String normalizedSameSite = normalizeSameSite(sameSite);
         if ("None".equals(normalizedSameSite) && !secure) {
             throw new IllegalArgumentException("SameSite=None requires a Secure stream cookie");
@@ -25,24 +29,34 @@ public final class VodStreamCookieSupport {
         if (expiresAt != null) {
             maxAgeSeconds = Math.max(0L, Duration.between(OffsetDateTime.now(), expiresAt).getSeconds());
         }
-        return ResponseCookie.from(COOKIE_NAME, rawToken == null ? "" : rawToken.trim())
+        var builder = ResponseCookie.from(COOKIE_NAME, rawToken == null ? "" : rawToken.trim())
                 .httpOnly(true)
                 .secure(secure)
                 .path(COOKIE_PATH)
                 .sameSite(normalizedSameSite)
-                .maxAge(maxAgeSeconds)
-                .build();
+                .maxAge(maxAgeSeconds);
+        if (domain != null && !domain.isBlank()) {
+            builder = builder.domain(domain);
+        }
+        return builder.build();
     }
 
     public static ResponseCookie clear(boolean secure, String sameSite) {
+        return clear(secure, sameSite, null);
+    }
+
+    public static ResponseCookie clear(boolean secure, String sameSite, String domain) {
         String normalizedSameSite = normalizeSameSite(sameSite);
-        return ResponseCookie.from(COOKIE_NAME, "")
+        var builder = ResponseCookie.from(COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(secure)
                 .path(COOKIE_PATH)
                 .sameSite(normalizedSameSite)
-                .maxAge(0)
-                .build();
+                .maxAge(0);
+        if (domain != null && !domain.isBlank()) {
+            builder = builder.domain(domain);
+        }
+        return builder.build();
     }
 
     public static String read(HttpServletRequest request) {

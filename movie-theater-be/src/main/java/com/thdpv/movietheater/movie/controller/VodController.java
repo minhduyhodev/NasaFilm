@@ -45,6 +45,9 @@ public class VodController {
     @Value("${app.vod.stream-cookie.same-site:Lax}")
     private String streamCookieSameSite;
 
+    @Value("${app.vod.stream-cookie.domain:}")
+    private String streamCookieDomain;
+
     @GetMapping("/status/{movieRef}")
     public ResponseEntity<ApiResponse<VodStatusResponse>> getVodStatus(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -81,7 +84,8 @@ public class VodController {
                 rawStreamToken,
                 response.getExpiresAt(),
                 streamCookieSecure,
-                streamCookieSameSite);
+                streamCookieSameSite,
+                streamCookieDomain);
         response.setStreamToken(null);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, streamCookie.toString())
