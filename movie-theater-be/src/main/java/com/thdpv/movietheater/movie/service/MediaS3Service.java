@@ -224,6 +224,7 @@ public class MediaS3Service {
             streamHeadCache.invalidate(objectKey);
             return ResponseEntity.notFound().build();
         } catch (S3Exception ex) {
+            System.err.println("S3Exception when streaming key " + objectKey + ": " + ex.getMessage());
             streamHeadCache.invalidate(objectKey);
             if (ex.statusCode() == 403 || ex.statusCode() == 404) {
                 return ResponseEntity.notFound().build();

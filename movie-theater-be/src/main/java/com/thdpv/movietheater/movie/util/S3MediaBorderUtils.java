@@ -161,7 +161,10 @@ public final class S3MediaBorderUtils {
         if (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
-        return base + "/" + safeKey;
+        String encodedKey = java.util.Arrays.stream(safeKey.split("/"))
+                .map(part -> URLEncoder.encode(part, StandardCharsets.UTF_8).replace("+", "%20"))
+                .collect(java.util.stream.Collectors.joining("/"));
+        return base + "/" + encodedKey;
     }
 
     /** Link file phim đầy đủ trên bucket mentor (prefix {@code movie/}). */
