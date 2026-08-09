@@ -772,7 +772,7 @@ const MovieDetailPage = () => {
         </section>
 
         {/* Main Content Grid */}
-        <section id="select-showtimes" className="movie-detail-content scroll-mt-24">
+        <section id="select-showtimes" className="movie-detail-content scroll-mt-24 min-w-0">
           {movie.cast.length > 0 && (
             <div className={`movie-detail-cast-col${isFromOnline ? ' movie-detail-cast-col--full' : ''}`}>
               <h3 className="movie-detail-section-title movie-detail-section-title--accent">
