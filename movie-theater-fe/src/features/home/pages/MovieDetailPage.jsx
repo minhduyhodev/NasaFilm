@@ -772,7 +772,7 @@ const MovieDetailPage = () => {
         </section>
 
         {/* Main Content Grid */}
-        <section id="select-showtimes" className="movie-detail-content">
+        <section id="select-showtimes" className="movie-detail-content scroll-mt-24">
           {movie.cast.length > 0 && (
             <div className={`movie-detail-cast-col${isFromOnline ? ' movie-detail-cast-col--full' : ''}`}>
               <h3 className="movie-detail-section-title movie-detail-section-title--accent">
@@ -885,7 +885,7 @@ const MovieDetailPage = () => {
 
               {selectedShowtime && seatInfo && (
                 <div className="movie-detail-selected-showtime glass-panel border-red-500/20 bg-red-600/5 animate-fade-in">
-                  <div className="space-y-1 text-left">
+                  <div className="space-y-1 text-left min-w-0 w-full">
                     <span className="text-[10px] font-black uppercase text-red-500 tracking-wider">
                       Suất chiếu đã chọn
                     </span>
@@ -1006,7 +1006,7 @@ const MovieDetailPage = () => {
           )}
         </section>
 
-        <div id="movie-reviews" className="movie-reviews-anchor">
+        <div id="movie-reviews" className="movie-reviews-anchor scroll-mt-24">
           <MovieReviewsSection
             movieUuid={dbMovie.uuid}
             movieTitle={movie.title}
