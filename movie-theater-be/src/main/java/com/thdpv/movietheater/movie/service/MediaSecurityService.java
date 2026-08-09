@@ -27,6 +27,7 @@ public class MediaSecurityService {
     /**
      * Xác thực token vé VOD khi stream key movie/.
      */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public void assertVodStreamAllowed(String objectKey, String token) {
         if (objectKey == null || !objectKey.toLowerCase(Locale.ROOT).startsWith("movie/")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Stream chỉ hỗ trợ key movie/");

@@ -187,7 +187,7 @@ public final class S3MediaBorderUtils {
         }
 
         String directUrl = trimToNull(movie.getStreamingUrl());
-        if (isAwsMovieStreamingUrl(directUrl)) {
+        if (directUrl != null && !directUrl.isBlank()) {
             return directUrl;
         }
 
@@ -203,7 +203,6 @@ public final class S3MediaBorderUtils {
                 .sorted(Comparator.comparingInt(media -> media.getSortOrder() != null ? media.getSortOrder() : 0))
                 .map(MovieMedia::getMediaUrl)
                 .map(S3MediaBorderUtils::trimToNull)
-                .filter(S3MediaBorderUtils::isAwsMovieStreamingUrl)
                 .findFirst()
                 .orElse(null);
     }
