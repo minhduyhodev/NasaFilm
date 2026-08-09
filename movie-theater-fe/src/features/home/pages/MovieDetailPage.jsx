@@ -889,7 +889,7 @@ const MovieDetailPage = () => {
                     <span className="text-[10px] font-black uppercase text-red-500 tracking-wider">
                       Suất chiếu đã chọn
                     </span>
-                    <h4 className="text-base font-black text-white uppercase">
+                    <h4 className="text-base font-black text-white uppercase break-words whitespace-normal">
                       {selectedShowtime.cinemaName} -{" "}
                       {selectedShowtime.cinemaRoomName}
                     </h4>
