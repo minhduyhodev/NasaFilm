@@ -419,15 +419,10 @@ const AdminMovieFormPage = () => {
     const supportsOnline =
       formData.screeningMode === 'BOTH' || formData.screeningMode === 'ONLINE_ONLY';
     let streamingUrl = unwrapMediaUrl(formData.streamingUrl.trim()) || null;
-    if (streamingUrl && !isAwsMovieStreamingUrl(streamingUrl)) {
-      notificationService.error(
-        'Link phim chỉ chấp nhận S3 key thư mục movie/ (vd: movie/avatar2009.mp4) hoặc Object URL bucket java-06'
-      );
-      return;
-    }
+
     if (supportsOnline && !streamingUrl) {
       notificationService.error(
-        'Phim xem online cần Link phim AWS S3 (movie/...mp4), không dùng YouTube/opstream'
+        'Phim có hỗ trợ xem online bắt buộc phải cung cấp Link phim'
       );
       return;
     }

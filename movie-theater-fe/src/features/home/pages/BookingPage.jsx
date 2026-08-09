@@ -312,6 +312,29 @@ const BookingPage = () => {
           </div>
         </aside>
       </main>
+
+      {/* Mobile Sticky Footer */}
+      <div className="booking-sticky-cta lg:hidden">
+        <button
+          onClick={handleConfirm}
+          disabled={selectedSeats.length === 0 || hasGapViolation || isConfirming}
+          className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2 ${
+            selectedSeats.length === 0 || hasGapViolation
+              ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-white/5'
+              : isConfirming
+                ? 'bg-red-700 text-white cursor-wait opacity-80'
+                : 'bg-red-600 hover:bg-red-700 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)] cursor-pointer active:scale-[0.98]'
+          }`}
+        >
+          {isConfirming
+            ? 'Đang xử lý...'
+            : hasGapViolation
+              ? 'Lỗi khoảng trống ghế'
+              : selectedSeats.length === 0
+                ? 'Xác nhận ghế'
+                : `Xác nhận đặt (${selectedSeats.length} ghế)`}
+        </button>
+      </div>
     </div>
   );
 };

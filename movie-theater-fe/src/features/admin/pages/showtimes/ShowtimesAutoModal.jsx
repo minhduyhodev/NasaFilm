@@ -156,8 +156,8 @@ const ShowtimesAutoModal = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="st-auto-modal w-full max-w-3xl rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl text-left relative max-h-[95vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4">
+      <div className="st-auto-modal w-full h-[100dvh] sm:h-auto max-h-none sm:max-h-[95vh] sm:max-w-3xl sm:rounded-xl bg-[#090D1A] sm:border sm:border-[#1a2238] border-x-0 border-y-0 shadow-2xl text-left relative overflow-hidden flex flex-col">
         <button
           type="button"
           className="absolute right-4 top-4 z-10 p-1.5 text-gray-400 hover:text-white rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"

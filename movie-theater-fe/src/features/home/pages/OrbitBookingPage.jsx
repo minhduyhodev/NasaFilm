@@ -699,17 +699,40 @@ const OrbitBookingPage = () => {
         </div>
       </div>
 
-      {isHostUser && canEditSeats && (
+      {/* Mobile Sticky Footer */}
+      {(canEditSeats || (isCheckout && isHostUser)) && (
         <div className="orbit-booking__sticky-cta lg:hidden">
-          <button
-            type="button"
-            disabled={!allMembersReady || isPreparing || hasGapViolation || !isGroupSeatLimitOk}
-            onClick={handleHostCheckout}
-            className="orbit-booking__cta-host w-full py-3.5 rounded-xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2"
-          >
-            {isPreparing ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-            Xác nhận nhóm &amp; Tiếp tục
-          </button>
+          {isHostUser && canEditSeats && (
+            <button
+              type="button"
+              disabled={!allMembersReady || isPreparing || hasGapViolation || !isGroupSeatLimitOk}
+              onClick={handleHostCheckout}
+              className="orbit-booking__cta-host w-full py-3.5 rounded-xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+            >
+              {isPreparing ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              Xác nhận nhóm &amp; Tiếp tục
+            </button>
+          )}
+          {!isHostUser && canEditSeats && selectedSeats?.length > 0 && (
+            <button
+              type="button"
+              onClick={handleMemberProceedToConcessions}
+              className="orbit-booking__cta-host w-full py-3.5 rounded-xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+            >
+              Tiếp tục chọn bắp nước
+            </button>
+          )}
+          {isHostUser && isCheckout && (
+            <button
+              type="button"
+              disabled={isPreparing}
+              onClick={handleContinueCheckout}
+              className="orbit-booking__cta-host w-full py-3.5 rounded-xl text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+            >
+              {isPreparing ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              Tiếp tục chọn bắp nước
+            </button>
+          )}
         </div>
       )}
     </div>
