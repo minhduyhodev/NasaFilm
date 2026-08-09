@@ -98,12 +98,11 @@ export const getMovieStreamingUrl = (movie) => {
     }
   }
 
-  // Online watch chỉ chấp nhận S3 movie/ — không fallback trailer YouTube
-  for (const url of candidates) {
-    if (isAwsMovieStreamingUrl(url)) {
-      return url;
-    }
+  // Trả về bất kỳ URL nào được cấu hình
+  if (candidates.length > 0) {
+    return candidates[0];
   }
+  
   return '';
 };
 

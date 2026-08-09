@@ -1821,10 +1821,9 @@ public class BookingService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phim"));
 
         String streamingUrl = S3MediaBorderUtils.resolveStreamingUrl(movie);
-        if (streamingUrl == null || streamingUrl.isBlank()
-                || !S3MediaBorderUtils.isAwsMovieStreamingUrl(streamingUrl)) {
+        if (streamingUrl == null || streamingUrl.isBlank()) {
             throw new AppException(ErrorCode.BAD_REQUEST,
-                    "Phim chưa được cấu hình link phát trực tuyến S3 (movie/...). Vui lòng liên hệ quản trị viên.");
+                    "Phim chưa được cấu hình link phát trực tuyến. Vui lòng liên hệ quản trị viên.");
         }
 
         OffsetDateTime now = OffsetDateTime.now();
