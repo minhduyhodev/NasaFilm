@@ -150,12 +150,14 @@ const Navbar = () => {
   const [openCatalog, setOpenCatalog] = useState(null);
   const [showBookingDropdown, setShowBookingDropdown] = useState(false);
   const [showOrbitJoinDialog, setShowOrbitJoinDialog] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const closeCatalogTimerRef = useRef(null);
 
   useEffect(() => {
     setOpenCatalog(null);
     setShowBookingDropdown(false);
     setShowOrbitJoinDialog(false);
+    setIsMobileMenuOpen(false);
   }, [location.pathname, location.search]);
 
   const handleLinkClick = (e, path) => {
@@ -368,7 +370,7 @@ const Navbar = () => {
 
           <NotificationBell />
 
-          <button className="navbar-btn-menu">
+          <button className="navbar-btn-menu" onClick={() => setIsMobileMenuOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
 
@@ -400,6 +402,37 @@ const Navbar = () => {
 
       {showOrbitJoinDialog && (
         <OrbitJoinDialog onClose={() => setShowOrbitJoinDialog(false)} />
+      )}
+
+      {/* Mobile Menu Sidebar */}
+      {isMobileMenuOpen && (
+        <>
+          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="fixed top-0 right-0 z-[110] w-64 h-full bg-[#0a0a0f] border-l border-white/10 p-5 flex flex-col shadow-2xl transition-transform">
+            <div className="flex justify-between items-center mb-6">
+              <span className="font-bold text-white text-lg">Menu</span>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 bg-white/5 rounded-full text-white/70 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <nav className="flex flex-col gap-4 overflow-y-auto">
+              <Link to="/movies" className="text-white/80 hover:text-white text-base font-semibold py-2" onClick={() => setIsMobileMenuOpen(false)}>Phim</Link>
+              <Link to="/cinemas" className="text-white/80 hover:text-white text-base font-semibold py-2" onClick={() => setIsMobileMenuOpen(false)}>Rạp Chiếu</Link>
+              <Link to="/offers" className="text-white/80 hover:text-white text-base font-semibold py-2" onClick={() => setIsMobileMenuOpen(false)}>Dịch Vụ</Link>
+              <Link to="/about" className="text-white/80 hover:text-white text-base font-semibold py-2" onClick={() => setIsMobileMenuOpen(false)}>Giới Thiệu</Link>
+              
+              <div className="my-2 border-t border-white/10" />
+              
+              <Link to="/online" className="flex items-center gap-2 text-white/80 hover:text-white text-base font-semibold py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                <Play className="w-4 h-4 text-red-500 fill-red-500" /> Xem Trực Tuyến
+              </Link>
+              <button className="flex items-center gap-2 text-white/80 hover:text-white text-base font-semibold py-2 text-left" onClick={() => { setIsMobileMenuOpen(false); setShowOrbitJoinDialog(true); }}>
+                <UsersRound className="w-4 h-4 text-red-500" /> Tham gia Orbit
+              </button>
+            </nav>
+          </div>
+        </>
       )}
     </header>
   );

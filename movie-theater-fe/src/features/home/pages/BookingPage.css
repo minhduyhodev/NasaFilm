@@ -298,3 +298,14 @@ html[data-theme='light'] .booking-wrapper button.bg-red-600 * {
 html[data-theme='light'] #root .booking-wrapper .max-h-60 .bg-white\/5 span.text-white {
   color: #0f172a !important;
 }
+
+.booking-sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(10, 10, 12, 0.98), rgba(10, 10, 12, 0.85));
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}

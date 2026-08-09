@@ -1143,18 +1143,11 @@ public class MovieService {
         if (resolved != null) {
             resolved = S3MediaBorderUtils.toStoredKey(resolved);
         }
-        if (resolved != null && !S3MediaBorderUtils.isAwsMovieStreamingUrl(resolved)) {
-            throw new AppException(ErrorCode.BAD_REQUEST,
-                    "streamingUrl chi chap nhan S3 key thu muc movie/ (vd: movie/avatar2009.mp4) hoac Object URL bucket java-06");
-        }
         movie.setStreamingUrl(resolved);
     }
 
     private void syncStreamingUrlFromMediasIfMissing(Movie movie) {
         if (trimToNull(movie.getStreamingUrl()) != null) {
-            if (!S3MediaBorderUtils.isAwsMovieStreamingUrl(movie.getStreamingUrl())) {
-                movie.setStreamingUrl(null);
-            }
             return;
         }
         movie.setStreamingUrl(S3MediaBorderUtils.resolveStreamingUrl(movie));

@@ -139,9 +139,9 @@ const ShowtimesCreateModal = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4" onClick={onClose}>
       <div
-        className="stcm-modal w-full max-w-xl rounded-xl bg-[#090D1A] border border-[#1a2238] shadow-2xl text-left relative max-h-[92vh] overflow-hidden flex flex-col"
+        className="stcm-modal w-full h-[100dvh] sm:h-auto max-h-none sm:max-h-[92vh] sm:max-w-xl sm:rounded-xl bg-[#090D1A] sm:border sm:border-[#1a2238] shadow-2xl text-left relative overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="stcm-head">

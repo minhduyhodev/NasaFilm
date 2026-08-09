@@ -249,6 +249,7 @@
     padding: 1.35rem 1.35rem 1.5rem;
   }
 
+
   .home-personalize-duo__divider {
     display: block;
     width: 1px;
@@ -268,5 +269,24 @@
 @media (min-width: 768px) {
   .home-space-zone__fade {
     display: none;
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .home-personalize-duo {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .home-personalize-duo__divider {
+    width: 100%;
+    height: 1px;
+    margin: 0;
+  }
+
+  .home-personalize-duo__panel {
+    width: 100%;
+    max-width: 100%;
   }
 }

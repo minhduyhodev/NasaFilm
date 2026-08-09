@@ -6,7 +6,11 @@
 const AdminTableShell = ({ toolbar, footer, children, className = '' }) => (
   <div className={`adm-table-shell${className ? ` ${className}` : ''}`}>
     {toolbar ? <div className="adm-table-shell__toolbar">{toolbar}</div> : null}
-    <div className="adm-table-shell__body">{children}</div>
+    <div className="adm-table-shell__body">
+      <div className="overflow-x-auto w-full">
+        {children}
+      </div>
+    </div>
     {footer ? <div className="adm-table-shell__footer">{footer}</div> : null}
   </div>
 );
