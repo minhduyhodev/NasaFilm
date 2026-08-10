@@ -27,7 +27,7 @@ export default function AdminMonthSelector({ year, monthIndex, onChange }) {
 
   const close = () => {
     setOpen(false);
-    requestAnimationFrame(() => triggerRef.current?.focus());
+    triggerRef.current?.focus();
   };
 
   useEffect(() => {

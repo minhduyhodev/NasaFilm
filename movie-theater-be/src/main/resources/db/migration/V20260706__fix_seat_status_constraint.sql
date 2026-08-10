@@ -1,2 +1,0 @@
-ALTER TABLE seat DROP CONSTRAINT IF EXISTS seat_status_check;
-ALTER TABLE seat ADD CONSTRAINT seat_status_check CHECK (status IN ('ACTIVE', 'DISABLED', 'MAINTENANCE'));
