@@ -178,7 +178,7 @@ VITE_GOOGLE_CLIENT_ID=your_google_web_client_id
 - [03_API_DESIGN.md](/F:/NasaFilm/docs/03_API_DESIGN.md)
 - [04_PROGRESS.md](/F:/NasaFilm/docs/04_PROGRESS.md)
 
-## 📝 Trun
+## 📝 Tru
 ## 📝 Trungjavateam3 da sua Ghi chu
 
 - Đây là repo nhiều subproject, cần chạy lệnh trong đúng thư mục con.
