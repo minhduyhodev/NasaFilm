@@ -1,5 +1,6 @@
 # 🎬 NasaFilm
 
+
 NasaFilm là dự án hệ thống đặt vé xem phim, gồm frontend React/Vite và backend Spring Boot chạy tách biệt. Repo này hiện tập trung vào nền tảng xác thực người dùng, giao diện public/admin và phần khởi tạo hạ tầng cho các nghiệp vụ rạp phim.
 
 ## 🌌 Tổng quan
