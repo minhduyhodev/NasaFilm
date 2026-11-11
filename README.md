@@ -171,7 +171,7 @@ VITE_GOOGLE_CLIENT_ID=your_google_web_client_id
 4. Nếu dùng Google login, bảo đảm backend và frontend dùng cùng một Google Web Client ID.
 
 5. 
-## 📚 Tài liệu liên quan 
+## 📚 Tài liệu liên qu
 
 - [00_PROJECT_OVERVIEW.md](/F:/NasaFilm/docs/00_PROJECT_OVERVIEW.md)
 - [01_REQUIREMENTS.md](/F:/NasaFilm/docs/01_REQUIREMENTS.md)
